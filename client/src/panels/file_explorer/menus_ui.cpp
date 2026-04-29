@@ -4,7 +4,6 @@
 #include <cstdio>
 
 #include "core/commands/command_manager.h"
-#include "core/extensions/extension_manager.h"
 #include "core/file_picker/application_picker.h"
 #include "core/manager/open_with_manager.h"
 #include "core/system/util.h"
@@ -18,21 +17,20 @@ namespace fs = std::filesystem;
 using namespace misty::core;
 
 namespace misty::panel {
+
 namespace {
-
-ExtensionFileContext build_extension_file_context(const UnifiedFileItem& file) {
-    fs::path file_path(file.path);
-    ExtensionFileContext context;
-    context.path = file.path;
-    context.name = file.name;
-    context.parent_path = file_path.parent_path().string();
-    context.extension = file_path.extension().string();
-    context.mime_type = file.mime_type;
-    context.is_dir = file.is_dir;
-    return context;
+    bool can_use_local_mirror(const UnifiedFileItem& item) {
+        if (item.path.empty()) {
+            return false;
+        }
+        if (item.source != FileSource::REMOTE) {
+            return true;
+        }
+        return item.status == SyncStatus::SYNCED ||
+               item.status == SyncStatus::MODIFIED ||
+               fs::exists(item.path);
+    }
 }
-
-} // namespace
 
 const UnifiedFileItem* FileExplorerPanel::find_context_menu_target(const FileExplorerState& state) const {
     for (const auto& file : state.files) {
@@ -77,16 +75,12 @@ void FileExplorerPanel::show_context_menu(FileExplorerState& state) {
             bool is_trash_view = (std::string(state.current_path) == FileExplorerState::VIRTUAL_PATH_TRASH);
             const UnifiedFileItem* target_file = find_context_menu_target(state);
             const bool can_open_directly = target_file && !target_file->is_dir && fs::exists(target_file->path);
-            const auto extension_context = target_file ? build_extension_file_context(*target_file) : ExtensionFileContext{};
-            const auto extension_actions = can_open_directly
-                ? ExtensionManager::get().matching_file_actions(extension_context)
-                : std::vector<MatchedExtensionAction>{};
             bool all_local_available = !state.selected_files.empty();
             bool all_deletable = !state.selected_files.empty();
             bool any_remote_with_local_mirror = false;
             for (const auto& f : state.files) {
                 if (state.selected_files.count(f.id) == 0) continue;
-                bool is_avail = (f.status == SyncStatus::LOCAL || f.status == SyncStatus::SYNCED || f.status == SyncStatus::MODIFIED);
+                const bool is_avail = can_use_local_mirror(f);
                 if (!is_avail) {
                     all_local_available = false;
                     if (f.source != FileSource::REMOTE) {
@@ -120,31 +114,6 @@ void FileExplorerPanel::show_context_menu(FileExplorerState& state) {
             }
 
             if (can_open_directly) {
-                ImGui::Separator();
-            }
-
-            if (!extension_actions.empty() && target_file) {
-                if (ImGui::BeginMenu("Plugins")) {
-                    for (const auto& matched : extension_actions) {
-                        const std::string label = matched.action.title + "##" + matched.extension_id + ":" + matched.action.id;
-                        if (ImGui::MenuItem(label.c_str())) {
-                            std::string error;
-                            if (!ExtensionManager::get().invoke_file_action(matched, extension_context, &error)) {
-                                auto& activity = registry_.get_state<ActivityState>("Activity");
-                                activity.add_entry("File",
-                                    error.empty() ? "Could not launch extension." : error,
-                                    ActivityEntryType::ERROR);
-                            }
-                        }
-
-                        if (ImGui::IsItemHovered() && !matched.action.description.empty()) {
-                            ImGui::SetTooltip("%s\n%s", matched.extension_name.c_str(), matched.action.description.c_str());
-                        } else if (ImGui::IsItemHovered()) {
-                            ImGui::SetTooltip("%s", matched.extension_name.c_str());
-                        }
-                    }
-                    ImGui::EndMenu();
-                }
                 ImGui::Separator();
             }
 
@@ -256,15 +225,68 @@ void FileExplorerPanel::show_rename_modal(FileExplorerState& state) {
             if (!new_name.empty() && !state.rename_target_path.empty()) {
                 fs::path old_path(state.rename_target_path);
                 fs::path new_path = old_path.parent_path() / new_name;
-                std::error_code ec;
-                fs::rename(old_path, new_path, ec);
-                if (!ec) {
-                    auto& notif = registry_.get_state<NotificationState>("Notifications");
-                    notif.add_notification("Renamed to " + new_name);
-                    navigate_to_path(std::string(state.current_path), false);
-                    notify_shared_path_refresh(std::string(state.current_path));
-                }
+                const std::string current_dir(state.current_path);
+                const std::string old_name = old_path.filename().string();
+
+                auto& activity = registry_.get_state<ActivityState>("Activity");
+                activity.add_entry("File", "Renaming " + old_name + " in the background.", ActivityEntryType::INFO);
+
+                struct RenameResult {
+                    std::string error;
+                    bool is_dir = false;
+                };
+
+                auto result = std::make_shared<RenameResult>();
+                worker_pool_.add(
+                    [result, old_path, new_path]() {
+                        std::error_code ec;
+                        fs::rename(old_path, new_path, ec);
+                        if (ec) {
+                            result->error = ec.message();
+                            return;
+                        }
+
+                        std::error_code type_ec;
+                        result->is_dir = fs::is_directory(new_path, type_ec);
+                    },
+                    [this, result, current_dir, old_path, new_path, old_name, new_name]() {
+                        if (!result->error.empty()) {
+                            auto& activity = registry_.get_state<ActivityState>("Activity");
+                            activity.add_entry("File", "Rename failed: " + old_name + ": " + result->error,
+                                ActivityEntryType::ERROR);
+                            request_background_move_refresh(current_dir, current_dir);
+                            return;
+                        }
+
+                        auto& notif = registry_.get_state<NotificationState>("Notifications");
+                        notif.add_notification("Renamed to " + new_name);
+
+                        auto& activity = registry_.get_state<ActivityState>("Activity");
+                        activity.add_entry("File", "Renamed " + old_name + " to " + new_name,
+                            ActivityEntryType::SUCCESS);
+
+                        FileOperationRecord record;
+                        record.kind = FileOperationKind::RenameLocal;
+                        record.origin_dir = old_path.parent_path().string();
+                        record.destination_dir = new_path.parent_path().string();
+                        record.description = "Renamed " + old_name + " to " + new_name;
+                        record.items.push_back({
+                            old_path.string(),
+                            new_path.string(),
+                            new_name,
+                            result->is_dir
+                        });
+                        record_file_operation(std::move(record));
+                        request_background_move_refresh(current_dir, current_dir);
+                    },
+                    [this, current_dir, old_name](const std::string& err_msg) {
+                        auto& activity = registry_.get_state<ActivityState>("Activity");
+                        activity.add_entry("File", "Rename failed: " + old_name + ": " + err_msg,
+                            ActivityEntryType::ERROR);
+                        request_background_move_refresh(current_dir, current_dir);
+                    });
             }
+            state.rename_buffer[0] = '\0';
             state.show_rename_modal = false;
             ImGui::CloseCurrentPopup();
         }

@@ -5,14 +5,15 @@
 #include <memory>
 
 #include "core/ui/ui_registry.h"
-#include "dfs/client/misty_client.h"
 #include "panels/panel.h"
 #include "core/threading/worker_pool.h"
 #include "panels/file_explorer/file_explorer_state.h"
+#include "panels/file_explorer/operation_journal.h"
 #include "panels/workspace/workspace_state.h"
 #include "panels/activity/upload_state.h"
 #include "panels/search/search_state.h"
 
+class MistyClient;
 
 namespace misty::panel {
     class SearchPanel;  // forward declaration
@@ -48,7 +49,6 @@ namespace misty::panel {
         void navigate_to_path(const std::string& path, bool update_history = true, bool create_if_missing = true);
 
     private:
-        void apply_workspace_mount_if_ready(panel::FileExplorerState& state, panel::WorkspaceState& workspace_state);
         void handle_pending_navigation(panel::FileExplorerState& state);
         void render_search_overlay(panel::SearchState& search_state, const ImVec2& list_start, float list_height);
         void process_deferred_search_actions(panel::SearchState& search_state);
@@ -85,6 +85,20 @@ namespace misty::panel {
         void apply_table_sort(panel::FileExplorerState& state, const ImGuiTableSortSpecs& sort_specs);
         void show_file_item(panel::FileExplorerState& state, int i);
         void show_grid_item(panel::FileExplorerState& state, int i, float cell_w, float cell_h);
+        void begin_file_drag_source(panel::FileExplorerState& state, const panel::UnifiedFileItem& file, int index, bool is_selected);
+        void handle_file_drop_target(panel::FileExplorerState& state,
+                                     const std::string& dest_dir,
+                                     const ImVec2& min,
+                                     const ImVec2& max,
+                                     bool prominent,
+                                     bool auto_navigate,
+                                     bool draw_hover_feedback = true);
+        void handle_drag_navigation_target(panel::FileExplorerState& state,
+                                           const std::string& target_path,
+                                           const ImVec2& min,
+                                           const ImVec2& max,
+                                           bool prominent,
+                                           std::function<void()> navigate_callback = {});
 
         // Context menu + file operations
         void show_context_menu(panel::FileExplorerState& state);
@@ -94,13 +108,31 @@ namespace misty::panel {
         void show_permanent_delete_modal(panel::FileExplorerState& state);
         void show_permission_delete_modal(panel::FileExplorerState& state);
 
+#ifdef MISTY_TESTING
+    public:
+#endif
         // File operation helpers
         void perform_copy(panel::FileExplorerState& state);
         void perform_cut(panel::FileExplorerState& state);
         void perform_paste(panel::FileExplorerState& state);
+        void perform_undo(panel::FileExplorerState& state);
+        void perform_redo(panel::FileExplorerState& state);
+        void perform_drop_items(panel::FileExplorerState& state,
+                                const std::vector<panel::UnifiedFileItem>& items,
+                                const std::string& dest_dir,
+                                panel::ClipboardOp op);
         void perform_paste_local_to_local(panel::FileExplorerState& state, const panel::UnifiedFileItem& item, const std::string& dest_dir, panel::ClipboardOp op);
-        void perform_paste_to_cloud(panel::FileExplorerState& state, const panel::UnifiedFileItem& item, const std::string& dest_dir, panel::ClipboardOp op);
+        bool perform_paste_to_cloud(panel::FileExplorerState& state, const panel::UnifiedFileItem& item, const std::string& dest_dir, panel::ClipboardOp op);
+        bool perform_paste_cloud_to_cloud(panel::FileExplorerState& state, const panel::UnifiedFileItem& item, const std::string& dest_dir, panel::ClipboardOp op);
         void perform_paste_cloud_to_local(panel::FileExplorerState& state, const panel::UnifiedFileItem& item, const std::string& dest_dir, panel::ClipboardOp op);
+        void queue_cross_device_move(const panel::UnifiedFileItem& item,
+                                     const std::string& source_dir,
+                                     const std::string& dest_dir,
+                                     const std::filesystem::path& src,
+                                     const std::filesystem::path& dest,
+                                     std::function<void()> on_success = {});
+        void request_background_move_refresh(const std::string& source_dir,
+                                             const std::string& dest_dir);
         void trigger_upload(const std::string& local_path, const std::string& dest_dir);
         void perform_delete_selected(panel::FileExplorerState& state);
         void perform_delete_local_selected(panel::FileExplorerState& state);
@@ -110,7 +142,17 @@ namespace misty::panel {
         void retry_permission_delete(panel::FileExplorerState& state);
         bool open_context_menu_target(panel::FileExplorerState& state);
         const UnifiedFileItem* find_context_menu_target(const panel::FileExplorerState& state) const;
+        void record_file_operation(panel::FileOperationRecord record);
+        bool undo_file_operation(panel::FileExplorerState& state,
+                                 const panel::FileOperationRecord& record,
+                                 std::string* error_message);
+        bool redo_file_operation(panel::FileExplorerState& state,
+                                 const panel::FileOperationRecord& record,
+                                 std::string* error_message);
 
+#ifdef MISTY_TESTING
+    private:
+#endif
         // Async local filesystem navigation
         void navigate_to_local_path_async(const std::string& path, bool update_history, uint64_t navigation_generation);
 
@@ -150,7 +192,6 @@ namespace misty::panel {
         std::string window_name_;
 
         std::string initial_start_path_;
-        bool workspace_mount_applied_ = false;
         SearchPanel* search_panel_ = nullptr;
         std::function<void()> body_drag_source_callback_;
         std::function<void(const std::string&)> shared_path_refresh_callback_;
