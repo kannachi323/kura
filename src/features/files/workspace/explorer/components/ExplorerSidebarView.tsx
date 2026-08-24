@@ -28,7 +28,6 @@ import {
   visibleSmartFolderRules,
 } from "@/features/file-ui";
 export type { ExplorerSidebarProps } from "../model/interfaces/components/ExplorerSidebar";
-export type { QuickAccessItem } from "../model/types/components/ExplorerSidebar";
 export const ExplorerSidebarView = memo(function ExplorerSidebarView(
   props: ExplorerSidebarProps & {
     runtime: ExplorerSidebarRuntime;
@@ -39,6 +38,8 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
     deviceCustomization,
     hiddenQuickAccessPaths,
     setHiddenQuickAccessPaths,
+    quickAccessOrder,
+    setQuickAccessOrder,
     toggleSection,
   } = props.runtime.useSidebarPreferences();
   const [deviceActionError, setDeviceActionError] = useState<string | null>(null);
@@ -59,6 +60,8 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
     sidebar: props,
     hiddenQuickAccessPaths,
     setHiddenQuickAccessPaths,
+    quickAccessOrder,
+    setQuickAccessOrder,
   });
   const deviceEntries = useMemo(
     () => buildDeviceEntries(props.devices, deviceCustomization),
