@@ -1,0 +1,248 @@
+import { settingsBoolean, useSettingsStore } from "@/features/settings";
+import { hasTauriInternals } from "@/shared/platform/tauri";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useRef } from "react";
+import {
+  bindingPairMatchesEvent,
+  detectShortcutPlatform,
+  formatShortcutLabel,
+  isEditableShortcutTarget,
+} from "./bindings";
+import {
+  defaultBindingsFor,
+  shortcutCommandsById,
+  shortcutCommandRegistry,
+  type ShortcutCommandDefinition,
+  type ShortcutScope,
+} from "./registry";
+
+export interface ShortcutInvocation {
+  command: ShortcutCommandDefinition;
+  event: KeyboardEvent;
+  scope: ShortcutScope;
+}
+
+export type ShortcutHandler = (
+  invocation: ShortcutInvocation,
+) => boolean | void;
+
+interface HandlerRegistration {
+  token: symbol;
+  handler: ShortcutHandler;
+  enabled: () => boolean;
+  priority: number;
+  order: number;
+}
+
+const handlers = new Map<string, HandlerRegistration[]>();
+let nextHandlerOrder = 0;
+export function registerShortcutHandler(
+  commandId: string,
+  handler: ShortcutHandler,
+  enabled: () => boolean = () => true,
+  priority = 0,
+): () => void {
+  const registration = {
+    token: Symbol(commandId),
+    handler,
+    enabled,
+    priority,
+    order: nextHandlerOrder++,
+  };
+  handlers.set(commandId, [...(handlers.get(commandId) ?? []), registration]);
+  return () => {
+    const next = (handlers.get(commandId) ?? []).filter(
+      (candidate) => candidate.token !== registration.token,
+    );
+    if (next.length) handlers.set(commandId, next);
+    else handlers.delete(commandId);
+  };
+}
+
+export function useShortcutHandler(
+  commandId: string,
+  handler: ShortcutHandler,
+  enabled: boolean | (() => boolean) = true,
+  priority = 0,
+): void {
+  const handlerRef = useRef(handler);
+  const enabledRef = useRef(enabled);
+  handlerRef.current = handler;
+  enabledRef.current = enabled;
+  useEffect(
+    () =>
+      registerShortcutHandler(
+        commandId,
+        (invocation) => handlerRef.current(invocation),
+        () => {
+          const current = enabledRef.current;
+          return typeof current === "function" ? current() : current;
+        },
+        priority,
+      ),
+    [commandId, priority],
+  );
+}
+
+export function ShortcutRuntime(): null {
+  useEffect(() => {
+    const dispatch = (event: KeyboardEvent) => dispatchShortcutEvent(event);
+    window.addEventListener("keydown", dispatch, true);
+    return () => window.removeEventListener("keydown", dispatch, true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasTauriInternals()) return;
+    let disposed = false;
+    const unlisten: Array<() => void> = [];
+    void Promise.all([
+      listen<string>("kura://shortcut-command", (event) => {
+        invokeShortcutCommand(event.payload);
+      }),
+    ]).then((next) => {
+      if (disposed) next.forEach((remove) => remove());
+      else unlisten.push(...next);
+    });
+    return () => {
+      disposed = true;
+      unlisten.forEach((remove) => remove());
+    };
+  }, []);
+
+  return null;
+}
+
+export function dispatchShortcutEvent(
+  event: KeyboardEvent,
+  editableOverride?: boolean,
+): boolean {
+  if (
+    event.defaultPrevented ||
+    document.documentElement.dataset.shortcutCapture === "true"
+  )
+    return false;
+  const activeScope = focusedShortcutScope();
+  const editable = editableOverride ?? isEditableShortcutTarget(event.target);
+  const platform = detectShortcutPlatform();
+
+  const candidates = shortcutCommandRegistry
+    .filter((definition) => scopeIsActive(definition.scope, activeScope))
+    .filter((definition) => definition.repeatable || !event.repeat)
+    .filter((definition) => definition.allowInEditable || !editable)
+    .filter((definition) =>
+      bindingPairMatchesEvent(defaultBindingsFor(definition, platform), event),
+    )
+    .sort(
+      (left, right) =>
+        scopeRank(right.scope, activeScope) -
+        scopeRank(left.scope, activeScope),
+    );
+
+  for (const definition of candidates) {
+    const registrations = orderedRegistrations(definition.id);
+    for (const registration of registrations) {
+      if (!registration.enabled()) continue;
+      const handled = registration.handler({
+        command: definition,
+        event,
+        scope: activeScope,
+      });
+      if (handled === false) continue;
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
+  }
+  return false;
+}
+
+export function invokeShortcutCommand(commandId: string): boolean {
+  const definition = shortcutCommandsById.get(commandId);
+  if (!definition) return false;
+  const activeScope = focusedShortcutScope();
+  if (!scopeIsActive(definition.scope, activeScope)) return false;
+  const target = document.activeElement;
+  const editable = isEditableShortcutTarget(target);
+  if (!definition.allowInEditable && editable) return false;
+  const event = new KeyboardEvent("keydown", { cancelable: true });
+  for (const registration of orderedRegistrations(commandId)) {
+    if (!registration.enabled()) continue;
+    const handled = registration.handler({
+      command: definition,
+      event,
+      scope: activeScope,
+    });
+    if (handled === false) continue;
+    return true;
+  }
+  return false;
+}
+
+function orderedRegistrations(commandId: string): HandlerRegistration[] {
+  return [...(handlers.get(commandId) ?? [])].sort(
+    (left, right) => right.priority - left.priority || right.order - left.order,
+  );
+}
+
+export function effectiveShortcut(commandId: string): {
+  primary: string | null;
+  alternate: string | null;
+} {
+  const definition = shortcutCommandsById.get(commandId);
+  return definition
+    ? defaultBindingsFor(definition, detectShortcutPlatform())
+    : { primary: null, alternate: null };
+}
+
+export function useEffectiveShortcut(commandId: string) {
+  return effectiveShortcut(commandId);
+}
+
+export function useShortcutTitle(label: string, commandId: string): string {
+  const binding = useEffectiveShortcut(commandId);
+  const hintsEnabled = useSettingsStore((state) =>
+    settingsBoolean(
+      state.settings?.document ?? {},
+      "shortcuts",
+      "shortcut_hints_enabled",
+      true,
+    ),
+  );
+  const platform = detectShortcutPlatform();
+  const shortcutLabel = formatShortcutLabel(binding.primary, platform);
+  return hintsEnabled && shortcutLabel ? `${label} (${shortcutLabel})` : label;
+}
+
+/** A command's shortcut as plain text (such as "⇧⌘T"), for menus. */
+export function ShortcutText(props: { commandId: string; className?: string }) {
+  const hintsEnabled = useSettingsStore((state) =>
+    settingsBoolean(
+      state.settings?.document ?? {},
+      "shortcuts",
+      "shortcut_hints_enabled",
+      true,
+    ),
+  );
+  const binding = useEffectiveShortcut(props.commandId);
+  const platform = detectShortcutPlatform();
+  const label = formatShortcutLabel(binding.primary, platform);
+  if (!hintsEnabled || !label) return null;
+  return <span className={props.className}>{label}</span>;
+}
+
+function focusedShortcutScope(): ShortcutScope {
+  return "tool:files";
+}
+
+function scopeIsActive(
+  scope: ShortcutScope,
+  activeScope: ShortcutScope,
+): boolean {
+  return scope === "global" || scope === "workspace" || scope === activeScope;
+}
+
+function scopeRank(scope: ShortcutScope, activeScope: ShortcutScope): number {
+  if (scope === activeScope && scope.startsWith("tool:")) return 3;
+  if (scope === "workspace") return 2;
+  return 1;
+}

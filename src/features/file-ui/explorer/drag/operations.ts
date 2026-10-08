@@ -1,6 +1,6 @@
 import type { MountedDevice } from "@/native/ipc";
 import type { ClipboardOperation } from "@/native/ipc/primitives";
-import type { ExplorerDragItem } from "../model/drag";
+import type { ExplorerDragItem } from "../model/interfaces/drag/types";
 import { normalizedDragPath, pathContainsPath } from "./geometry";
 
 export function storageIdForPath(
@@ -20,7 +20,9 @@ export function storageIdForPath(
   const macVolume = normalized.match(/^\/Volumes\/([^/]+)/);
   if (macVolume) return `volume:${macVolume[1]}`;
   const windowsVolume = normalized.match(/^([A-Za-z]:|\/\/[^/]+\/[^/]+)/);
-  return windowsVolume ? `volume:${windowsVolume[1].toLowerCase()}` : "local:default";
+  return windowsVolume
+    ? `volume:${windowsVolume[1].toLowerCase()}`
+    : "local:default";
 }
 
 export function operationForInternalDrop(
@@ -29,7 +31,9 @@ export function operationForInternalDrop(
   copyRequested: boolean,
 ): ClipboardOperation {
   if (copyRequested) return "copy";
-  return item.storageId && item.storageId === destinationStorageId ? "move" : "copy";
+  return item.storageId && item.storageId === destinationStorageId
+    ? "move"
+    : "copy";
 }
 
 export function invalidTransferReason(
@@ -39,9 +43,11 @@ export function invalidTransferReason(
   const normalizedDestination = normalizedDragPath(destination);
   for (const item of items) {
     const source = normalizedDragPath(item.path);
-    if (source === normalizedDestination) return "Item is already in this destination.";
+    if (source === normalizedDestination)
+      return "Item is already in this destination.";
     const parent = source.slice(0, source.lastIndexOf("/")) || "/";
-    if (parent === normalizedDestination) return "Item is already in this folder.";
+    if (parent === normalizedDestination)
+      return "Item is already in this folder.";
     if (item.isDirectory && pathContainsPath(source, normalizedDestination)) {
       return "A folder cannot be moved into itself.";
     }
@@ -54,9 +60,14 @@ export function groupItemsByOperation(
   destinationStorageId: string,
   copyRequested: boolean,
 ): Record<ClipboardOperation, ExplorerDragItem[]> {
-  const groups: Record<ClipboardOperation, ExplorerDragItem[]> = { copy: [], move: [] };
+  const groups: Record<ClipboardOperation, ExplorerDragItem[]> = {
+    copy: [],
+    move: [],
+  };
   for (const item of items) {
-    groups[operationForInternalDrop(item, destinationStorageId, copyRequested)].push(item);
+    groups[
+      operationForInternalDrop(item, destinationStorageId, copyRequested)
+    ].push(item);
   }
   return groups;
 }

@@ -2,8 +2,11 @@ import type { FileEntry } from "@/native/ipc";
 import { memo, useDeferredValue, useEffect, useMemo } from "react";
 import { useExplorerDropZone } from "../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../drag/operations";
-import type { FileBrowserProps } from "../model/FileBrowser";
-import type { ExplorerDragModifiers, ExplorerDragPayload } from "../model/drag";
+import type { FileBrowserProps } from "../model/interfaces/components/FileBrowser";
+import type {
+  ExplorerDragModifiers,
+  ExplorerDragPayload,
+} from "../model/interfaces/drag/types";
 import { entrySizeBytes } from "../utils/entrySize";
 import { formatBytes } from "../utils/fileFormat";
 import { selectedEntriesForListing } from "./fileBrowser/EntryPresentation";
@@ -11,18 +14,35 @@ import { FileGrid } from "./fileBrowser/FileGrid";
 import { FileTable } from "./fileBrowser/FileTable";
 import { useFileBrowserRuntime } from "./fileBrowser/FileBrowserRuntime";
 import { transferDropAcceptance } from "./FileBrowserDrag";
-import { compileEntryFilterMatcher, entryMatchesQuery } from "./FileBrowserFilters";
+import {
+  compileEntryFilterMatcher,
+  entryMatchesQuery,
+} from "./FileBrowserFilters";
 import { FileBrowserSkeleton } from "./FileBrowserSkeleton";
 import { fileBrowserStyles } from "./FileBrowserStyles";
-export type { FileBrowserProps } from "../model/FileBrowser";
+export type {
+  FileBrowserProps,
+  GridThumbnailJob,
+} from "../model/interfaces/components/FileBrowser";
+export type {
+  FileTableColumn,
+  FileTableColumnWidths,
+  GridThumbnailSubscriber,
+} from "../model/types/components/FileBrowser";
+
 const emptyEntries: FileEntry[] = [];
 
-export const FileBrowserView = memo(function FileBrowserView(props: FileBrowserProps) {
+export type { FileBrowserDragItem } from "./FileBrowserDrag";
+
+export const FileBrowserView = memo(function FileBrowserView(
+  props: FileBrowserProps,
+) {
   const deferredCommandQuery = useDeferredValue(props.commandQuery);
   const trimmedCommandQuery = deferredCommandQuery.trim();
   const filterMatcher = useMemo(
     () =>
-      props.commandQueryMode === "filter" && !trimmedCommandQuery.startsWith(">")
+      props.commandQueryMode === "filter" &&
+      !trimmedCommandQuery.startsWith(">")
         ? compileEntryFilterMatcher(trimmedCommandQuery)
         : null,
     [props.commandQueryMode, trimmedCommandQuery],
@@ -31,7 +51,9 @@ export const FileBrowserView = memo(function FileBrowserView(props: FileBrowserP
   const entries = useMemo(
     () =>
       filterMatcher
-        ? sourceEntries.filter((entry) => entryMatchesQuery(entry, filterMatcher))
+        ? sourceEntries.filter((entry) =>
+            entryMatchesQuery(entry, filterMatcher),
+          )
         : sourceEntries,
     [filterMatcher, sourceEntries],
   );
@@ -43,14 +65,24 @@ export const FileBrowserView = memo(function FileBrowserView(props: FileBrowserP
       id: `pane:${props.paneId}`,
       accepts: (payload: ExplorerDragPayload) =>
         destination
-          ? transferDropAcceptance(payload, destination)
+          ? transferDropAcceptance(payload, destination, {
+              writable:
+                props.listing?.location.kind !== "peer_device" ||
+                props.listing.location.peerWritable === true,
+            })
           : { valid: false, label: "Unavailable" },
-      onDrop: (payload: ExplorerDragPayload, modifiers: ExplorerDragModifiers) => {
+      onDrop: (
+        payload: ExplorerDragPayload,
+        modifiers: ExplorerDragModifiers,
+      ) => {
         if (!props.listing) return;
         props.onDropItems(
           payload,
           props.listing.path,
-          storageIdForPath(props.listing.path, props.listing.location.remoteName),
+          storageIdForPath(
+            props.listing.path,
+            props.listing.location.remoteName,
+          ),
           modifiers,
         );
       },
@@ -61,20 +93,33 @@ export const FileBrowserView = memo(function FileBrowserView(props: FileBrowserP
   useEffect(() => {
     if (!thumbnailPreviewsEnabled || !props.listing) return;
     prewarmThumbnails(sourceEntries);
-  }, [props.listing, sourceEntries, thumbnailPreviewsEnabled, prewarmThumbnails]);
+  }, [
+    props.listing,
+    sourceEntries,
+    thumbnailPreviewsEnabled,
+    prewarmThumbnails,
+  ]);
 
-  if (props.error) return <runtime.Error error={props.error} paneId={props.paneId} />;
+  if (props.error)
+    return <runtime.Error error={props.error} paneId={props.paneId} />;
   if (props.loading) {
     return <FileBrowserSkeleton viewMode={props.viewMode} />;
   }
   if (!props.listing) {
-    return <div className={fileBrowserStyles.empty}>Choose a location to begin.</div>;
+    return (
+      <div className={fileBrowserStyles.empty}>Choose a location to begin.</div>
+    );
   }
 
   const queryActive = Boolean(filterMatcher);
   const displayListing =
-    entries === props.listing.entries ? props.listing : { ...props.listing, entries };
-  const selectedEntries = selectedEntriesForListing(props.listing.entries, props.selectedIds);
+    entries === props.listing.entries
+      ? props.listing
+      : { ...props.listing, entries };
+  const selectedEntries = selectedEntriesForListing(
+    props.listing.entries,
+    props.selectedIds,
+  );
   const selectedBytes = selectedEntries.reduce(
     (sum, entry) => sum + (entrySizeBytes(entry, props.directorySizes) ?? 0),
     0,
@@ -93,7 +138,9 @@ export const FileBrowserView = memo(function FileBrowserView(props: FileBrowserP
         if (event.target === event.currentTarget) props.onClearSelection();
       }}
       onContextMenu={
-        props.selectionOnly ? (event) => event.preventDefault() : props.onBackgroundContextMenu
+        props.selectionOnly
+          ? (event) => event.preventDefault()
+          : props.onBackgroundContextMenu
       }
     >
       {props.viewMode === "grid" ? (

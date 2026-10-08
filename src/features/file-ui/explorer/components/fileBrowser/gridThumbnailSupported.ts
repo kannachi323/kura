@@ -17,7 +17,8 @@ const gridThumbnailImageExtensions = new Set([
 ]);
 
 export function gridThumbnailSupported(entry: FileEntry): boolean {
-  if (entry.kind === "folder" || entry.kind === "symlink" || entry.isDeleted) return false;
+  if (entry.kind === "folder" || entry.kind === "symlink" || entry.isDeleted)
+    return false;
   if (entry.location.kind === "remote_provider") return false;
   const extension = entry.extension.toLowerCase().replace(/^\./, "");
   return gridThumbnailImageExtensions.has(extension);

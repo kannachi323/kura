@@ -1,6 +1,9 @@
-import type { MountedDevice } from "@/native/ipc";
+import type { MountedDevice, SavedSearch, SavedSearchRule } from "@/native/ipc";
 import {
+  Button,
   cn,
+  Collapsible,
+  CollapsibleContent,
   navigationDisclosureChevronClass,
   navigationDisclosureLabelClass,
   navigationTreeContentInsetClass,
@@ -8,12 +11,37 @@ import {
   navigationTreeIconClass,
   navigationTreeRowClass,
   navigationTreeSurfaceClass,
+  Pressable,
 } from "@/shared/ui";
-import type { DeviceCustomizationState, SidebarDeviceEntry } from "../model/ExplorerSidebarSupport";
-import { explorerPathName, joinExplorerPath } from "@/shared/lib/pathNormalization";
+import { ChevronRight } from "lucide-react";
+import { useId, type MouseEvent, type ReactNode } from "react";
+import type {
+  DeviceCustomizationState,
+  SidebarDeviceEntry,
+} from "../model/interfaces/components/ExplorerSidebarSupport";
+import type {
+  SmartFolderDialogState,
+  SmartFolderMatchMode,
+} from "../model/types/components/ExplorerSidebarSupport";
+import { formatBytes } from "../utils/fileFormat";
+import {
+  explorerPathName,
+  joinExplorerPath,
+} from "@/shared/lib/pathNormalization";
 import { normalizeSidebarPath } from "./explorerSidebarStorage";
 export * from "./explorerSidebarStorage";
-export type { DeviceCustomizationState, SidebarDeviceEntry } from "../model/ExplorerSidebarSupport";
+export type {
+  DeviceCustomizationState,
+  SidebarCollapsedState,
+  SidebarDeviceEntry,
+  SmartFolderDraft,
+} from "../model/interfaces/components/ExplorerSidebarSupport";
+export type {
+  QuickAccessMenuItem,
+  SmartFolderDialogState,
+  SmartFolderMatchMode,
+} from "../model/types/components/ExplorerSidebarSupport";
+
 export const sidebarStyles = {
   root: cn(
     "misty-transient-scrollbar h-full min-h-0 min-w-0 overflow-x-hidden",
@@ -21,7 +49,8 @@ export const sidebarStyles = {
     "[overscroll-behavior:contain]",
   ),
   section: `${navigationTreeGroupClass} [&+&]:mt-3`,
-  sectionTitle: "group/section-title flex h-9 min-w-0 items-center gap-1 px-2.5",
+  sectionTitle:
+    "group/section-title flex h-9 min-w-0 items-center gap-1 px-2.5",
   sectionToggle:
     "misty-navigator-row-target flex h-9 min-w-0 flex-1 items-center gap-1 rounded-md px-0 text-[13px] font-semibold text-cream-bright",
   sectionToggleLabel: navigationDisclosureLabelClass,
@@ -64,7 +93,8 @@ export const sidebarStyles = {
     "bg-charcoal-active px-2.5 text-left text-sm font-medium shadow-none",
     "hover:border-charcoal-border/80 hover:bg-charcoal-active [&_svg]:!size-5",
   ),
-  workspaceSelectLabel: "ml-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
+  workspaceSelectLabel:
+    "ml-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
   list: navigationTreeGroupClass,
   muted: "ml-3 mr-2 px-2.5 py-1 text-[13px] text-cream-muted",
   deviceButton: cn(
@@ -99,8 +129,190 @@ export const sidebarStyles = {
   deviceGroupAction: "misty-sidebar-icon-target [&_svg]:!size-3.5",
   deviceGroupEmpty: "ml-3 mr-2 px-2.5 py-1 text-[11px] text-cream-muted",
   errorText: "m-0 text-sm text-cream-bright",
-  smartMeta: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-cream-muted/70",
+  smartMeta:
+    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-cream-muted/70",
 } as const;
+
+export { SmartFolderDialog } from "./ExplorerSidebarDialogs";
+export { smartFolderQueryFromRules } from "./ExplorerSidebarQuery";
+
+export function SidebarSectionHeader(props: {
+  title: string;
+  collapsed: boolean;
+  actions?: ReactNode;
+  onToggle: () => void;
+  onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
+}) {
+  return (
+    <div
+      className={sidebarStyles.sectionTitle}
+      onContextMenu={props.onContextMenu}
+    >
+      <Pressable
+        className={sidebarStyles.sectionToggle}
+        onClick={props.onToggle}
+        aria-expanded={!props.collapsed}
+      >
+        <span className={sidebarStyles.sectionToggleLabel}>
+          <span className="min-w-0 truncate">{props.title}</span>
+          <ChevronRight
+            className={cn(
+              sidebarStyles.sectionChevron,
+              "size-4 transition-transform duration-150 motion-reduce:transition-none",
+              !props.collapsed && "rotate-90",
+            )}
+            strokeWidth={2}
+            aria-hidden="true"
+            data-chevron-placement="inline"
+          />
+        </span>
+      </Pressable>
+      {props.actions ? (
+        <div
+          className={`${sidebarStyles.sectionActions} ${sidebarStyles.sectionActionsReveal}`}
+        >
+          {props.actions}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Indent a device group's children once under its header. */
+export function SidebarDeviceGroup(props: {
+  title: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  const contentId = useId();
+  return (
+    <Collapsible
+      className={sidebarStyles.deviceGroup}
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+    >
+      <SidebarDeviceGroupHeader
+        title={props.title}
+        collapsed={!props.open}
+        onToggle={() => props.onOpenChange(!props.open)}
+        controls={contentId}
+        actions={props.actions}
+      />
+      <CollapsibleContent
+        id={contentId}
+        role="group"
+        aria-label={`${props.title} devices`}
+      >
+        <div className="ml-3">{props.children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+export function SidebarDeviceGroupHeader(props: {
+  controls?: string;
+  title: string;
+  collapsed: boolean;
+  actions?: ReactNode;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={sidebarStyles.deviceGroupTreeRow}>
+      <div className={sidebarStyles.deviceGroupHeader}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={sidebarStyles.deviceGroupToggle}
+          aria-expanded={!props.collapsed}
+          aria-controls={props.controls}
+          onClick={props.onToggle}
+        >
+          <span className={sidebarStyles.deviceGroupLabel}>{props.title}</span>
+          <ChevronRight
+            className={cn(
+              sidebarStyles.sectionChevron,
+              "size-4 transition-transform duration-150 motion-reduce:transition-none",
+              !props.collapsed && "rotate-90",
+            )}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+        </Button>
+        {props.actions}
+      </div>
+    </div>
+  );
+}
+
+const smartFolderModeField = "__match";
+
+function defaultSmartFolderRule(): SavedSearchRule {
+  return { field: "text", operator: "contains", value: "" };
+}
+
+export function createSmartFolderDialogState(
+  search?: SavedSearch,
+): SmartFolderDialogState {
+  return {
+    draft: {
+      id: search?.id ?? "",
+      name: search?.name ?? "New Collection",
+      query: search?.query ?? "",
+      matchMode: search ? smartFolderMatchMode(search.rules) : "all",
+      rules: search
+        ? visibleSmartFolderRules(search.rules)
+        : [defaultSmartFolderRule()],
+    },
+  };
+}
+
+export function smartFolderMatchMode(
+  rules: SavedSearchRule[],
+): SmartFolderMatchMode {
+  return rules.find((rule) => rule.field === smartFolderModeField)?.value ===
+    "any"
+    ? "any"
+    : "all";
+}
+
+export function visibleSmartFolderRules(
+  rules: SavedSearchRule[],
+): SavedSearchRule[] {
+  const visible = rules.filter((rule) => rule.field !== smartFolderModeField);
+  return visible.length > 0 ? visible : [defaultSmartFolderRule()];
+}
+
+export function smartFolderRulesWithMode(
+  rules: SavedSearchRule[],
+  matchMode: SmartFolderMatchMode,
+): SavedSearchRule[] {
+  const cleaned = visibleSmartFolderRules(rules)
+    .map((rule) => ({
+      field: rule.field.trim(),
+      operator: rule.operator.trim() || "contains",
+      value: rule.value.trim(),
+    }))
+    .filter((rule) => rule.field && rule.value);
+  return [
+    { field: smartFolderModeField, operator: "mode", value: matchMode },
+    ...cleaned,
+  ];
+}
+
+export function sortSavedSearches(searches: SavedSearch[]): SavedSearch[] {
+  return [...searches].sort(
+    (left, right) =>
+      right.updatedAtMs - left.updatedAtMs ||
+      left.name.localeCompare(right.name),
+  );
+}
+
+export function smartFolderId(): string {
+  return `smart_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export function buildDeviceEntries(
   devices: MountedDevice[],
@@ -121,7 +333,10 @@ export function buildDeviceEntries(
     entries.push({
       id: `custom:${path}`,
       volumeId: `custom:${path}`,
-      name: customization.nameOverrides[path] || path.split("/").filter(Boolean).pop() || path,
+      name:
+        customization.nameOverrides[path] ||
+        path.split("/").filter(Boolean).pop() ||
+        path,
       mountPath: path,
       fsType: "",
       isRemovable: false,
@@ -136,6 +351,16 @@ export function buildDeviceEntries(
   }
   return entries;
 }
+
+export function deviceCapacityLabel(
+  usedBytes: number,
+  totalBytes: number,
+  fallback: string,
+): string {
+  if (totalBytes === 0) return fallback || "Capacity unavailable";
+  return `${formatBytes(usedBytes)} / ${formatBytes(totalBytes)} used`;
+}
+
 export function pathIsInside(path: string, root: string): boolean {
   const normalizedRoot = root.replace(/\/+$/, "") || "/";
   if (path === normalizedRoot) return true;
@@ -143,7 +368,10 @@ export function pathIsInside(path: string, root: string): boolean {
   return path.startsWith(`${normalizedRoot}/`);
 }
 
-export function dedupePinnedPathsForQuickAccess(paths: string[], builtInPaths: string[]): string[] {
+export function dedupePinnedPathsForQuickAccess(
+  paths: string[],
+  builtInPaths: string[],
+): string[] {
   const seen = new Set(builtInPaths.map(normalizeSidebarPath));
   const pinnedPaths: string[] = [];
   for (const path of paths) {
@@ -156,9 +384,9 @@ export function dedupePinnedPathsForQuickAccess(paths: string[], builtInPaths: s
 }
 
 export function pinnedPathLabel(path: string): string {
-  if (path === "misty://recent") return "Recent";
-  if (path === "misty://starred") return "Starred";
-  if (path === "misty://trash") return "Trash";
+  if (path === "kura://recent") return "Recent";
+  if (path === "kura://starred") return "Starred";
+  if (path === "kura://trash") return "Trash";
   return explorerPathName(path) || path;
 }
 

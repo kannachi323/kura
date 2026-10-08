@@ -5,7 +5,10 @@ describe("smart-folder query values", () => {
   it.each(["C:\\My Files\\", 'name" OR hidden:true', 'a\\"b', '"quoted"'])(
     "keeps %s inside a single escaped token",
     (value) => {
-      const query = smartFolderQueryFromRules([{ field: "path", operator: "is", value }], "all");
+      const query = smartFolderQueryFromRules(
+        [{ field: "path", operator: "is", value }],
+        "all",
+      );
       expect(JSON.parse(query.slice("path:".length))).toBe(value);
     },
   );

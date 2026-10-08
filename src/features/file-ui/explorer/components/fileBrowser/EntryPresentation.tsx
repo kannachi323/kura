@@ -1,6 +1,6 @@
 import type { DirectorySizeRecord, FileEntry } from "@/native/ipc";
 import type { ReactNode } from "react";
-import type { PassiveRenameDraft } from "../../model/FileBrowser";
+import type { PassiveRenameDraft } from "../../model/types/components/FileBrowserInline";
 import type { ExplorerInlineEditState } from "../../store";
 import { directorySizeRecordForPath } from "../../utils/entrySize";
 import { formatBytes } from "../../utils/fileFormat";
@@ -18,9 +18,12 @@ export function formatEntrySize(
   return formatBytes(null);
 }
 
-function DirectorySizeDots() {
+export function DirectorySizeDots() {
   return (
-    <span className={fileBrowserStyles.directorySizeDots} aria-label="Calculating folder size">
+    <span
+      className={fileBrowserStyles.directorySizeDots}
+      aria-label="Calculating folder size"
+    >
       {[0, 1, 2].map((index) => (
         <span
           className={fileBrowserStyles.directorySizeDot}
@@ -44,9 +47,17 @@ export function passiveRenameDraftsFor(
   paneId: string,
 ): Map<string, PassiveRenameDraft> {
   const drafts = new Map<string, PassiveRenameDraft>();
-  if (edit?.kind !== "rename" || !edit.batchItems || edit.batchItems.length <= 1) return drafts;
+  if (
+    edit?.kind !== "rename" ||
+    !edit.batchItems ||
+    edit.batchItems.length <= 1
+  )
+    return drafts;
   for (const item of edit.batchItems) {
-    if (item.paneId !== paneId || (item.paneId === edit.paneId && item.entryId === edit.entryId))
+    if (
+      item.paneId !== paneId ||
+      (item.paneId === edit.paneId && item.entryId === edit.entryId)
+    )
       continue;
     drafts.set(item.entryId, {
       value: item.value,

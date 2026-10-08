@@ -2,7 +2,7 @@ import { useFileBrowserRuntime } from "./FileBrowserRuntime";
 import type { DirectoryListing, FileEntry } from "@/native/ipc";
 import type { CSSProperties, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FileBrowserProps } from "../../model/FileBrowser";
+import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
 import { dragItemsForEntry } from "../FileBrowserDrag";
 import { GenericFileIcon } from "../FileBrowserIcons";
 import { InlineNameEditor } from "../FileBrowserInline";
@@ -24,8 +24,11 @@ import {
  * Rows are windowed like the table; thumbnails come from the shared queue in
  * , so scrolling always outranks background prewarming.
  */
-export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }) {
-  const { compactModeEnabled, thumbnailPreviewsEnabled } = useFileBrowserRuntime();
+export function FileGrid(
+  props: FileBrowserProps & { listing: DirectoryListing },
+) {
+  const { compactModeEnabled, thumbnailPreviewsEnabled } =
+    useFileBrowserRuntime();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const viewportHeightRef = useRef(0);
@@ -34,7 +37,10 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const selectedIds = useMemo(() => new Set(props.selectedIds), [props.selectedIds]);
+  const selectedIds = useMemo(
+    () => new Set(props.selectedIds),
+    [props.selectedIds],
+  );
   const visibleEntryIds = useMemo(
     () => props.listing.entries.map((entry) => entry.id),
     [props.listing.entries],
@@ -43,14 +49,18 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
     () => passiveRenameDraftsFor(props.inlineEdit, props.paneId),
     [props.inlineEdit, props.paneId],
   );
-  const activeInlineEdit = props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
+  const activeInlineEdit =
+    props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
   const itemScale = normalizeItemScale(props.itemScale);
   const createOffset = props.inlineEdit?.kind === "create" ? 1 : 0;
   const itemCount = props.listing.entries.length + createOffset;
   const gridPadding = compactModeEnabled ? 2 : GRID_PADDING;
   const gridGap = compactModeEnabled ? 10 : GRID_GAP;
   const scrollbarReserve = GRID_SCROLLBAR_RESERVE;
-  const usableWidth = Math.max(1, viewportWidth - gridPadding * 2 - scrollbarReserve);
+  const usableWidth = Math.max(
+    1,
+    viewportWidth - gridPadding * 2 - scrollbarReserve,
+  );
   const desiredColumns = itemScale === 0 ? 6 : itemScale === 1 ? 5 : 4;
   const minimumColumnWidth = compactModeEnabled
     ? itemScale === 0
@@ -70,7 +80,10 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
       Math.floor((usableWidth + gridGap) / (minimumColumnWidth + gridGap)) || 1,
     ),
   );
-  const columnWidth = Math.max(1, (usableWidth - Math.max(0, columns - 1) * gridGap) / columns);
+  const columnWidth = Math.max(
+    1,
+    (usableWidth - Math.max(0, columns - 1) * gridGap) / columns,
+  );
   const thumbInset = compactModeEnabled ? 8 : 10;
   const gridThumbWidth = Math.max(
     itemScale === 0 ? 72 : itemScale === 1 ? 112 : 152,
@@ -85,18 +98,27 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
   const rowStride = gridItemHeight + gridGap;
   const rowCount = Math.ceil(itemCount / columns);
   const totalHeight =
-    gridPadding * 2 + Math.max(0, rowCount * gridItemHeight + Math.max(0, rowCount - 1) * gridGap);
+    gridPadding * 2 +
+    Math.max(
+      0,
+      rowCount * gridItemHeight + Math.max(0, rowCount - 1) * gridGap,
+    );
   const visibleRowCapacity = Math.max(1, Math.ceil(viewportHeight / rowStride));
   const startRow = Math.max(
     0,
-    Math.floor(Math.max(0, scrollTop - gridPadding) / rowStride) - GRID_OVERSCAN_ROWS,
+    Math.floor(Math.max(0, scrollTop - gridPadding) / rowStride) -
+      GRID_OVERSCAN_ROWS,
   );
-  const endRow = Math.min(rowCount, startRow + visibleRowCapacity + GRID_OVERSCAN_ROWS * 2);
+  const endRow = Math.min(
+    rowCount,
+    startRow + visibleRowCapacity + GRID_OVERSCAN_ROWS * 2,
+  );
   const startIndex = startRow * columns;
   const endIndex = Math.min(itemCount, endRow * columns);
   const visibleItems = useMemo(() => {
     const items: Array<
-      { kind: "create"; key: string } | { kind: "entry"; key: string; entry: FileEntry }
+      | { kind: "create"; key: string }
+      | { kind: "entry"; key: string; entry: FileEntry }
     > = [];
     for (let index = startIndex; index < endIndex; index += 1) {
       if (index === 0 && createOffset) {
@@ -152,7 +174,9 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
       scrollRef.current?.scrollTo({ top: 0 });
       return;
     }
-    const index = props.listing.entries.findIndex((entry) => entry.id === edit.entryId);
+    const index = props.listing.entries.findIndex(
+      (entry) => entry.id === edit.entryId,
+    );
     const element = scrollRef.current;
     if (index < 0 || !element) return;
     const itemIndex = index + createOffset;
@@ -185,7 +209,8 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
     });
   }, []);
   const handleSelect = useCallback(
-    (entryId: string, event: MouseEvent) => props.onSelect(entryId, event, visibleEntryIds),
+    (entryId: string, event: MouseEvent) =>
+      props.onSelect(entryId, event, visibleEntryIds),
     [props, visibleEntryIds],
   );
 
@@ -196,7 +221,10 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
       onScroll={handleScroll}
       data-explorer-scroll-container
     >
-      <div className={fileBrowserStyles.gridSizer} style={{ height: totalHeight }}>
+      <div
+        className={fileBrowserStyles.gridSizer}
+        style={{ height: totalHeight }}
+      >
         <div
           className={fileBrowserStyles.grid}
           style={{
@@ -215,7 +243,11 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
                   style={gridItemStyle}
                 >
                   <GenericFileIcon
-                    kind={props.inlineEdit?.itemKind === "folder" ? "folder" : "file"}
+                    kind={
+                      props.inlineEdit?.itemKind === "folder"
+                        ? "folder"
+                        : "file"
+                    }
                     size={Math.max(34, gridIconSize - 6)}
                   />
                   {props.inlineEdit ? (
@@ -240,12 +272,20 @@ export function FileGrid(props: FileBrowserProps & { listing: DirectoryListing }
                 style={gridItemStyle}
                 selected={selectedIds.has(item.entry.id)}
                 cut={props.cutPaths.has(item.entry.path)}
-                inlineEdit={activeInlineEdit?.entryId === item.entry.id ? activeInlineEdit : null}
+                inlineEdit={
+                  activeInlineEdit?.entryId === item.entry.id
+                    ? activeInlineEdit
+                    : null
+                }
                 passiveRename={passiveRenameDrafts.get(item.entry.id) ?? null}
                 onSelect={handleSelect}
                 onOpen={props.onOpen}
                 onContextMenu={props.onContextMenu}
-                dragItems={dragItemsForEntry(item.entry, props.listing.entries, selectedIds)}
+                dragItems={dragItemsForEntry(
+                  item.entry,
+                  props.listing.entries,
+                  selectedIds,
+                )}
                 onDropItems={props.onDropItems}
                 onInlineEditChange={props.onInlineEditChange}
                 onInlineEditCommit={props.onInlineEditCommit}

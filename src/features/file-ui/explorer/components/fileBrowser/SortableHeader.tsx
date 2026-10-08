@@ -2,7 +2,7 @@ import { Button, TableHead } from "@/shared/ui";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { memo } from "react";
-import type { FileTableColumn } from "../../model/FileBrowser";
+import type { FileTableColumn } from "../../model/types/components/FileBrowser";
 import type { ExplorerSortState } from "../../store/index";
 import { fileBrowserStyles } from "../FileBrowserStyles";
 
@@ -19,7 +19,9 @@ export const SortableHeader = memo(function SortableHeader(props: {
   const direction = active ? props.sort.direction : null;
   return (
     <TableHead
-      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
       className={`${fileBrowserStyles.tableHeadCell} ${props.column === "size" ? fileBrowserStyles.tableNumericHeader : ""}`}
     >
       <Button

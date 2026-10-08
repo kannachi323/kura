@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+fi
+staged=$(git diff --cached --name-only)
+if grep -qE '^(src/|package)' <<<"$staged"; then .githooks/checks.sh frontend; fi
+if grep -qE '^src-tauri/' <<<"$staged"; then .githooks/checks.sh rust; fi

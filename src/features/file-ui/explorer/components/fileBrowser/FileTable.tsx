@@ -11,8 +11,11 @@ import {
 import { RotateCcw } from "lucide-react";
 import type { MouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FileBrowserProps } from "../../model/FileBrowser";
-import type { FileTableColumn, FileTableColumnWidths } from "../../model/FileBrowser";
+import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
+import type {
+  FileTableColumn,
+  FileTableColumnWidths,
+} from "../../model/types/components/FileBrowser";
 import type { ExplorerSortColumn } from "../../store/index";
 import { dragItemsForEntry } from "../FileBrowserDrag";
 import { InlineCreateTableRow } from "../FileBrowserInline";
@@ -43,7 +46,9 @@ import { SortableHeader } from "./SortableHeader";
  * Rows are windowed against the scroll container rather than rendered whole,
  * so a directory with tens of thousands of entries still scrolls smoothly.
  */
-export function FileTable(props: FileBrowserProps & { listing: DirectoryListing }) {
+export function FileTable(
+  props: FileBrowserProps & { listing: DirectoryListing },
+) {
   const headerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
@@ -53,10 +58,16 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const [columnWidths, setColumnWidths] = useState<FileTableColumnWidths>(loadColumnWidths);
+  const [columnWidths, setColumnWidths] =
+    useState<FileTableColumnWidths>(loadColumnWidths);
   const [columnOrder] = useState<FileTableColumn[]>(loadColumnOrder);
-  const [resizingColumn, setResizingColumn] = useState<FileTableColumn | null>(null);
-  const selectedIds = useMemo(() => new Set(props.selectedIds), [props.selectedIds]);
+  const [resizingColumn, setResizingColumn] = useState<FileTableColumn | null>(
+    null,
+  );
+  const selectedIds = useMemo(
+    () => new Set(props.selectedIds),
+    [props.selectedIds],
+  );
   const visibleEntryIds = useMemo(
     () => props.listing.entries.map((entry) => entry.id),
     [props.listing.entries],
@@ -65,24 +76,37 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
     () => passiveRenameDraftsFor(props.inlineEdit, props.paneId),
     [props.inlineEdit, props.paneId],
   );
-  const activeInlineEdit = props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
+  const activeInlineEdit =
+    props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
   const itemScale = normalizeItemScale(props.itemScale);
   const rowHeight = 42 + itemScale * 8;
   const tableIconSize = 20;
   const rowCount = props.listing.entries.length;
-  const tableWidth = columnOrder.reduce((sum, column) => sum + columnWidths[column], 0);
+  const tableWidth = columnOrder.reduce(
+    (sum, column) => sum + columnWidths[column],
+    0,
+  );
   const fillerColumnWidth = Math.max(0, viewportWidth - tableWidth);
   const hasFillerColumn = fillerColumnWidth >= 1;
   const renderedTableWidth = tableWidth + fillerColumnWidth;
   const tableColumnCount = columnOrder.length + (hasFillerColumn ? 1 : 0);
   const visibleCapacity = Math.max(1, Math.ceil(viewportHeight / rowHeight));
-  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - TABLE_OVERSCAN_ROWS);
-  const endIndex = Math.min(rowCount, startIndex + visibleCapacity + TABLE_OVERSCAN_ROWS * 2);
+  const startIndex = Math.max(
+    0,
+    Math.floor(scrollTop / rowHeight) - TABLE_OVERSCAN_ROWS,
+  );
+  const endIndex = Math.min(
+    rowCount,
+    startIndex + visibleCapacity + TABLE_OVERSCAN_ROWS * 2,
+  );
   const visibleEntries = props.listing.entries.slice(startIndex, endIndex);
   const topSpacerHeight = startIndex * rowHeight;
   const bottomSpacerHeight = Math.max(0, (rowCount - endIndex) * rowHeight);
   const columnsDirty = useMemo(
-    () => fileTableColumns.some((column) => columnWidths[column] !== defaultColumnWidths[column]),
+    () =>
+      fileTableColumns.some(
+        (column) => columnWidths[column] !== defaultColumnWidths[column],
+      ),
     [columnWidths],
   );
 
@@ -101,7 +125,10 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
       scrollTopRef.current = element.scrollTop;
       setScrollTop(element.scrollTop);
     }
-    if (headerRef.current && headerRef.current.scrollLeft !== element.scrollLeft) {
+    if (
+      headerRef.current &&
+      headerRef.current.scrollLeft !== element.scrollLeft
+    ) {
       headerRef.current.scrollLeft = element.scrollLeft;
     }
   }, []);
@@ -128,7 +155,9 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
       scrollRef.current?.scrollTo({ top: 0 });
       return;
     }
-    const index = props.listing.entries.findIndex((entry) => entry.id === edit.entryId);
+    const index = props.listing.entries.findIndex(
+      (entry) => entry.id === edit.entryId,
+    );
     const element = scrollRef.current;
     if (index < 0 || !element) return;
     const rowTop = index * rowHeight;
@@ -145,7 +174,10 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
       scrollFrameRef.current = null;
       const element = scrollRef.current;
       if (!element) return;
-      if (headerRef.current && headerRef.current.scrollLeft !== element.scrollLeft) {
+      if (
+        headerRef.current &&
+        headerRef.current.scrollLeft !== element.scrollLeft
+      ) {
         headerRef.current.scrollLeft = element.scrollLeft;
       }
       if (scrollTopRef.current !== element.scrollTop) {
@@ -171,7 +203,9 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
       const applyWidth = () => {
         frame = null;
         setColumnWidths((current) =>
-          current[column] === pendingWidth ? current : { ...current, [column]: pendingWidth },
+          current[column] === pendingWidth
+            ? current
+            : { ...current, [column]: pendingWidth },
         );
       };
       const onPointerMove = (moveEvent: PointerEvent) => {
@@ -206,7 +240,8 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
   }, []);
 
   const handleSelect = useCallback(
-    (entryId: string, event: MouseEvent) => props.onSelect(entryId, event, visibleEntryIds),
+    (entryId: string, event: MouseEvent) =>
+      props.onSelect(entryId, event, visibleEntryIds),
     [props, visibleEntryIds],
   );
 
@@ -234,7 +269,9 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
             {columnOrder.map((column) => (
               <col key={column} style={{ width: columnWidths[column] }} />
             ))}
-            {hasFillerColumn ? <col style={{ width: fillerColumnWidth }} /> : null}
+            {hasFillerColumn ? (
+              <col style={{ width: fillerColumnWidth }} />
+            ) : null}
           </colgroup>
           <TableHeader>
             <TableRow>
@@ -250,7 +287,10 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
                 />
               ))}
               {hasFillerColumn ? (
-                <TableHead className={fileBrowserStyles.tableHeadFiller} aria-hidden="true" />
+                <TableHead
+                  className={fileBrowserStyles.tableHeadFiller}
+                  aria-hidden="true"
+                />
               ) : null}
             </TableRow>
           </TableHeader>
@@ -271,7 +311,9 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
             {columnOrder.map((column) => (
               <col key={column} style={{ width: columnWidths[column] }} />
             ))}
-            {hasFillerColumn ? <col style={{ width: fillerColumnWidth }} /> : null}
+            {hasFillerColumn ? (
+              <col style={{ width: fillerColumnWidth }} />
+            ) : null}
           </colgroup>
           <TableBody>
             {props.inlineEdit?.kind === "create" ? (
@@ -306,9 +348,17 @@ export function FileTable(props: FileBrowserProps & { listing: DirectoryListing 
                 onSelect={handleSelect}
                 onOpen={props.onOpen}
                 onContextMenu={props.onContextMenu}
-                dragItems={dragItemsForEntry(entry, props.listing.entries, selectedIds)}
+                dragItems={dragItemsForEntry(
+                  entry,
+                  props.listing.entries,
+                  selectedIds,
+                )}
                 onDropItems={props.onDropItems}
-                inlineEdit={activeInlineEdit?.entryId === entry.id ? activeInlineEdit : null}
+                inlineEdit={
+                  activeInlineEdit?.entryId === entry.id
+                    ? activeInlineEdit
+                    : null
+                }
                 passiveRename={passiveRenameDrafts.get(entry.id) ?? null}
                 directorySizes={props.directorySizes}
                 onInlineEditChange={props.onInlineEditChange}

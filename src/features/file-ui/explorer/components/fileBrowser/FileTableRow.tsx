@@ -2,13 +2,19 @@ import type { DirectorySizeRecord, FileEntry } from "@/native/ipc";
 import { TableCell, TableRow } from "@/shared/ui";
 import type { MouseEvent } from "react";
 import { memo, useMemo } from "react";
-import { useExplorerDragSource, useExplorerDropZone } from "../../drag/ExplorerDragHooks";
+import {
+  useExplorerDragSource,
+  useExplorerDropZone,
+} from "../../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../../drag/operations";
-import type { FileBrowserProps } from "../../model/FileBrowser";
-import type { ExplorerDragModifiers, ExplorerDragPayload } from "../../model/drag";
-import type { FileTableColumn } from "../../model/FileBrowser";
-import type { FileBrowserDragItem } from "../../model/FileBrowser";
-import type { PassiveRenameDraft } from "../../model/FileBrowser";
+import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
+import type {
+  ExplorerDragModifiers,
+  ExplorerDragPayload,
+} from "../../model/interfaces/drag/types";
+import type { FileTableColumn } from "../../model/types/components/FileBrowser";
+import type { FileBrowserDragItem } from "../../model/types/components/FileBrowserDrag";
+import type { PassiveRenameDraft } from "../../model/types/components/FileBrowserInline";
 import type { ExplorerInlineEditState } from "../../store/index";
 import { formatDate } from "../../utils/fileFormat";
 import { transferDropAcceptance } from "../FileBrowserDrag";
@@ -51,14 +57,18 @@ export const FileTableRow = memo(function FileTableRow(props: {
           folder: entry.kind === "folder",
           writable: !entry.readonly && !entry.isDeleted,
         }),
-      onDrop: (payload: ExplorerDragPayload, modifiers: ExplorerDragModifiers) =>
+      onDrop: (
+        payload: ExplorerDragPayload,
+        modifiers: ExplorerDragModifiers,
+      ) =>
         props.onDropItems(
           payload,
           entry.path,
           storageIdForPath(entry.path, entry.location.remoteName),
           modifiers,
         ),
-      onSpringLoad: entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
+      onSpringLoad:
+        entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
       springLoad: entry.kind === "folder",
     }),
     [entry, props],
@@ -141,7 +151,11 @@ function FileTableCell(props: {
         >
           <span className="flex min-w-0 items-center gap-2 font-medium">
             <span className={fileBrowserStyles.tableIconSlot}>
-              <FileIcon entry={props.entry} size={props.iconSize} variant="table" />
+              <FileIcon
+                entry={props.entry}
+                size={props.iconSize}
+                variant="table"
+              />
             </span>
             {props.inlineEdit ? (
               <InlineNameEditor
@@ -154,7 +168,9 @@ function FileTableCell(props: {
             ) : props.passiveRename ? (
               <PassiveRenameDraftView draft={props.passiveRename} />
             ) : (
-              <span className={fileBrowserStyles.tableNameText}>{props.entry.name}</span>
+              <span className={fileBrowserStyles.tableNameText}>
+                {props.entry.name}
+              </span>
             )}
           </span>
         </TableCell>
@@ -180,16 +196,24 @@ function FileTableCell(props: {
     case "type":
       if (props.entry.isDeleted)
         return (
-          <TableCell className={fileBrowserStyles.tableCell} style={{ height: props.rowHeight }}>
+          <TableCell
+            className={fileBrowserStyles.tableCell}
+            style={{ height: props.rowHeight }}
+          >
             Deleted
           </TableCell>
         );
       return (
-        <TableCell className={fileBrowserStyles.tableCell} style={{ height: props.rowHeight }}>
+        <TableCell
+          className={fileBrowserStyles.tableCell}
+          style={{ height: props.rowHeight }}
+        >
           <span>
             {props.entry.kind === "folder"
               ? "Folder"
-              : props.entry.mimeType || props.entry.extension || props.entry.kind}
+              : props.entry.mimeType ||
+                props.entry.extension ||
+                props.entry.kind}
           </span>
         </TableCell>
       );

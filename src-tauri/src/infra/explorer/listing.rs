@@ -25,7 +25,7 @@ impl ExplorerService {
             if path == VIRTUAL_PATH_TRASH {
                 return self.list_trash_virtual_directory().await;
             }
-            if path.starts_with("misty://") {
+            if path.starts_with("kura://") {
                 return Err(ApiError::Message(format!(
                     "Unsupported virtual Explorer location: {path}"
                 )));

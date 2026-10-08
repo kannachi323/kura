@@ -1,10 +1,13 @@
 import { Input, TableCell, TableRow } from "@/shared/ui";
 import { useLayoutEffect, useRef } from "react";
-import type { PassiveRenameDraft } from "../model/FileBrowser";
-import type { ExplorerInlineEditState, ExplorerSortColumn } from "../store/index";
+import type { PassiveRenameDraft } from "../model/types/components/FileBrowserInline";
+import type {
+  ExplorerInlineEditState,
+  ExplorerSortColumn,
+} from "../store/index";
 import { FileNameIcon } from "./FileBrowserIcons";
 import { fileBrowserStyles } from "./FileBrowserStyles";
-export type { PassiveRenameDraft } from "../model/FileBrowser";
+export type { PassiveRenameDraft } from "../model/types/components/FileBrowserInline";
 
 export function InlineCreateTableRow(props: {
   edit: ExplorerInlineEditState;
@@ -47,7 +50,10 @@ export function InlineCreateTableRow(props: {
         );
       })}
       {props.hasFillerColumn ? (
-        <TableCell className={fileBrowserStyles.tableFillerCell} aria-hidden="true" />
+        <TableCell
+          className={fileBrowserStyles.tableFillerCell}
+          aria-hidden="true"
+        />
       ) : null}
     </TableRow>
   );
@@ -94,7 +100,9 @@ export function InlineNameEditor(props: {
         <Input
           className={fileBrowserStyles.inlineInput}
           ref={inputRef}
-          aria-label={props.edit.kind === "create" ? "New item name" : "Rename item"}
+          aria-label={
+            props.edit.kind === "create" ? "New item name" : "Rename item"
+          }
           value={props.edit.value}
           onChange={(event) => props.onChange(event.target.value)}
           onKeyDown={(event) => {
@@ -110,7 +118,9 @@ export function InlineNameEditor(props: {
           }}
         />
         {props.edit.lockedExtension ? (
-          <span className={fileBrowserStyles.lockedExtension}>{props.edit.lockedExtension}</span>
+          <span className={fileBrowserStyles.lockedExtension}>
+            {props.edit.lockedExtension}
+          </span>
         ) : null}
       </span>
     </span>
@@ -123,7 +133,9 @@ export function PassiveRenameDraftView(props: { draft: PassiveRenameDraft }) {
       className={`${fileBrowserStyles.passiveDraft} ${props.draft.error ? fileBrowserStyles.passiveDraftInvalid : ""}`}
       title={props.draft.error ?? undefined}
     >
-      <span className={fileBrowserStyles.passiveDraftText}>{props.draft.value || " "}</span>
+      <span className={fileBrowserStyles.passiveDraftText}>
+        {props.draft.value || " "}
+      </span>
       {props.draft.lockedExtension ? (
         <small className={fileBrowserStyles.passiveDraftExtension}>
           {props.draft.lockedExtension}

@@ -1,12 +1,18 @@
 import type { FileEntry } from "@/native/ipc";
 import type { CSSProperties, MouseEvent } from "react";
 import { memo, useMemo } from "react";
-import { useExplorerDragSource, useExplorerDropZone } from "../../drag/ExplorerDragHooks";
+import {
+  useExplorerDragSource,
+  useExplorerDropZone,
+} from "../../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../../drag/operations";
-import type { FileBrowserProps } from "../../model/FileBrowser";
-import type { ExplorerDragModifiers, ExplorerDragPayload } from "../../model/drag";
-import type { FileBrowserDragItem } from "../../model/FileBrowser";
-import type { PassiveRenameDraft } from "../../model/FileBrowser";
+import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
+import type {
+  ExplorerDragModifiers,
+  ExplorerDragPayload,
+} from "../../model/interfaces/drag/types";
+import type { FileBrowserDragItem } from "../../model/types/components/FileBrowserDrag";
+import type { PassiveRenameDraft } from "../../model/types/components/FileBrowserInline";
 import type { ExplorerInlineEditState } from "../../store/index";
 import { transferDropAcceptance } from "../FileBrowserDrag";
 import { InlineNameEditor, PassiveRenameDraftView } from "../FileBrowserInline";
@@ -45,14 +51,18 @@ export const FileGridItem = memo(function FileGridItem(props: {
           folder: entry.kind === "folder",
           writable: !entry.readonly && !entry.isDeleted,
         }),
-      onDrop: (payload: ExplorerDragPayload, modifiers: ExplorerDragModifiers) =>
+      onDrop: (
+        payload: ExplorerDragPayload,
+        modifiers: ExplorerDragModifiers,
+      ) =>
         props.onDropItems(
           payload,
           entry.path,
           storageIdForPath(entry.path, entry.location.remoteName),
           modifiers,
         ),
-      onSpringLoad: entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
+      onSpringLoad:
+        entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
       springLoad: entry.kind === "folder",
     }),
     [entry, props],
@@ -88,7 +98,11 @@ export const FileGridItem = memo(function FileGridItem(props: {
           : (event) => props.onContextMenu(event, entry)
       }
     >
-      <GridThumbnail entry={entry} enabled={props.thumbnailsEnabled} iconSize={props.iconSize} />
+      <GridThumbnail
+        entry={entry}
+        enabled={props.thumbnailsEnabled}
+        iconSize={props.iconSize}
+      />
       {props.inlineEdit ? (
         <InlineNameEditor
           edit={props.inlineEdit}

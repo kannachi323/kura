@@ -8,14 +8,11 @@ use std::{
     },
     time::UNIX_EPOCH,
 };
-
-#[cfg(not(target_os = "macos"))]
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Cursor},
 };
 
-#[cfg(not(target_os = "macos"))]
 use image::{
     codecs::{
         gif::GifDecoder,
@@ -36,27 +33,26 @@ use crate::domain::explorer::{
     PreparedDragItem, PreparedDragItemsResult, PreparedDragSkippedItem, PreparedOpenItem,
     RenameItemRequest,
 };
-use crate::domain::clock::now_epoch_ms;
+use crate::domain::file_transfer::now_epoch_ms;
+use crate::domain::file_transfer::{FileTransferItemType, FileTransferRecord, FileTransferType};
 use crate::domain::listing_cache::ListingCache;
 use crate::error::{ApiError, ApiResult};
 use crate::infra::{
     environment::AppEnvironmentService,
     explorer_library::{ExplorerLibraryItem, ExplorerLibraryService},
+    transfers::TransferService,
 };
 
-const VIRTUAL_PATH_RECENT: &str = "misty://recent";
-const VIRTUAL_PATH_STARRED: &str = "misty://starred";
-const VIRTUAL_PATH_TRASH: &str = "misty://trash";
-const VIRTUAL_PATH_LIBRARY: &str = "misty://library";
+const VIRTUAL_PATH_RECENT: &str = "kura://recent";
+const VIRTUAL_PATH_STARRED: &str = "kura://starred";
+const VIRTUAL_PATH_TRASH: &str = "kura://trash";
+const VIRTUAL_PATH_LIBRARY: &str = "kura://library";
 
 const MAX_IMAGE_PREVIEW_DIMENSION: u32 = 1600;
 const DEFAULT_IMAGE_THUMBNAIL_DIMENSION: u32 = 384;
 const MAX_GENERATED_IMAGE_THUMBNAIL_DIMENSION: u32 = 384;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_RESIZE_FILTER: FilterType = FilterType::Triangle;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_PNG_COMPRESSION: CompressionType = CompressionType::Fast;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_PNG_FILTER: PngFilterType = PngFilterType::Adaptive;
 
 static IMAGE_THUMBNAIL_CACHE_FILE_LOCK: LazyLock<StdMutex<()>> =
@@ -67,6 +63,7 @@ static TEMPORARY_THUMBNAIL_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub struct ExplorerService {
     home_dir: PathBuf,
     mount_root: PathBuf,
+    transfers: TransferService,
     explorer_library: ExplorerLibraryService,
     listing_cache: ListingCache,
     drag_preparation_cancellations: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
@@ -77,16 +74,10 @@ pub struct ExplorerService {
 }
 
 impl ExplorerService {
-    /// Image previews are not available on macOS: they need a confined worker
-    /// and no caller provides one. The error return type is uninhabited so
-    /// every code path past it is statically unreachable.
-    #[cfg(target_os = "macos")]
-    fn image_service(&self) -> ApiResult<std::convert::Infallible> {
-        Err(ApiError::Message("Image previews are unavailable.".into()))
-    }
 
     pub fn new(
         environment: AppEnvironmentService,
+        transfers: TransferService,
         explorer_library: ExplorerLibraryService,
     ) -> Self {
         let cache_dir = environment.cache_dir();
@@ -94,6 +85,7 @@ impl ExplorerService {
         Self {
             home_dir: environment.home_dir(),
             mount_root,
+            transfers,
             explorer_library,
             listing_cache: ListingCache::new(cache_dir.join("remotes"), cache_dir.join("listings")),
             drag_preparation_cancellations: Arc::new(Mutex::new(HashMap::new())),
@@ -113,7 +105,6 @@ mod local_mutations;
 mod local_use;
 mod misc;
 mod mutations;
-mod paste_guard;
 mod path_helpers;
 mod preview;
 mod preview_render;
@@ -124,6 +115,7 @@ mod test_support;
 mod tests_local;
 #[cfg(test)]
 mod tests_preview;
+mod transfer_progress;
 
 use cancellation::*;
 use local_mutations::*;

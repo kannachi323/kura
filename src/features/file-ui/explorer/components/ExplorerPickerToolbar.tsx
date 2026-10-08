@@ -1,7 +1,20 @@
 import { useMinimumSpin } from "@/shared/hooks/useMinimumSpin";
 import { Button, IconButton, Input } from "@/shared/ui";
-import { ArrowUp, ChevronLeft, ChevronRight, RefreshCcw, Search, X } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCcw,
+  Search,
+  X,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { breadcrumbSegments } from "../utils/fileFormat";
 import { cx, toolbarStyles } from "./ExplorerToolbarSupport";
 
@@ -42,7 +55,11 @@ export function ExplorerPickerToolbar(props: ExplorerPickerToolbarProps) {
   return (
     <header className={toolbarStyles.root}>
       <div className={toolbarStyles.navRow}>
-        <div className={toolbarStyles.navButtons} role="group" aria-label="Navigation">
+        <div
+          className={toolbarStyles.navButtons}
+          role="group"
+          aria-label="Navigation"
+        >
           <IconButton
             size="md"
             label="Back"
@@ -79,12 +96,18 @@ export function ExplorerPickerToolbar(props: ExplorerPickerToolbarProps) {
               props.onRefresh();
             }}
           >
-            <RefreshCcw className={refreshSpinning ? "animate-spin" : undefined} size={17} />
+            <RefreshCcw
+              className={refreshSpinning ? "animate-spin" : undefined}
+              size={17}
+            />
           </IconButton>
         </div>
 
         <div
-          className={cx(toolbarStyles.pathBar, pathEditing && toolbarStyles.pathBarEditing)}
+          className={cx(
+            toolbarStyles.pathBar,
+            pathEditing && toolbarStyles.pathBarEditing,
+          )}
           title={pathEditing ? undefined : "Double-click to edit path"}
           onDoubleClick={beginPathEdit}
         >
@@ -119,7 +142,10 @@ export function ExplorerPickerToolbar(props: ExplorerPickerToolbarProps) {
                 onClick={() => props.onNavigate(segment.path)}
               >
                 {index > 0 ? (
-                  <ChevronRight className={toolbarStyles.breadcrumbCaret} size={14} />
+                  <ChevronRight
+                    className={toolbarStyles.breadcrumbCaret}
+                    size={14}
+                  />
                 ) : null}
                 {segment.label}
               </Button>

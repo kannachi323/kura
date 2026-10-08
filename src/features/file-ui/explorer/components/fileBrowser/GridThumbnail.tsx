@@ -45,14 +45,21 @@ export function GridThumbnail({
   );
 }
 
-function useGridThumbnailUrl(entry: FileEntry, enabled: boolean): string | null {
+function useGridThumbnailUrl(
+  entry: FileEntry,
+  enabled: boolean,
+): string | null {
   const { requestThumbnail } = useFileBrowserRuntime();
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setThumbnailUrl(null);
     if (!enabled || !gridThumbnailSupported(entry)) return () => undefined;
-    return requestThumbnail(entry, GRID_THUMBNAIL_MAX_DIMENSION, setThumbnailUrl);
+    return requestThumbnail(
+      entry,
+      GRID_THUMBNAIL_MAX_DIMENSION,
+      setThumbnailUrl,
+    );
   }, [enabled, entry, requestThumbnail]);
 
   return thumbnailUrl;

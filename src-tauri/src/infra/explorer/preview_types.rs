@@ -122,53 +122,26 @@ pub(super) fn image_thumbnail_cache_path(
     hasher.update(max_dimension.to_le_bytes());
     let digest = hasher.finalize();
     cache_dir.join(format!(
-        "misty-image-thumb-{}-{}.png",
+        "kura-image-thumb-{}-{}.png",
         max_dimension,
         hex::encode(&digest[..16])
     ))
 }
 
-// Images decode inside Misty's own process off macOS, so a crafted file must
-// not be able to claim unbounded memory.
-#[cfg(not(target_os = "macos"))]
-pub(super) const MAX_SOURCE_DIMENSION: u32 = 16_384;
-#[cfg(not(target_os = "macos"))]
-const MAX_SOURCE_PIXELS: u64 = 100_000_000;
-#[cfg(not(target_os = "macos"))]
-const MAX_DECODE_ALLOCATION: u64 = 512 * 1024 * 1024;
-/// The largest PSD read into memory for a preview.
-#[cfg(not(target_os = "macos"))]
-pub(super) const MAX_PSD_BYTES: u64 = 256 * 1024 * 1024;
-
-#[cfg(not(target_os = "macos"))]
 pub(super) fn thumbnail_decode_limits() -> Limits {
-    let mut limits = Limits::default();
-    limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
-    limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
-    limits.max_alloc = Some(MAX_DECODE_ALLOCATION);
-    limits
+    Limits::no_limits()
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn validate_image_thumbnail_source(width: u32, height: u32) -> ApiResult<()> {
     if width == 0 || height == 0 {
         return Err(ApiError::Message(
             "Image dimensions are invalid.".to_string(),
         ));
     }
-    if width > MAX_SOURCE_DIMENSION
-        || height > MAX_SOURCE_DIMENSION
-        || u64::from(width) * u64::from(height) > MAX_SOURCE_PIXELS
-    {
-        return Err(ApiError::Message(
-            "This image is too large to preview.".to_string(),
-        ));
-    }
 
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn image_dimensions(path: &Path) -> ApiResult<(u32, u32)> {
     let mut reader = ImageReader::open(path)
         .map_err(|error| {
@@ -193,14 +166,12 @@ pub(super) fn image_dimensions(path: &Path) -> ApiResult<(u32, u32)> {
     })
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn is_gif_path(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
         .is_some_and(|extension| extension.eq_ignore_ascii_case("gif"))
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn decode_gif_first_frame(path: &Path) -> ApiResult<image::DynamicImage> {
     let file = File::open(path).map_err(|error| {
         ApiError::Message(format!(
@@ -240,7 +211,6 @@ pub(super) fn decode_gif_first_frame(path: &Path) -> ApiResult<image::DynamicIma
     Ok(image::DynamicImage::ImageRgba8(rgba_image))
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn decode_image_thumbnail_source(path: &Path) -> ApiResult<image::DynamicImage> {
     if is_gif_path(path) {
         return decode_gif_first_frame(path);
@@ -274,7 +244,6 @@ pub(super) fn temporary_image_thumbnail_path(output_path: &Path) -> PathBuf {
     output_path.with_extension(format!("tmp-{temporary_id}"))
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn write_image_thumbnail_png(
     thumbnail: &image::DynamicImage,
     thumbnail_path: &Path,

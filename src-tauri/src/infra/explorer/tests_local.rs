@@ -84,7 +84,6 @@ async fn local_directory_inspection_follows_symlink_targets() {
     let _ = tokio::fs::remove_dir_all(&root).await;
 }
 
-#[cfg(not(target_os = "macos"))]
 #[tokio::test]
 async fn local_preview_payload_is_typed_and_rejects_unsupported_files() {
     let root = unique_test_dir("preview-payload");
@@ -141,7 +140,6 @@ async fn local_preview_payload_is_typed_and_rejects_unsupported_files() {
     let _ = tokio::fs::remove_dir_all(&root).await;
 }
 
-#[cfg(not(target_os = "macos"))]
 #[tokio::test]
 async fn generated_image_thumbnail_is_cached_and_dimensioned() {
     let root = unique_test_dir("image-thumbnail-cache");
@@ -173,8 +171,8 @@ async fn generated_image_thumbnail_is_cached_and_dimensioned() {
         service.image_thumbnail_cache_dir,
         service
             .home_dir
-            .join(".misty")
-            .join("cache")
+            .join(".kura")
+            .join(".cache")
             .join("thumbnails")
     );
     let thumbnail = image::open(&first.path).unwrap();
@@ -184,7 +182,6 @@ async fn generated_image_thumbnail_is_cached_and_dimensioned() {
     let _ = tokio::fs::remove_dir_all(&root).await;
 }
 
-#[cfg(not(target_os = "macos"))]
 #[tokio::test]
 async fn generated_image_thumbnail_writes_small_images_to_cache() {
     let root = unique_test_dir("image-thumbnail-original");
@@ -233,7 +230,7 @@ async fn lists_local_files_and_rejects_retired_cloud_locations() {
         .iter()
         .any(|entry| entry.name == "notes.txt"));
     for path in [
-        "misty://drive/notes.txt".to_owned(),
+        "kura://drive/notes.txt".to_owned(),
         display_path(&service.mount_root.join("drive")),
     ] {
         assert!(service.list_directory(request(path)).await.is_err());

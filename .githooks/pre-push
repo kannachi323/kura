@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "Commit or stash your changes before pushing." >&2
+  exit 1
+fi
+.githooks/checks.sh all

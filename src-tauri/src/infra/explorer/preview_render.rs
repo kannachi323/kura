@@ -1,6 +1,5 @@
 use super::*;
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn render_image_thumbnail_with_system_tool(
     _path: &Path,
     _thumbnail_path: &Path,
@@ -9,7 +8,6 @@ pub(super) fn render_image_thumbnail_with_system_tool(
     Ok(false)
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn render_image_thumbnail_file_blocking(
     path: &Path,
     output_path: &Path,
@@ -48,11 +46,6 @@ pub(super) fn render_image_thumbnail_file_blocking(
             }
         }
         PreviewFormat::Psd => {
-            if std::fs::metadata(path).is_ok_and(|metadata| metadata.len() > MAX_PSD_BYTES) {
-                return Err(ApiError::Message(
-                    "This image is too large to preview.".to_string(),
-                ));
-            }
             let bytes = std::fs::read(path).map_err(|error| {
                 ApiError::Message(format!(
                     "Failed to read PSD thumbnail {}: {error}",
@@ -100,7 +93,6 @@ pub(super) fn render_image_thumbnail_file_blocking(
     })
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn render_image_preview_png_blocking(
     path: &Path,
     image_format: image::ImageFormat,
@@ -112,7 +104,6 @@ pub(super) fn render_image_preview_png_blocking(
     )
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn render_image_preview_png_with_dimension_blocking(
     path: &Path,
     _image_format: image::ImageFormat,
@@ -122,7 +113,6 @@ pub(super) fn render_image_preview_png_with_dimension_blocking(
     encode_preview_image_png_with_dimension(image, path, max_dimension)
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn encode_preview_image_png(
     image: image::DynamicImage,
     path: &Path,
@@ -130,7 +120,6 @@ pub(super) fn encode_preview_image_png(
     encode_preview_image_png_with_dimension(image, path, MAX_IMAGE_PREVIEW_DIMENSION)
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn encode_preview_image_png_with_dimension(
     image: image::DynamicImage,
     path: &Path,
@@ -162,30 +151,18 @@ pub(super) async fn read_preview_file(path: &Path) -> ApiResult<Vec<u8>> {
     })
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn transcode_psd_preview_png(bytes: &[u8], path: &Path) -> ApiResult<Vec<u8>> {
     transcode_psd_preview_png_with_dimension(bytes, path, MAX_IMAGE_PREVIEW_DIMENSION)
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn transcode_psd_preview_png_with_dimension(
     bytes: &[u8],
     path: &Path,
     max_dimension: u32,
 ) -> ApiResult<Vec<u8>> {
-    use zune_psd::zune_core::{
-        bytestream::ZCursor, options::DecoderOptions, result::DecodingResult,
-    };
+    use zune_psd::zune_core::{bytestream::ZCursor, result::DecodingResult};
 
-    if bytes.len() as u64 > MAX_PSD_BYTES {
-        return Err(ApiError::Message(
-            "This image is too large to preview.".to_string(),
-        ));
-    }
-    let options = DecoderOptions::default()
-        .set_max_width(MAX_SOURCE_DIMENSION as usize)
-        .set_max_height(MAX_SOURCE_DIMENSION as usize);
-    let mut decoder = zune_psd::PSDDecoder::new_with_options(ZCursor::new(bytes), options);
+    let mut decoder = zune_psd::PSDDecoder::new(ZCursor::new(bytes));
     let decoded = decoder.decode().map_err(|error| {
         ApiError::Message(format!(
             "Failed to decode PSD preview {}: {error:?}",
@@ -234,7 +211,6 @@ pub(super) fn transcode_psd_preview_png_with_dimension(
     )
 }
 
-#[cfg(not(target_os = "macos"))]
 pub(super) fn psd_pixels_to_rgba8(
     pixels: &[u8],
     color_space: zune_psd::zune_core::colorspace::ColorSpace,
@@ -268,5 +244,6 @@ pub(super) fn pdf_preview_path(path: &Path, metadata: &std::fs::Metadata) -> Pat
         }
     }
     let digest = hasher.finalize();
-    std::env::temp_dir().join(format!("misty-preview-{}.png", hex::encode(&digest[..16])))
+    std::env::temp_dir().join(format!("kura-preview-{}.png", hex::encode(&digest[..16])))
 }
+

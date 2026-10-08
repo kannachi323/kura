@@ -1,4 +1,7 @@
-import type { FileTableColumn, FileTableColumnWidths } from "../../model/FileBrowser";
+import type {
+  FileTableColumn,
+  FileTableColumnWidths,
+} from "../../model/types/components/FileBrowser";
 
 export const TABLE_OVERSCAN_ROWS = 4;
 export const GRID_ITEM_HEIGHT = 156;
@@ -7,9 +10,15 @@ export const GRID_PADDING = 3;
 export const GRID_SCROLLBAR_RESERVE = 14;
 export const GRID_OVERSCAN_ROWS = 2;
 export const GRID_THUMBNAIL_MAX_DIMENSION = 384;
-const DEFAULT_ITEM_SCALE = 1;
+export const MAX_CONCURRENT_GRID_THUMBNAILS = 3;
+export const DEFAULT_ITEM_SCALE = 1;
 
-export const fileTableColumns: FileTableColumn[] = ["name", "modified", "size", "type"];
+export const fileTableColumns: FileTableColumn[] = [
+  "name",
+  "modified",
+  "size",
+  "type",
+];
 
 export const fileTableColumnLabels: Record<FileTableColumn, string> = {
   name: "Name",

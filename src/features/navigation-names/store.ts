@@ -1,0 +1,64 @@
+import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
+export interface NamesSnapshot {
+  names: Record<string, string>;
+  error: string | null;
+}
+interface NamesState extends NamesSnapshot {
+  account: string;
+  ready: boolean;
+}
+/** Kura has no accounts, so every custom tab name lives in one local scope. */
+export const kuraNamesScope = "kura";
+export const useNavigationNames = create<NamesState>(() => ({
+  account: kuraNamesScope,
+  ready: false,
+  names: {},
+  error: null,
+}));
+export function useNavigationName(key: string, automatic: string) {
+  return useNavigationNames((s) => s.names[key] ?? automatic);
+}
+export function navigationName(key: string, automatic: string) {
+  return useNavigationNames.getState().names[key] ?? automatic;
+}
+export function validateNavigationName(value: string): string {
+  const name = value.trim();
+  if (!name || [...name].length > 120 || /[\p{Cc}\u2028\u2029]/u.test(name))
+    throw new Error("Choose a single-line name of 1–120 characters.");
+  return name;
+}
+let sequence = 0;
+export async function refreshNavigationNames(account: string) {
+  const run = ++sequence;
+  const result = await invoke<NamesSnapshot>("navigation_names_snapshot", {
+    account,
+  });
+  if (run === sequence && useNavigationNames.getState().account === account) {
+    const current = useNavigationNames.getState();
+    if (
+      !current.ready ||
+      current.error !== result.error ||
+      JSON.stringify(current.names) !== JSON.stringify(result.names)
+    )
+      useNavigationNames.setState({ ...result, ready: true });
+  }
+}
+export async function setNavigationName(key: string, value: string | null) {
+  const account = useNavigationNames.getState().account;
+  const name = value === null ? null : validateNavigationName(value);
+  ++sequence;
+  const result = await invoke<NamesSnapshot>("navigation_names_update", {
+    account,
+    key,
+    name,
+  });
+  // Read after committing: overlapping windows/requests must not apply stale snapshots.
+  if (useNavigationNames.getState().account === account) {
+    useNavigationNames.setState({ error: result.error });
+    await refreshNavigationNames(account);
+  }
+}
+export const windowNameKey = (id: string) => `window:${id}`;
+export const tabNameKey = (id: string) => `tab:${id}`;
+export const groupNameKey = (id: string) => `group:${id}`;

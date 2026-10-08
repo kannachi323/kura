@@ -51,8 +51,6 @@ impl ExplorerService {
     }
 
     pub async fn preview_item(&self, path: &str) -> ApiResult<ExplorerPreviewPayload> {
-        #[cfg(target_os = "macos")]
-        self.image_service()?;
 
         self.reject_virtual_mount_container(path, "preview")?;
         self.preview_local_item(Path::new(path)).await
@@ -66,8 +64,6 @@ impl ExplorerService {
         _remote_modified: Option<&str>,
         size_bytes: Option<u64>,
     ) -> ApiResult<GeneratedImageThumbnail> {
-        #[cfg(target_os = "macos")]
-        self.image_service()?;
 
         self.reject_virtual_mount_container(path, "thumbnail")?;
         let identity = size_bytes.map(|size_bytes| ImageThumbnailIdentity {
@@ -123,12 +119,7 @@ impl ExplorerService {
         }
         let source_path = path.to_path_buf();
         let output_path = thumbnail_path.clone();
-        #[cfg(target_os = "macos")]
-        let service = self.image_service()?;
-        let rendered = tokio::task::spawn_blocking(move || -> ApiResult<GeneratedImageThumbnail> {
-            #[cfg(target_os = "macos")]
-            match service {}
-            #[cfg(not(target_os = "macos"))]
+        let rendered = tokio::task::spawn_blocking(move || {
             render_image_thumbnail_file_blocking(&source_path, &output_path, format, max_dimension)
         })
         .await
@@ -164,12 +155,7 @@ impl ExplorerService {
             }
             PreviewFormat::Image(image_format) => {
                 let path = path.to_path_buf();
-                #[cfg(target_os = "macos")]
-                let service = self.image_service()?;
-                let bytes = tokio::task::spawn_blocking(move || -> ApiResult<Vec<u8>> {
-                    #[cfg(target_os = "macos")]
-                    match service {}
-                    #[cfg(not(target_os = "macos"))]
+                let bytes = tokio::task::spawn_blocking(move || {
                     render_image_preview_png_blocking(&path, image_format)
                 })
                 .await
@@ -190,12 +176,7 @@ impl ExplorerService {
             }
             PreviewFormat::TranscodeImage(image_format) => {
                 let path = path.to_path_buf();
-                #[cfg(target_os = "macos")]
-                let service = self.image_service()?;
-                let bytes = tokio::task::spawn_blocking(move || -> ApiResult<Vec<u8>> {
-                    #[cfg(target_os = "macos")]
-                    match service {}
-                    #[cfg(not(target_os = "macos"))]
+                let bytes = tokio::task::spawn_blocking(move || {
                     render_image_preview_png_blocking(&path, image_format)
                 })
                 .await
@@ -208,13 +189,7 @@ impl ExplorerService {
                 })
             }
             PreviewFormat::Psd => {
-                #[cfg(target_os = "macos")]
-                {
-                    match self.image_service()? {}
-                }
-                #[cfg(not(target_os = "macos"))]
                 let bytes = read_preview_file(path).await?;
-                #[cfg(not(target_os = "macos"))]
                 Ok(ExplorerPreviewPayload {
                     mime_type: "image/png".to_string(),
                     bytes: transcode_psd_preview_png(&bytes, path)?,
@@ -232,7 +207,7 @@ async fn write_preview_destination(path: &Path, bytes: &[u8], create_new: bool) 
         .parent()
         .ok_or_else(|| ApiError::Message("Cannot save a file at a filesystem root.".to_string()))?;
     let temporary = parent.join(format!(
-        ".{}.misty-edit-{}.tmp",
+        ".{}.kura-edit-{}.tmp",
         path.file_name().and_then(OsStr::to_str).unwrap_or("file"),
         uuid::Uuid::new_v4()
     ));
