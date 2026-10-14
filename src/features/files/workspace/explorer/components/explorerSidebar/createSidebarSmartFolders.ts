@@ -19,12 +19,17 @@ export interface SidebarSmartFolderServices {
   delete(id: string): Promise<{ searches: SavedSearch[] }>;
   openSearch(path: string, query: string): Promise<void>;
 }
-export function createSidebarSmartFolders(services: SidebarSmartFolderServices) {
+export function createSidebarSmartFolders(
+  services: SidebarSmartFolderServices,
+) {
   /** The sidebar's saved-search list and the dialog that edits it. */
   return function useSidebarSmartFolders(sidebar: ExplorerSidebarProps) {
     const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-    const [smartFolderDialog, setSmartFolderDialog] = useState<SmartFolderDialogState>(null);
-    const [smartFolderError, setSmartFolderError] = useState<string | null>(null);
+    const [smartFolderDialog, setSmartFolderDialog] =
+      useState<SmartFolderDialogState>(null);
+    const [smartFolderError, setSmartFolderError] = useState<string | null>(
+      null,
+    );
     const [smartFoldersLoading, setSmartFoldersLoading] = useState(false);
 
     useEffect(() => {
@@ -59,7 +64,9 @@ export function createSidebarSmartFolders(services: SidebarSmartFolderServices) 
       const search: SavedSearch = {
         id: draft.id || smartFolderId(),
         name,
-        query: draft.query.trim() || smartFolderQueryFromRules(draft.rules, draft.matchMode),
+        query:
+          draft.query.trim() ||
+          smartFolderQueryFromRules(draft.rules, draft.matchMode),
         rules: smartFolderRulesWithMode(draft.rules, draft.matchMode),
         updatedAtMs: Date.now(),
       };
@@ -87,7 +94,10 @@ export function createSidebarSmartFolders(services: SidebarSmartFolderServices) 
     const runSmartFolder = async (search: SavedSearch) => {
       const query =
         search.query.trim() ||
-        smartFolderQueryFromRules(search.rules, smartFolderMatchMode(search.rules));
+        smartFolderQueryFromRules(
+          search.rules,
+          smartFolderMatchMode(search.rules),
+        );
       if (!query) return;
       await services.openSearch(sidebar.activePath || sidebar.homePath, query);
     };

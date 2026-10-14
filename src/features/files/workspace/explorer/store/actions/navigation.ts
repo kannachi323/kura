@@ -1,11 +1,13 @@
 import { useAppStore } from "@/features/app-shell";
 import {
-  connectedDevicesSubscribeDirectory,
   explorerCalculateDirectorySizes,
   explorerDirectorySizeSnapshot,
   explorerListDirectory,
 } from "../../../native";
-import { multiPanelStoreForPane, useMultiPanelStore } from "@/features/workspace";
+import {
+  multiPanelStoreForPane,
+  useMultiPanelStore,
+} from "@/features/workspace";
 import type { DirectoryListing, DirectorySizeRecord } from "@/native/ipc";
 import { isRetiredCloudLocation } from "@/shared/lib/fileLocations";
 import { errorText, userFacingErrorText } from "@/shared/lib/format";
@@ -30,10 +32,14 @@ export function createNavigationActions(
       const legacyMount = environment
         ? H.resolveMountRoot(environment.homeDir, environment.mountPath)
         : undefined;
-      if (isRetiredCloudLocation(path, legacyMount)) path = environment?.homeDir || "/";
+      if (isRetiredCloudLocation(path, legacyMount))
+        path = environment?.homeDir || "/";
       path = H.normalizedPath(path);
-      if (path === "misty-transfers://history") {
-        navigationVersions.set(paneId, (navigationVersions.get(paneId) ?? 0) + 1);
+      if (path === "kura-transfers://history") {
+        navigationVersions.set(
+          paneId,
+          (navigationVersions.get(paneId) ?? 0) + 1,
+        );
         const listing: DirectoryListing = {
           path,
           title: "Transfers",
@@ -41,15 +47,27 @@ export function createNavigationActions(
           entries: [],
           totalCount: 0,
           hiddenCount: 0,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         };
-        multiPanelStoreForPane(paneId).getState().updateActiveTabPath(paneId, path, "Transfers");
+        multiPanelStoreForPane(paneId)
+          .getState()
+          .updateActiveTabPath(paneId, path, "Transfers");
         set((state) => ({
-          inlineEdit: state.inlineEdit?.paneId === paneId ? null : state.inlineEdit,
+          inlineEdit:
+            state.inlineEdit?.paneId === paneId ? null : state.inlineEdit,
           panes: {
             ...state.panes,
             [paneId]: {
-              ...H.applyNavigationResult(state.panes[paneId] ?? H.emptyPaneState(), listing, mode),
+              ...H.applyNavigationResult(
+                state.panes[paneId] ?? H.emptyPaneState(),
+                listing,
+                mode,
+              ),
               needsLoad: false,
             },
           },
@@ -79,7 +97,10 @@ export function createNavigationActions(
         options?.forceRemoteRefresh ? "force" : "cached",
       ].join("\0");
       const pendingLoad = explorerRuntime.paneLoadRequestsInFlight.get(loadKey);
-      if (pendingLoad && loadVersions.get(loadKey) === navigationVersions.get(paneId))
+      if (
+        pendingLoad &&
+        loadVersions.get(loadKey) === navigationVersions.get(paneId)
+      )
         return pendingLoad;
 
       const version = (navigationVersions.get(paneId) ?? 0) + 1;
@@ -90,17 +111,23 @@ export function createNavigationActions(
           const pane = state.panes[paneId] ?? H.emptyPaneState();
           const multi = multiPanelStoreForPane(paneId).getState();
           const tab = multi.tabs.find((candidate) =>
-            candidate.panes.some((candidatePane) => candidatePane.id === paneId),
+            candidate.panes.some(
+              (candidatePane) => candidatePane.id === paneId,
+            ),
           );
           const sibling =
             tab?.panes.find(
-              (candidatePane) => candidatePane.id !== paneId && candidatePane.path === path,
-            ) ?? tab?.panes.find((candidatePane) => candidatePane.id !== paneId);
+              (candidatePane) =>
+                candidatePane.id !== paneId && candidatePane.path === path,
+            ) ??
+            tab?.panes.find((candidatePane) => candidatePane.id !== paneId);
           const paneViewModes =
             state.paneViewModes[paneId] === undefined
               ? {
                   ...state.paneViewModes,
-                  [paneId]: sibling ? H.viewModeForPane(state, sibling.id) : state.viewMode,
+                  [paneId]: sibling
+                    ? H.viewModeForPane(state, sibling.id)
+                    : state.viewMode,
                 }
               : state.paneViewModes;
           const paneFileItemScales =
@@ -108,7 +135,8 @@ export function createNavigationActions(
               ? {
                   ...state.paneFileItemScales,
                   [paneId]: sibling
-                    ? (state.paneFileItemScales[sibling.id] ?? state.fileItemScale)
+                    ? (state.paneFileItemScales[sibling.id] ??
+                      state.fileItemScale)
                     : state.fileItemScale,
                 }
               : state.paneFileItemScales;
@@ -116,7 +144,9 @@ export function createNavigationActions(
             state.paneShowHidden[paneId] === undefined
               ? {
                   ...state.paneShowHidden,
-                  [paneId]: sibling ? H.showHiddenForPane(state, sibling.id) : state.showHidden,
+                  [paneId]: sibling
+                    ? H.showHiddenForPane(state, sibling.id)
+                    : state.showHidden,
                 }
               : state.paneShowHidden;
           const quietRefresh =
@@ -144,7 +174,8 @@ export function createNavigationActions(
           )
             return state;
           return {
-            inlineEdit: state.inlineEdit?.paneId === paneId ? null : state.inlineEdit,
+            inlineEdit:
+              state.inlineEdit?.paneId === paneId ? null : state.inlineEdit,
             paneViewModes,
             paneFileItemScales,
             paneShowHidden,
@@ -167,16 +198,14 @@ export function createNavigationActions(
             get().directorySizes,
           );
           if (navigationVersions.get(paneId) !== version) return;
-          if (listing.path.startsWith("misty://device/")) {
-            void connectedDevicesSubscribeDirectory(listing.path);
-          }
           if (mode !== "replace") void get().recordLastOpenedPath(listing.path);
           const multi = multiPanelStoreForPane(paneId).getState();
           const tab = multi.tabs.find((candidate) =>
             candidate.panes.some((pane) => pane.id === paneId),
           );
           const pane = tab?.panes.find((candidate) => candidate.id === paneId);
-          const listingTitle = listing.title?.trim() || H.titleFromPath(listing.path);
+          const listingTitle =
+            listing.title?.trim() || H.titleFromPath(listing.path);
           if (pane?.path !== listing.path || pane?.title !== listingTitle) {
             multi.updateActiveTabPath(paneId, listing.path, listingTitle);
           }
@@ -191,7 +220,11 @@ export function createNavigationActions(
             ) {
               return state;
             }
-            const nextPane = H.applyNavigationResult(currentPane, listing, mode);
+            const nextPane = H.applyNavigationResult(
+              currentPane,
+              listing,
+              mode,
+            );
             if (H.paneExplorerStatesEqual(currentPane, nextPane)) return state;
             return {
               panes: {
@@ -200,7 +233,9 @@ export function createNavigationActions(
               },
             };
           });
-          void get().loadDirectorySizeSnapshot(H.folderPathsForListing(listing));
+          void get().loadDirectorySizeSnapshot(
+            H.folderPathsForListing(listing),
+          );
         } catch (error) {
           if (navigationVersions.get(paneId) !== version) return;
           set((state) => ({
@@ -220,7 +255,9 @@ export function createNavigationActions(
 
       explorerRuntime.paneLoadRequestsInFlight.set(loadKey, loadRequest);
       void loadRequest.finally(() => {
-        if (explorerRuntime.paneLoadRequestsInFlight.get(loadKey) === loadRequest) {
+        if (
+          explorerRuntime.paneLoadRequestsInFlight.get(loadKey) === loadRequest
+        ) {
           explorerRuntime.paneLoadRequestsInFlight.delete(loadKey);
           loadVersions.delete(loadKey);
         }
@@ -254,7 +291,9 @@ export function createNavigationActions(
     refreshPane: async (paneId) => {
       const path = get().panes[paneId]?.listing?.path;
       if (path) {
-        await get().loadPane(paneId, path, "replace", { forceRemoteRefresh: true });
+        await get().loadPane(paneId, path, "replace", {
+          forceRemoteRefresh: true,
+        });
       }
     },
 
@@ -269,7 +308,10 @@ export function createNavigationActions(
             .filter((record) => record.status === "unknown")
             .map((record) => record.path);
           if (missing.length > 0) {
-            void get().calculateDirectorySizes(missing, { force: false, notify: false });
+            void get().calculateDirectorySizes(missing, {
+              force: false,
+              notify: false,
+            });
           }
         }
       } catch {
@@ -297,7 +339,9 @@ export function createNavigationActions(
             );
           } else {
             get().pushNotification(
-              records.length === 1 ? "Folder size updated" : "Folder sizes updated",
+              records.length === 1
+                ? "Folder size updated"
+                : "Folder sizes updated",
               "success",
               2500,
             );
@@ -306,17 +350,24 @@ export function createNavigationActions(
       } catch (error) {
         H.markDirectorySizesFailed(set, uniquePaths, errorText(error));
         if (options?.notify) {
-          get().pushNotification(`Folder size failed: ${errorText(error)}`, "error", 5000);
+          get().pushNotification(
+            `Folder size failed: ${errorText(error)}`,
+            "error",
+            5000,
+          );
         }
       }
     },
 
     calculatePaneDirectorySizes: async (paneId, options) => {
       const pane = get().panes[paneId];
-      await get().calculateDirectorySizes(H.folderPathsForListing(pane?.listing ?? null), {
-        force: options?.force ?? true,
-        notify: options?.notify ?? true,
-      });
+      await get().calculateDirectorySizes(
+        H.folderPathsForListing(pane?.listing ?? null),
+        {
+          force: options?.force ?? true,
+          notify: options?.notify ?? true,
+        },
+      );
     },
 
     runScheduledDirectorySizeRefresh: async () => {
@@ -333,9 +384,14 @@ export function createNavigationActions(
 
     setViewMode: (viewMode, paneId) =>
       set((state) => {
-        const targetPaneId = paneId ?? useMultiPanelStore.getState().activePaneId;
-        if (!targetPaneId) return state.viewMode === viewMode ? state : { viewMode };
-        if (state.viewMode === viewMode && state.paneViewModes[targetPaneId] === viewMode)
+        const targetPaneId =
+          paneId ?? useMultiPanelStore.getState().activePaneId;
+        if (!targetPaneId)
+          return state.viewMode === viewMode ? state : { viewMode };
+        if (
+          state.viewMode === viewMode &&
+          state.paneViewModes[targetPaneId] === viewMode
+        )
           return state;
         return {
           viewMode,
@@ -345,9 +401,12 @@ export function createNavigationActions(
     setFileItemScale: (scale, paneId) =>
       set((state) => {
         const nextScale = Math.min(2, Math.max(0, Math.round(scale)));
-        const targetPaneId = paneId ?? useMultiPanelStore.getState().activePaneId;
+        const targetPaneId =
+          paneId ?? useMultiPanelStore.getState().activePaneId;
         if (!targetPaneId)
-          return state.fileItemScale === nextScale ? state : { fileItemScale: nextScale };
+          return state.fileItemScale === nextScale
+            ? state
+            : { fileItemScale: nextScale };
         if (
           state.fileItemScale === nextScale &&
           state.paneFileItemScales[targetPaneId] === nextScale
@@ -355,15 +414,23 @@ export function createNavigationActions(
           return state;
         return {
           fileItemScale: nextScale,
-          paneFileItemScales: { ...state.paneFileItemScales, [targetPaneId]: nextScale },
+          paneFileItemScales: {
+            ...state.paneFileItemScales,
+            [targetPaneId]: nextScale,
+          },
         };
       }),
     setSort: (column, paneId) => {
       set((state) => {
-        const targetPaneId = paneId ?? useMultiPanelStore.getState().activePaneId;
-        const currentSort = targetPaneId ? H.sortForPane(state, targetPaneId) : state.sort;
+        const targetPaneId =
+          paneId ?? useMultiPanelStore.getState().activePaneId;
+        const currentSort = targetPaneId
+          ? H.sortForPane(state, targetPaneId)
+          : state.sort;
         const direction: ExplorerSortDirection =
-          currentSort.column === column && currentSort.direction === "asc" ? "desc" : "asc";
+          currentSort.column === column && currentSort.direction === "asc"
+            ? "desc"
+            : "asc";
         const sort = { column, direction };
         if (!targetPaneId) return { sort };
         const pane = state.panes[targetPaneId];
@@ -375,7 +442,11 @@ export function createNavigationActions(
                 ...state.panes,
                 [targetPaneId]: {
                   ...pane,
-                  listing: H.sortListing(pane.listing, sort, state.directorySizes),
+                  listing: H.sortListing(
+                    pane.listing,
+                    sort,
+                    state.directorySizes,
+                  ),
                 },
               }
             : state.panes,
@@ -414,7 +485,8 @@ export function createNavigationActions(
         paneShowHidden: { ...state.paneShowHidden, [targetPaneId]: showHidden },
       }));
       const pane = get().panes[targetPaneId];
-      if (pane?.listing) await get().loadPane(targetPaneId, pane.listing.path, "replace");
+      if (pane?.listing)
+        await get().loadPane(targetPaneId, pane.listing.path, "replace");
     },
   };
 }

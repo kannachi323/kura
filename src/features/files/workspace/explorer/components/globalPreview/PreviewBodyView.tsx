@@ -39,7 +39,11 @@ export function PreviewBodyView(props: {
     );
   if (resource.kind === "video" && resource.url)
     return (
-      <Suspense fallback={<div className="h-full min-h-[360px] w-full bg-charcoal-workspace" />}>
+      <Suspense
+        fallback={
+          <div className="h-full min-h-[360px] w-full bg-charcoal-workspace" />
+        }
+      >
         <VideoAnnotator
           url={resource.url}
           name={props.source.name}
@@ -55,14 +59,28 @@ export function PreviewBodyView(props: {
             ♫
           </span>
           <strong className="text-center">{props.source.name}</strong>
-          <audio className="w-full" src={resource.url} controls autoPlay preload="metadata" />
+          <audio
+            className="w-full"
+            src={resource.url}
+            controls
+            autoPlay
+            preload="metadata"
+          />
         </div>
       </div>
     );
   if (resource.kind === "pdf" && resource.url)
     return (
-      <Suspense fallback={<div className="h-full min-h-[620px] w-full bg-charcoal-card" />}>
-        <PdfViewer Error={props.runtime.Error} url={resource.url} name={props.source.name} />
+      <Suspense
+        fallback={
+          <div className="h-full min-h-[620px] w-full bg-charcoal-card" />
+        }
+      >
+        <PdfViewer
+          Error={props.runtime.Error}
+          url={resource.url}
+          name={props.source.name}
+        />
       </Suspense>
     );
   if (resource.kind === "archive")
@@ -72,7 +90,10 @@ export function PreviewBodyView(props: {
         format={resource.archiveFormat ?? props.extension}
       />
     );
-  if ((resource.kind === "markdown" || resource.kind === "text") && props.editingText)
+  if (
+    (resource.kind === "markdown" || resource.kind === "text") &&
+    props.editingText
+  )
     return (
       <Textarea
         autoFocus
@@ -105,7 +126,7 @@ export function PreviewBodyView(props: {
     <PreviewMessage
       icon={<FileQuestion size={40} />}
       title={`${friendlyType(props.extension, props.source.mimeType)} file`}
-      detail="Misty can inspect this file and hand it to its default application."
+      detail="Kura can inspect this file and hand it to its default application."
       action={
         <Button size="sm" onClick={() => void props.runtime.open(props.source)}>
           <ExternalLink size={14} />

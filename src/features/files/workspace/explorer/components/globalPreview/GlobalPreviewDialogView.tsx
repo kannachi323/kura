@@ -63,9 +63,14 @@ export function GlobalPreviewDialogView(props: {
     textDraft !== resource.text,
   );
   const imageEditorMode =
-    globalPreviewKindForSource(extension, props.source.mimeType ?? undefined) === "image";
+    globalPreviewKindForSource(
+      extension,
+      props.source.mimeType ?? undefined,
+    ) === "image";
   const canEditText = Boolean(
-    resource && (resource.kind === "text" || resource.kind === "markdown") && !props.source.remote,
+    resource &&
+    (resource.kind === "text" || resource.kind === "markdown") &&
+    !props.source.remote,
   );
   const dirty = textDirty;
 
@@ -137,7 +142,6 @@ export function GlobalPreviewDialogView(props: {
           error={loadError}
           scope="files:preview:load"
           title="File preview could not be loaded"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       {saveError ? (
@@ -145,7 +149,6 @@ export function GlobalPreviewDialogView(props: {
           error={saveError}
           scope="files:preview:save"
           title="File preview changes could not be saved"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       <DialogContent
@@ -179,16 +182,26 @@ export function GlobalPreviewDialogView(props: {
                     disabled={!dirty || Boolean(saving)}
                     onClick={() => void save(true)}
                   >
-                    {saving === "copy" ? <Spinner size="sm" label={false} /> : <Copy size={14} />}
+                    {saving === "copy" ? (
+                      <Spinner size="sm" label={false} />
+                    ) : (
+                      <Copy size={14} />
+                    )}
                     Save as Copy
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    disabled={!dirty || props.source.readonly || Boolean(saving)}
+                    disabled={
+                      !dirty || props.source.readonly || Boolean(saving)
+                    }
                     onClick={() => void save(false)}
                   >
-                    {saving === "save" ? <Spinner size="sm" label={false} /> : <Save size={14} />}
+                    {saving === "save" ? (
+                      <Spinner size="sm" label={false} />
+                    ) : (
+                      <Save size={14} />
+                    )}
                     Save
                   </Button>
                 </>
@@ -252,7 +265,9 @@ export function GlobalPreviewDialogView(props: {
             <aside className="min-h-0 overflow-y-auto border-l border-charcoal-border bg-charcoal-card p-5 max-[820px]:hidden">
               <div className="grid gap-5">
                 <div>
-                  <span className="text-[11px] font-medium text-cream-muted">Inspector</span>
+                  <span className="text-[11px] font-medium text-cream-muted">
+                    Inspector
+                  </span>
                   <h2 className="m-0 mt-2 break-words text-lg font-semibold">
                     {props.source.name}
                   </h2>
@@ -260,23 +275,36 @@ export function GlobalPreviewDialogView(props: {
                 <dl className="m-0 grid gap-4">
                   <InspectorDetail
                     label="Kind"
-                    value={friendlyType(extension, resource?.mimeType ?? props.source.mimeType)}
+                    value={friendlyType(
+                      extension,
+                      resource?.mimeType ?? props.source.mimeType,
+                    )}
                   />
                   <InspectorDetail
                     label="Size"
                     value={
-                      props.source.sizeBytes == null ? "—" : formatBytes(props.source.sizeBytes)
+                      props.source.sizeBytes == null
+                        ? "—"
+                        : formatBytes(props.source.sizeBytes)
                     }
                   />
-                  <InspectorDetail label="Modified" value={formatDate(props.source.modifiedMs)} />
+                  <InspectorDetail
+                    label="Modified"
+                    value={formatDate(props.source.modifiedMs)}
+                  />
                   {props.source.createdMs != null ? (
-                    <InspectorDetail label="Created" value={formatDate(props.source.createdMs)} />
+                    <InspectorDetail
+                      label="Created"
+                      value={formatDate(props.source.createdMs)}
+                    />
                   ) : null}
                   <InspectorDetail label="Path" value={props.source.path} />
                 </dl>
                 {props.source.description ? (
                   <div>
-                    <span className="text-[11px] font-medium text-cream-muted">Description</span>
+                    <span className="text-[11px] font-medium text-cream-muted">
+                      Description
+                    </span>
                     <p className="m-0 mt-2 text-sm leading-6 text-cream-muted">
                       {props.source.description}
                     </p>

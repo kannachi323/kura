@@ -11,7 +11,14 @@ import {
   ContextMenuTrigger,
   IconButton,
 } from "@/shared/ui";
-import { ExternalLink, Folder, PinOff, Plus, RefreshCcw, X } from "lucide-react";
+import {
+  ExternalLink,
+  Folder,
+  PinOff,
+  Plus,
+  RefreshCcw,
+  X,
+} from "lucide-react";
 import type { ExplorerSidebarProps } from "../../model/interfaces/components/ExplorerSidebar";
 import { SidebarSectionHeader, sidebarStyles } from "@/features/file-ui";
 import { usePointerReorder } from "@/shared/hooks/usePointerReorder";
@@ -45,7 +52,8 @@ export function SidebarQuickAccessSectionView({
       const row = quick.rows.find((candidate) => candidate.path === id);
       return row ? { id, label: row.label } : null;
     },
-    onDrop: (drag, target, after) => quick.moveQuickAccessRow(drag.id, target, after),
+    onDrop: (drag, target, after) =>
+      quick.moveQuickAccessRow(drag.id, target, after),
     onKeyboardMove: (id, direction) => {
       const index = quick.rows.findIndex((row) => row.path === id);
       const target = quick.rows[index + direction];
@@ -116,14 +124,19 @@ export function SidebarQuickAccessSectionView({
                     <div
                       data-reorder-handle="true"
                       onClick={(event) => {
-                        if (!(event.target as Element).closest("[data-reorder-ignore]"))
+                        if (
+                          !(event.target as Element).closest(
+                            "[data-reorder-ignore]",
+                          )
+                        )
                           sidebar.onNavigate(row.path);
                       }}
                       className={cn(
                         sidebarStyles.treeSurface,
                         sidebarStyles.quickAccessSurface,
                         sidebarStyles.pinnedRow,
-                        sidebar.activePath === row.path && sidebarStyles.itemSelected,
+                        sidebar.activePath === row.path &&
+                          sidebarStyles.itemSelected,
                       )}
                     >
                       <DropTarget
@@ -137,7 +150,10 @@ export function SidebarQuickAccessSectionView({
                           variant="ghost"
                           className={sidebarStyles.pinnedButton}
                         >
-                          <span className={sidebarStyles.itemIcon} aria-hidden="true">
+                          <span
+                            className={sidebarStyles.itemIcon}
+                            aria-hidden="true"
+                          >
                             <Icon size={24} strokeWidth={1.9} />
                           </span>
                           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">

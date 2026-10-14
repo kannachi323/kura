@@ -1,13 +1,13 @@
 import { openTerminalAtPath } from "../../../native";
 import { reportSystemError } from "@/features/activity";
 import { IconButton, toolbarIconProps } from "@/shared/ui";
-import { PanelsTopLeft, Terminal } from "lucide-react";
+import { Settings, Terminal } from "lucide-react";
 import { useCallback, useState } from "react";
 
 export function ExplorerTray(props: {
   terminalEnabled: boolean;
   terminalPath: string;
-  onToggleFileManagerMode: () => void;
+  onOpenSettings: () => void;
 }) {
   const [errorMessage, setErrorMessage] = useState("");
   const openTerminal = useCallback(() => {
@@ -19,7 +19,6 @@ export function ExplorerTray(props: {
         error,
         scope: "files:terminal",
         title: "Terminal could not be opened",
-        target: { kind: "workspace-tool", tool: "files" },
       });
     });
   }, [props.terminalEnabled, props.terminalPath]);
@@ -31,18 +30,25 @@ export function ExplorerTray(props: {
           {errorMessage}
         </span>
       ) : null}
-      <IconButton label="Open Spaces" tooltip={false} onClick={props.onToggleFileManagerMode}>
-        <PanelsTopLeft {...toolbarIconProps} />
-      </IconButton>
-      <span className="mx-0.5 h-4 w-px bg-charcoal-border" aria-hidden="true" />
       <IconButton
         label="Open terminal"
         tooltip={false}
-        title={props.terminalEnabled ? "Open terminal" : "Terminal unavailable for this view"}
+        title={
+          props.terminalEnabled
+            ? "Open terminal"
+            : "Terminal unavailable for this view"
+        }
         disabled={!props.terminalEnabled}
         onClick={openTerminal}
       >
         <Terminal {...toolbarIconProps} />
+      </IconButton>
+      <IconButton
+        label="Settings"
+        tooltip={false}
+        onClick={props.onOpenSettings}
+      >
+        <Settings {...toolbarIconProps} />
       </IconButton>
     </>
   );

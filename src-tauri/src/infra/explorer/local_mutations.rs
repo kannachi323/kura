@@ -300,7 +300,7 @@ pub(super) async fn trash_local_path_cancellable(
     })?;
     if source == trash_dir {
         return Err(ApiError::Message(
-            "The Misty trash directory cannot be moved to Trash.".to_string(),
+            "The Kura trash directory cannot be moved to Trash.".to_string(),
         ));
     }
     tokio::fs::create_dir_all(trash_dir)

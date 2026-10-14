@@ -210,7 +210,7 @@ mod tests {
     use uuid::Uuid;
 
     fn test_store() -> (FileSyncPairStore, PathBuf) {
-        let root = std::env::temp_dir().join(format!("misty-sync-pairs-{}", Uuid::new_v4()));
+        let root = std::env::temp_dir().join(format!("kura-sync-pairs-{}", Uuid::new_v4()));
         (FileSyncPairStore::new(root.join("misty.db")), root)
     }
 

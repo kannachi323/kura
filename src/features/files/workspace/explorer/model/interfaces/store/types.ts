@@ -5,7 +5,10 @@ import type {
   FileEntry,
   PasteItem,
 } from "@/native/ipc";
-import type { ClipboardOperation, CreateItemKind } from "@/native/ipc/primitives";
+import type {
+  ClipboardOperation,
+  CreateItemKind,
+} from "@/native/ipc/primitives";
 
 import type {
   ExplorerCommandQueryMode,
@@ -159,7 +162,11 @@ export interface ExplorerStore {
   openEntry: (paneId: string, entry: FileEntry) => Promise<void>;
   openWithSelected: (paneId: string) => Promise<void>;
   canCreateItem: (paneId: string, kind: CreateItemKind) => boolean;
-  createItem: (paneId: string, kind: CreateItemKind, name?: string) => Promise<void>;
+  createItem: (
+    paneId: string,
+    kind: CreateItemKind,
+    name?: string,
+  ) => Promise<void>;
   renameSelected: (paneId: string, name?: string) => Promise<void>;
   openBatchRenameDialog: (paneId: string) => void;
   deleteSelected: (paneId: string, mode?: ExplorerDeleteMode) => Promise<void>;
@@ -167,22 +174,37 @@ export interface ExplorerStore {
   copySelected: (paneId: string) => void;
   cutSelected: (paneId: string) => void;
   pasteIntoPane: (paneId: string) => Promise<void>;
-  uploadIntoPane: (paneId: string, sourceKind?: ExplorerUploadSourceKind) => Promise<void>;
+  uploadIntoPane: (
+    paneId: string,
+    sourceKind?: ExplorerUploadSourceKind,
+  ) => Promise<void>;
   dropItems: (
     paneId: string,
     items: PasteItem[],
     destination: string,
     operation: ClipboardOperation,
   ) => Promise<void>;
-  dropExternalPaths: (paneId: string, paths: string[], destination: string) => Promise<void>;
+  dropExternalPaths: (
+    paneId: string,
+    paths: string[],
+    destination: string,
+  ) => Promise<void>;
   pollTransferRefreshes: (mountRoot: string) => Promise<void>;
   togglePinnedPath: (path: string) => void;
   copyPath: (path: string) => Promise<void>;
-  openContextMenu: (paneId: string, x: number, y: number, entryId?: string | null) => void;
+  openContextMenu: (
+    paneId: string,
+    x: number,
+    y: number,
+    entryId?: string | null,
+  ) => void;
   closeContextMenu: () => void;
   setInlineEditValue: (value: string) => void;
   setBatchRenameValue: (paneId: string, entryId: string, value: string) => void;
-  setBatchRenameItems: (paneId: string, items: ExplorerBatchRenameItem[]) => void;
+  setBatchRenameItems: (
+    paneId: string,
+    items: ExplorerBatchRenameItem[],
+  ) => void;
   commitInlineEdit: () => Promise<void>;
   cancelInlineEdit: () => void;
   confirmDialog: () => Promise<void>;

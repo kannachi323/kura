@@ -17,11 +17,19 @@ import { useOperationQueueStore } from "../store";
 
 /** Name collisions belong to the file action, even without a history workspace. */
 export function FileOperationConflictDialog() {
-  const conflict = useOperationQueueStore((state) => state.snapshot?.conflictDialog);
-  return conflict?.open ? <ConflictPrompt key={conflict.operationId} conflict={conflict} /> : null;
+  const conflict = useOperationQueueStore(
+    (state) => state.snapshot?.conflictDialog,
+  );
+  return conflict?.open ? (
+    <ConflictPrompt key={conflict.operationId} conflict={conflict} />
+  ) : null;
 }
 
-function ConflictPrompt({ conflict }: { conflict: OperationQueueSnapshot["conflictDialog"] }) {
+function ConflictPrompt({
+  conflict,
+}: {
+  conflict: OperationQueueSnapshot["conflictDialog"];
+}) {
   const [working, setWorking] = useState(false);
   const [applyToBatch, setApplyToBatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +54,9 @@ function ConflictPrompt({ conflict }: { conflict: OperationQueueSnapshot["confli
     <AlertDialog open>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{conflict.title || "A file already exists"}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {conflict.title || "A file already exists"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             Choose how to handle the file at the destination.
           </AlertDialogDescription>
@@ -77,7 +87,11 @@ function ConflictPrompt({ conflict }: { conflict: OperationQueueSnapshot["confli
           </p>
         ) : null}
         <AlertDialogFooter>
-          <Button variant="ghost" disabled={working} onClick={() => void resolve("skip")}>
+          <Button
+            variant="ghost"
+            disabled={working}
+            onClick={() => void resolve("skip")}
+          >
             Skip
           </Button>
           {conflict.supportsKeepBoth ? (

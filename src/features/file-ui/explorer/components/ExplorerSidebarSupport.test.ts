@@ -52,16 +52,26 @@ describe("Explorer sidebar devices", () => {
 
 describe("Explorer sidebar interaction styles", () => {
   it("uses a clearly elevated Quick access hover surface", () => {
-    expect(sidebarStyles.quickAccessSurface).toContain("group-hover/tree-row:bg-charcoal-card");
-    expect(sidebarStyles.quickAccessSurface).toContain("group-hover/tree-row:text-cream-bright");
+    expect(sidebarStyles.quickAccessSurface).toContain(
+      "group-hover/tree-row:bg-charcoal-card",
+    );
+    expect(sidebarStyles.quickAccessSurface).toContain(
+      "group-hover/tree-row:text-cream-bright",
+    );
   });
 
   it("keeps branch content close to the connector line", () => {
     expect(sidebarStyles.treeSurface).toContain(navigationTreeSurfaceClass);
     expect(sidebarStyles.itemButton).toContain(navigationTreeContentInsetClass);
-    expect(sidebarStyles.pinnedButton).toContain(navigationTreeContentInsetClass);
-    expect(sidebarStyles.deviceButton).toContain(navigationTreeContentInsetClass);
-    expect(sidebarStyles.deviceGroupToggle).toContain(navigationTreeContentInsetClass);
+    expect(sidebarStyles.pinnedButton).toContain(
+      navigationTreeContentInsetClass,
+    );
+    expect(sidebarStyles.deviceButton).toContain(
+      navigationTreeContentInsetClass,
+    );
+    expect(sidebarStyles.deviceGroupToggle).toContain(
+      navigationTreeContentInsetClass,
+    );
   });
 
   it("uses prominent icons throughout sidebar item rows", () => {

@@ -24,7 +24,10 @@ import type {
   SmartFolderMatchMode,
 } from "../model/types/components/ExplorerSidebarSupport";
 import { formatBytes } from "../utils/fileFormat";
-import { explorerPathName, joinExplorerPath } from "@/shared/lib/pathNormalization";
+import {
+  explorerPathName,
+  joinExplorerPath,
+} from "@/shared/lib/pathNormalization";
 import { normalizeSidebarPath } from "./explorerSidebarStorage";
 export * from "./explorerSidebarStorage";
 export type {
@@ -46,7 +49,8 @@ export const sidebarStyles = {
     "[overscroll-behavior:contain]",
   ),
   section: `${navigationTreeGroupClass} [&+&]:mt-3`,
-  sectionTitle: "group/section-title flex h-9 min-w-0 items-center gap-1 px-2.5",
+  sectionTitle:
+    "group/section-title flex h-9 min-w-0 items-center gap-1 px-2.5",
   sectionToggle:
     "misty-navigator-row-target flex h-9 min-w-0 flex-1 items-center gap-1 rounded-md px-0 text-[13px] font-semibold text-cream-bright",
   sectionToggleLabel: navigationDisclosureLabelClass,
@@ -89,7 +93,8 @@ export const sidebarStyles = {
     "bg-charcoal-active px-2.5 text-left text-sm font-medium shadow-none",
     "hover:border-charcoal-border/80 hover:bg-charcoal-active [&_svg]:!size-5",
   ),
-  workspaceSelectLabel: "ml-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
+  workspaceSelectLabel:
+    "ml-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
   list: navigationTreeGroupClass,
   muted: "ml-3 mr-2 px-2.5 py-1 text-[13px] text-cream-muted",
   deviceButton: cn(
@@ -124,7 +129,8 @@ export const sidebarStyles = {
   deviceGroupAction: "misty-sidebar-icon-target [&_svg]:!size-3.5",
   deviceGroupEmpty: "ml-3 mr-2 px-2.5 py-1 text-[11px] text-cream-muted",
   errorText: "m-0 text-sm text-cream-bright",
-  smartMeta: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-cream-muted/70",
+  smartMeta:
+    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-cream-muted/70",
 } as const;
 
 export { SmartFolderDialog } from "./ExplorerSidebarDialogs";
@@ -138,7 +144,10 @@ export function SidebarSectionHeader(props: {
   onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <div className={sidebarStyles.sectionTitle} onContextMenu={props.onContextMenu}>
+    <div
+      className={sidebarStyles.sectionTitle}
+      onContextMenu={props.onContextMenu}
+    >
       <Pressable
         className={sidebarStyles.sectionToggle}
         onClick={props.onToggle}
@@ -159,7 +168,9 @@ export function SidebarSectionHeader(props: {
         </span>
       </Pressable>
       {props.actions ? (
-        <div className={`${sidebarStyles.sectionActions} ${sidebarStyles.sectionActionsReveal}`}>
+        <div
+          className={`${sidebarStyles.sectionActions} ${sidebarStyles.sectionActionsReveal}`}
+        >
           {props.actions}
         </div>
       ) : null}
@@ -189,7 +200,11 @@ export function SidebarDeviceGroup(props: {
         controls={contentId}
         actions={props.actions}
       />
-      <CollapsibleContent id={contentId} role="group" aria-label={`${props.title} devices`}>
+      <CollapsibleContent
+        id={contentId}
+        role="group"
+        aria-label={`${props.title} devices`}
+      >
         <div className="ml-3">{props.children}</div>
       </CollapsibleContent>
     </Collapsible>
@@ -238,23 +253,34 @@ function defaultSmartFolderRule(): SavedSearchRule {
   return { field: "text", operator: "contains", value: "" };
 }
 
-export function createSmartFolderDialogState(search?: SavedSearch): SmartFolderDialogState {
+export function createSmartFolderDialogState(
+  search?: SavedSearch,
+): SmartFolderDialogState {
   return {
     draft: {
       id: search?.id ?? "",
       name: search?.name ?? "New Collection",
       query: search?.query ?? "",
       matchMode: search ? smartFolderMatchMode(search.rules) : "all",
-      rules: search ? visibleSmartFolderRules(search.rules) : [defaultSmartFolderRule()],
+      rules: search
+        ? visibleSmartFolderRules(search.rules)
+        : [defaultSmartFolderRule()],
     },
   };
 }
 
-export function smartFolderMatchMode(rules: SavedSearchRule[]): SmartFolderMatchMode {
-  return rules.find((rule) => rule.field === smartFolderModeField)?.value === "any" ? "any" : "all";
+export function smartFolderMatchMode(
+  rules: SavedSearchRule[],
+): SmartFolderMatchMode {
+  return rules.find((rule) => rule.field === smartFolderModeField)?.value ===
+    "any"
+    ? "any"
+    : "all";
 }
 
-export function visibleSmartFolderRules(rules: SavedSearchRule[]): SavedSearchRule[] {
+export function visibleSmartFolderRules(
+  rules: SavedSearchRule[],
+): SavedSearchRule[] {
   const visible = rules.filter((rule) => rule.field !== smartFolderModeField);
   return visible.length > 0 ? visible : [defaultSmartFolderRule()];
 }
@@ -270,12 +296,17 @@ export function smartFolderRulesWithMode(
       value: rule.value.trim(),
     }))
     .filter((rule) => rule.field && rule.value);
-  return [{ field: smartFolderModeField, operator: "mode", value: matchMode }, ...cleaned];
+  return [
+    { field: smartFolderModeField, operator: "mode", value: matchMode },
+    ...cleaned,
+  ];
 }
 
 export function sortSavedSearches(searches: SavedSearch[]): SavedSearch[] {
   return [...searches].sort(
-    (left, right) => right.updatedAtMs - left.updatedAtMs || left.name.localeCompare(right.name),
+    (left, right) =>
+      right.updatedAtMs - left.updatedAtMs ||
+      left.name.localeCompare(right.name),
   );
 }
 
@@ -302,7 +333,10 @@ export function buildDeviceEntries(
     entries.push({
       id: `custom:${path}`,
       volumeId: `custom:${path}`,
-      name: customization.nameOverrides[path] || path.split("/").filter(Boolean).pop() || path,
+      name:
+        customization.nameOverrides[path] ||
+        path.split("/").filter(Boolean).pop() ||
+        path,
       mountPath: path,
       fsType: "",
       isRemovable: false,
@@ -334,7 +368,10 @@ export function pathIsInside(path: string, root: string): boolean {
   return path.startsWith(`${normalizedRoot}/`);
 }
 
-export function dedupePinnedPathsForQuickAccess(paths: string[], builtInPaths: string[]): string[] {
+export function dedupePinnedPathsForQuickAccess(
+  paths: string[],
+  builtInPaths: string[],
+): string[] {
   const seen = new Set(builtInPaths.map(normalizeSidebarPath));
   const pinnedPaths: string[] = [];
   for (const path of paths) {
@@ -347,9 +384,9 @@ export function dedupePinnedPathsForQuickAccess(paths: string[], builtInPaths: s
 }
 
 export function pinnedPathLabel(path: string): string {
-  if (path === "misty://recent") return "Recent";
-  if (path === "misty://starred") return "Starred";
-  if (path === "misty://trash") return "Trash";
+  if (path === "kura://recent") return "Recent";
+  if (path === "kura://starred") return "Starred";
+  if (path === "kura://trash") return "Trash";
   return explorerPathName(path) || path;
 }
 

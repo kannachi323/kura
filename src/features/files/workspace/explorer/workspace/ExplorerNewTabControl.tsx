@@ -3,7 +3,10 @@ import { NewTabMenu } from "@/features/workspace/NewTabMenu";
 import { FolderOpen, House } from "lucide-react";
 
 export function createExplorerAddTabControl(homePath: string) {
-  return (tab: MultiPanelTab, addTab: (path: string, title?: string) => string) => (
+  return (
+    tab: MultiPanelTab,
+    addTab: (path: string, title?: string) => string,
+  ) => (
     <NewTabMenu
       ariaLabel="New Files tab"
       options={[

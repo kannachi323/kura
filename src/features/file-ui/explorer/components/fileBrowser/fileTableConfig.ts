@@ -13,7 +13,12 @@ export const GRID_THUMBNAIL_MAX_DIMENSION = 384;
 export const MAX_CONCURRENT_GRID_THUMBNAILS = 3;
 export const DEFAULT_ITEM_SCALE = 1;
 
-export const fileTableColumns: FileTableColumn[] = ["name", "modified", "size", "type"];
+export const fileTableColumns: FileTableColumn[] = [
+  "name",
+  "modified",
+  "size",
+  "type",
+];
 
 export const fileTableColumnLabels: Record<FileTableColumn, string> = {
   name: "Name",

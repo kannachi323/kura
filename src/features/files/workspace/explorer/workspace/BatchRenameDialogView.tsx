@@ -31,13 +31,17 @@ const toggleClass =
 const listClass = "min-h-0 overflow-auto px-4 py-3";
 const rowClass =
   "grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-b border-charcoal-border py-2.5 text-xs last:border-0";
-const rowInvalidClass = "rounded-md border border-charcoal-active/25 bg-charcoal-active px-2";
+const rowInvalidClass =
+  "rounded-md border border-charcoal-active/25 bg-charcoal-active px-2";
 
 function batchRenameItemKey(item: ExplorerBatchRenameItem): string {
   return `${item.paneId}:${item.entryId}`;
 }
 
-function applyBatchRenameCase(value: string, mode: BatchRenameCaseMode): string {
+function applyBatchRenameCase(
+  value: string,
+  mode: BatchRenameCaseMode,
+): string {
   if (mode === "lower") return value.toLocaleLowerCase();
   if (mode === "upper") return value.toLocaleUpperCase();
   if (mode === "title") {
@@ -63,17 +67,18 @@ function previewBatchRenameItem(
     return { ...item, value: manualValue, lockedExtension };
   }
 
-  let value = options.lockExtensions ? item.value : `${item.value}${item.lockedExtension}`;
+  let value = options.lockExtensions
+    ? item.value
+    : `${item.value}${item.lockedExtension}`;
   if (options.findText) {
     value = value.split(options.findText).join(options.replaceText);
   }
   value = applyBatchRenameCase(value, options.caseMode);
   value = `${options.prefix}${value}${options.suffix}`;
   if (options.sequenceEnabled) {
-    const sequence = String(Math.max(0, options.sequenceStart) + index).padStart(
-      Math.max(1, options.sequencePad),
-      "0",
-    );
+    const sequence = String(
+      Math.max(0, options.sequenceStart) + index,
+    ).padStart(Math.max(1, options.sequencePad), "0");
     value = `${value}${sequence}`;
   }
   return { ...item, value, lockedExtension };
@@ -126,19 +131,29 @@ export function BatchRenameDialogView(props: {
   const previewItems = useMemo(
     () =>
       validateBatchRenameItems(
-        dialog.items.map((item, index) => previewBatchRenameItem(item, index, options)),
+        dialog.items.map((item, index) =>
+          previewBatchRenameItem(item, index, options),
+        ),
       ),
     [dialog.items, options],
   );
   const invalidCount = previewItems.filter((item) => item.error).length;
   const firstInvalidIndex = previewItems.findIndex((item) => item.error);
   const readyCount = previewItems.filter(
-    (item) => !item.error && `${item.value.trim()}${item.lockedExtension}` !== item.originalName,
+    (item) =>
+      !item.error &&
+      `${item.value.trim()}${item.lockedExtension}` !== item.originalName,
   ).length;
   const unchangedCount = previewItems.length - readyCount - invalidCount;
-  const updateManualValue = useCallback((item: ExplorerBatchRenameItem, value: string) => {
-    setManualValues((current) => ({ ...current, [batchRenameItemKey(item)]: value }));
-  }, []);
+  const updateManualValue = useCallback(
+    (item: ExplorerBatchRenameItem, value: string) => {
+      setManualValues((current) => ({
+        ...current,
+        [batchRenameItemKey(item)]: value,
+      }));
+    },
+    [],
+  );
   const applyPreview = async () => {
     if (saving || invalidCount || !readyCount) return;
     setSaving(true);
@@ -178,11 +193,14 @@ export function BatchRenameDialogView(props: {
             <div>
               <DialogTitle>Batch Rename</DialogTitle>
               <DialogDescription>
-                {readyCount} ready, {unchangedCount} unchanged, {invalidCount} need fixes.
+                {readyCount} ready, {unchangedCount} unchanged, {invalidCount}{" "}
+                need fixes.
               </DialogDescription>
             </div>
             <Badge variant={invalidCount > 0 ? "destructive" : "secondary"}>
-              {invalidCount > 0 ? `${invalidCount} need fixes` : `${previewItems.length} selected`}
+              {invalidCount > 0
+                ? `${invalidCount} need fixes`
+                : `${previewItems.length} selected`}
             </Badge>
           </DialogHeader>
           {failure ? (
@@ -228,7 +246,9 @@ export function BatchRenameDialogView(props: {
                 <span>Case</span>
                 <Select
                   value={caseMode}
-                  onValueChange={(value) => setCaseMode(value as BatchRenameCaseMode)}
+                  onValueChange={(value) =>
+                    setCaseMode(value as BatchRenameCaseMode)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -248,7 +268,9 @@ export function BatchRenameDialogView(props: {
                   min={0}
                   value={sequenceStart}
                   onChange={(event) =>
-                    setSequenceStart(Number.parseInt(event.target.value, 10) || 0)
+                    setSequenceStart(
+                      Number.parseInt(event.target.value, 10) || 0,
+                    )
                   }
                 />
               </label>
@@ -261,7 +283,13 @@ export function BatchRenameDialogView(props: {
                   value={sequencePad}
                   onChange={(event) =>
                     setSequencePad(
-                      Math.min(8, Math.max(1, Number.parseInt(event.target.value, 10) || 1)),
+                      Math.min(
+                        8,
+                        Math.max(
+                          1,
+                          Number.parseInt(event.target.value, 10) || 1,
+                        ),
+                      ),
                     )
                   }
                 />
@@ -269,7 +297,9 @@ export function BatchRenameDialogView(props: {
               <label className={toggleClass}>
                 <Checkbox
                   checked={sequenceEnabled}
-                  onCheckedChange={(checked) => setSequenceEnabled(Boolean(checked))}
+                  onCheckedChange={(checked) =>
+                    setSequenceEnabled(Boolean(checked))
+                  }
                 />
                 <span>Number suffix</span>
               </label>
@@ -301,7 +331,10 @@ export function BatchRenameDialogView(props: {
                   className={`${rowClass} ${item.error ? rowInvalidClass : ""}`}
                   key={batchRenameItemKey(item)}
                 >
-                  <span className="truncate text-cream-muted" title={item.originalName}>
+                  <span
+                    className="truncate text-cream-muted"
+                    title={item.originalName}
+                  >
                     {item.originalName}
                   </span>
                   <div>
@@ -310,11 +343,18 @@ export function BatchRenameDialogView(props: {
                         value={item.value}
                         autoComplete="off"
                         aria-invalid={Boolean(item.error)}
-                        autoFocus={invalidCount > 0 ? index === firstInvalidIndex : false}
-                        onChange={(event) => updateManualValue(item, event.target.value)}
+                        autoFocus={
+                          invalidCount > 0 ? index === firstInvalidIndex : false
+                        }
+                        onChange={(event) =>
+                          updateManualValue(item, event.target.value)
+                        }
                       />
                       {item.lockedExtension ? (
-                        <Badge variant="secondary" className="font-mono font-normal">
+                        <Badge
+                          variant="secondary"
+                          className="font-mono font-normal"
+                        >
                           {item.lockedExtension}
                         </Badge>
                       ) : null}
@@ -326,13 +366,15 @@ export function BatchRenameDialogView(props: {
                     ) : (
                       <em
                         className={cn(
-                          `${item.value.trim()}${item.lockedExtension}` === item.originalName
+                          `${item.value.trim()}${item.lockedExtension}` ===
+                            item.originalName
                             ? "text-cream-muted"
                             : "text-sage-fg",
                           "mt-1 block text-[11px] not-italic",
                         )}
                       >
-                        {`${item.value.trim()}${item.lockedExtension}` === item.originalName
+                        {`${item.value.trim()}${item.lockedExtension}` ===
+                        item.originalName
                           ? "Unchanged"
                           : "Ready"}
                       </em>
@@ -346,7 +388,10 @@ export function BatchRenameDialogView(props: {
             <Button variant="outline" type="button" onClick={() => onClose()}>
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || readyCount === 0 || invalidCount > 0}>
+            <Button
+              type="submit"
+              disabled={saving || readyCount === 0 || invalidCount > 0}
+            >
               Apply
             </Button>
           </DialogFooter>

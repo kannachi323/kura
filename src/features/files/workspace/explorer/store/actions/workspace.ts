@@ -11,7 +11,10 @@ import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
 import { explorerRuntime } from "../runtime";
 
-export function createWorkspaceActions(set: ExplorerSet, get: ExplorerGet): Partial<ExplorerStore> {
+export function createWorkspaceActions(
+  set: ExplorerSet,
+  get: ExplorerGet,
+): Partial<ExplorerStore> {
   return {
     loadLibrary: async () => {
       try {
@@ -23,7 +26,11 @@ export function createWorkspaceActions(set: ExplorerSet, get: ExplorerGet): Part
 
     recordLibraryRecent: async (entry) => {
       try {
-        set({ library: await explorerLibraryRecordRecent(H.libraryItemFromEntry(entry)) });
+        set({
+          library: await explorerLibraryRecordRecent(
+            H.libraryItemFromEntry(entry),
+          ),
+        });
       } catch {
         // Best-effort parity with the native Recent library.
       }
@@ -49,7 +56,9 @@ export function createWorkspaceActions(set: ExplorerSet, get: ExplorerGet): Part
       try {
         try {
           const processClipboard = await clipboardSnapshot();
-          const restoredClipboard = H.explorerClipboardFromPayload(processClipboard.local);
+          const restoredClipboard = H.explorerClipboardFromPayload(
+            processClipboard.local,
+          );
           set({ clipboard: restoredClipboard });
         } catch {
           // Best effort clipboard restore
@@ -60,15 +69,21 @@ export function createWorkspaceActions(set: ExplorerSet, get: ExplorerGet): Part
         set({ initialized: true });
         const currentMulti = useMultiPanelStore.getState();
         const activeTab =
-          currentMulti.tabs.find((tab) => tab.id === currentMulti.activeTabId) ??
-          currentMulti.tabs[0];
+          currentMulti.tabs.find(
+            (tab) => tab.id === currentMulti.activeTabId,
+          ) ?? currentMulti.tabs[0];
         const activePaneId =
-          currentMulti.activePaneId || activeTab?.activePaneId || "explorer-pane-0";
-        const panePath = activeTab?.panes.find((p) => p.id === activePaneId)?.path || homePath;
+          currentMulti.activePaneId ||
+          activeTab?.activePaneId ||
+          "explorer-pane-0";
+        const panePath =
+          activeTab?.panes.find((p) => p.id === activePaneId)?.path || homePath;
         try {
           await get().loadPane(activePaneId, panePath, "replace");
         } catch (error) {
-          set({ operationError: `Could not open ${panePath}: ${errorText(error)}` });
+          set({
+            operationError: `Could not open ${panePath}: ${errorText(error)}`,
+          });
         }
       } finally {
         explorerRuntime.initializationInFlight = false;

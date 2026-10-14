@@ -23,18 +23,31 @@ export function useSidebarPreferences() {
     useState<SidebarCollapsedState>(loadSidebarCollapsedState);
   const [deviceCustomization, setDeviceCustomization] =
     useState<DeviceCustomizationState>(loadDeviceCustomization);
-  const [hiddenQuickAccessPaths, setHiddenQuickAccessPaths] = useState<string[]>(
-    loadHiddenQuickAccessPaths,
-  );
-  const [quickAccessOrder, setQuickAccessOrder] = useState<string[]>(loadQuickAccessOrder);
+  const [hiddenQuickAccessPaths, setHiddenQuickAccessPaths] = useState<
+    string[]
+  >(loadHiddenQuickAccessPaths);
+  const [quickAccessOrder, setQuickAccessOrder] =
+    useState<string[]>(loadQuickAccessOrder);
 
-  useEffect(() => saveDeviceCustomization(deviceCustomization), [deviceCustomization]);
-  useEffect(() => saveSidebarCollapsedState(collapsedSections), [collapsedSections]);
-  useEffect(() => saveHiddenQuickAccessPaths(hiddenQuickAccessPaths), [hiddenQuickAccessPaths]);
+  useEffect(
+    () => saveDeviceCustomization(deviceCustomization),
+    [deviceCustomization],
+  );
+  useEffect(
+    () => saveSidebarCollapsedState(collapsedSections),
+    [collapsedSections],
+  );
+  useEffect(
+    () => saveHiddenQuickAccessPaths(hiddenQuickAccessPaths),
+    [hiddenQuickAccessPaths],
+  );
   useEffect(() => saveQuickAccessOrder(quickAccessOrder), [quickAccessOrder]);
 
   const toggleSection = (section: keyof SidebarCollapsedState) =>
-    setCollapsedSections((current) => ({ ...current, [section]: !current[section] }));
+    setCollapsedSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
 
   return {
     collapsedSections,

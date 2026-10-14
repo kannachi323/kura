@@ -50,7 +50,10 @@ export function DuplicateFinderDialog(props: {
         void useOperationQueueStore.getState().load({ silent: true });
         useExplorerStore
           .getState()
-          .pushNotification(`Queued ${mode} cleanup for ${paths.length} items`, "success");
+          .pushNotification(
+            `Queued ${mode} cleanup for ${paths.length} items`,
+            "success",
+          );
         void useExplorerStore.getState().refreshPane(props.paneId);
       },
       Error: ({ error }) => (
@@ -58,7 +61,6 @@ export function DuplicateFinderDialog(props: {
           error={error}
           scope="files:duplicates"
           title="Duplicate scan could not be completed"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ),
     };

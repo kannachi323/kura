@@ -11,11 +11,19 @@ import {
   explorerQueuePasteItems,
   explorerQueuePasteText,
 } from "../../../native";
-import type { ClipboardPayload, FileEntry, PasteItem, PreparedOpenItem } from "@/native/ipc";
+import type {
+  ClipboardPayload,
+  FileEntry,
+  PasteItem,
+  PreparedOpenItem,
+} from "@/native/ipc";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { clipboardImagePng } from "../../utils/clipboardImage";
 
-import type { ExplorerClipboardState, PaneExplorerState } from "../../model/interfaces/store/types";
+import type {
+  ExplorerClipboardState,
+  PaneExplorerState,
+} from "../../model/interfaces/store/types";
 import { getExplorerStore } from "../runtime";
 import * as H from "./index";
 
@@ -23,7 +31,9 @@ export async function localPathForEntry(entry: FileEntry): Promise<string> {
   return (await H.preparedOpenItemForEntry(entry)).localPath;
 }
 
-export async function preparedOpenItemForEntry(entry: FileEntry): Promise<PreparedOpenItem> {
+export async function preparedOpenItemForEntry(
+  entry: FileEntry,
+): Promise<PreparedOpenItem> {
   if (entry.location.kind === "local") {
     return {
       localPath: entry.path,
@@ -40,7 +50,9 @@ export async function preparedOpenItemForEntry(entry: FileEntry): Promise<Prepar
   });
 }
 
-export async function associationForPath(filePath: string): Promise<string | null> {
+export async function associationForPath(
+  filePath: string,
+): Promise<string | null> {
   return explorerOpenAssociation(filePath);
 }
 
@@ -48,7 +60,9 @@ export async function setAssociationForPath(
   filePath: string,
   applicationPath: string,
 ): Promise<void> {
-  await useSettingsStore.getState().setOpenWithAssociation(filePath, applicationPath);
+  await useSettingsStore
+    .getState()
+    .setOpenWithAssociation(filePath, applicationPath);
 }
 
 export async function pasteSystemClipboardTextIntoPane(
@@ -59,18 +73,6 @@ export async function pasteSystemClipboardTextIntoPane(
   if (nativeFileRefs.length > 0) {
     await explorerQueuePasteItems({
       sources: nativeFileRefs,
-      destinationDirectory: directory,
-      operation: "copy",
-    });
-    H.refreshFileOperationState();
-    H.queuePaneRefresh(paneId, directory);
-    return true;
-  }
-
-  const sharedDeviceItems = await H.sharedDevicePasteItems();
-  if (sharedDeviceItems.length > 0) {
-    await explorerQueuePasteItems({
-      sources: sharedDeviceItems,
       destinationDirectory: directory,
       operation: "copy",
     });
@@ -209,18 +211,25 @@ export async function pasteSystemClipboardImageIntoPane(
   return true;
 }
 
-export async function pasteItemsFromClipboardText(text: string): Promise<PasteItem[]> {
+export async function pasteItemsFromClipboardText(
+  text: string,
+): Promise<PasteItem[]> {
   const paths = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  if (paths.length === 0 || paths.some((path) => !H.looksLikeClipboardPath(path))) {
+  if (
+    paths.length === 0 ||
+    paths.some((path) => !H.looksLikeClipboardPath(path))
+  ) {
     return [];
   }
   return H.pasteItemsFromClipboardPaths(paths);
 }
 
-export async function pasteItemsFromClipboardPaths(paths: string[]): Promise<PasteItem[]> {
+export async function pasteItemsFromClipboardPaths(
+  paths: string[],
+): Promise<PasteItem[]> {
   try {
     const items = await Promise.all(
       paths.map(async (path) => {
@@ -241,9 +250,12 @@ export function looksLikeClipboardPath(path: string): boolean {
   return path.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(path);
 }
 
-export function clipboardPayloadForPane(pane: PaneExplorerState | undefined): ClipboardPayload {
+export function clipboardPayloadForPane(
+  pane: PaneExplorerState | undefined,
+): ClipboardPayload {
   const selected = new Set(pane?.selectedIds ?? []);
-  const entries = pane?.listing?.entries.filter((entry) => selected.has(entry.id)) ?? [];
+  const entries =
+    pane?.listing?.entries.filter((entry) => selected.has(entry.id)) ?? [];
   return {
     kind: entries.length > 0 ? "file_refs" : "empty",
     origin: "local_misty",
@@ -274,12 +286,20 @@ export async function writeNativeOrTextClipboardForSelection(
 
   const localItems = entries
     .filter((entry) => entry.location.kind === "local")
-    .map((entry) => ({ path: entry.path, isDirectory: entry.kind === "folder" }));
-  if (localItems.length === entries.length && (await clipboardWriteFileRefs(localItems))) {
+    .map((entry) => ({
+      path: entry.path,
+      isDirectory: entry.kind === "folder",
+    }));
+  if (
+    localItems.length === entries.length &&
+    (await clipboardWriteFileRefs(localItems))
+  ) {
     return;
   }
 
-  const remoteEntries = entries.filter((entry) => entry.location.kind !== "local");
+  const remoteEntries = entries.filter(
+    (entry) => entry.location.kind !== "local",
+  );
   if (remoteEntries.length > 0) {
     getExplorerStore()
       .getState()
@@ -332,22 +352,27 @@ export async function writeNativeOrTextClipboardForSelection(
     return;
   }
 
-  await writeText(entries.map((entry) => H.clipboardTextForEntry(entry)).join("\n"));
+  await writeText(
+    entries.map((entry) => H.clipboardTextForEntry(entry)).join("\n"),
+  );
 }
 
 export function explorerClipboardFromPayload(
   payload: ClipboardPayload,
 ): ExplorerClipboardState | null {
-  if (payload.kind !== "file_refs" || payload.file_refs.length === 0) return null;
+  if (payload.kind !== "file_refs" || payload.file_refs.length === 0)
+    return null;
   const items = payload.file_refs
     .map(H.pasteItemFromClipboardRef)
     .filter((item): item is PasteItem => item !== null);
   return items.length > 0 ? { items, operation: "copy" } : null;
 }
 
-export function selectedFileEntriesForPane(pane: PaneExplorerState | undefined): FileEntry[] {
+export function selectedFileEntriesForPane(
+  pane: PaneExplorerState | undefined,
+): FileEntry[] {
   if (!pane?.listing) return [];
-  if (pane.listing.path === "misty://trash") return [];
+  if (pane.listing.path === "kura://trash") return [];
   const selected = new Set(pane.selectedIds);
   return pane.listing.entries.filter(
     (entry) => selected.has(entry.id) && H.isFileMasterEntry(entry),
@@ -356,7 +381,9 @@ export function selectedFileEntriesForPane(pane: PaneExplorerState | undefined):
 
 export function clipboardTextForEntry(entry: FileEntry): string {
   if (entry.location.kind === "local") return entry.path;
-  const provider = entry.location.providerType ? `${entry.location.providerType}/` : "";
+  const provider = entry.location.providerType
+    ? `${entry.location.providerType}/`
+    : "";
   const remoteName = entry.location.remoteName ?? "";
   const remotePath = entry.location.remotePath ?? entry.path;
   return `${provider}${remoteName}:${remotePath}`;
@@ -368,13 +395,19 @@ export function pasteItemFromClipboardRef(
   if (fileRef.local_path.trim()) {
     return { path: fileRef.local_path, isDirectory: fileRef.is_dir };
   }
-  if (fileRef.provider_type === "misty_peer" && fileRef.remote_path.startsWith("misty://device/")) {
+  if (
+    fileRef.provider_type === "misty_peer" &&
+    fileRef.remote_path.startsWith("kura://device/")
+  ) {
     return { path: fileRef.remote_path, isDirectory: fileRef.is_dir };
   }
   return null;
 }
 
-export function resolveMountRoot(homePath: string, configuredPath: string): string {
+export function resolveMountRoot(
+  homePath: string,
+  configuredPath: string,
+): string {
   if (configuredPath.startsWith("/")) return configuredPath.replace(/\/+$/, "");
   return `${homePath.replace(/\/+$/, "")}/${configuredPath.replace(/^\/+|\/+$/g, "")}`;
 }

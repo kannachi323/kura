@@ -46,9 +46,15 @@ describe("ExplorerPaneToolbarActions", () => {
       );
     });
 
-    const toolbar = container.querySelector('[role="toolbar"][aria-label="Layout"]');
-    const gridButton = container.querySelector<HTMLButtonElement>('[aria-label="View as grid"]');
-    const listButton = container.querySelector<HTMLButtonElement>('[aria-label="View as list"]');
+    const toolbar = container.querySelector(
+      '[role="toolbar"][aria-label="Layout"]',
+    );
+    const gridButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="View as grid"]',
+    );
+    const listButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="View as list"]',
+    );
 
     expect(toolbar?.getAttribute("aria-label")).toBe("Layout");
     expect(gridButton?.getAttribute("aria-pressed")).toBe("true");
@@ -98,9 +104,9 @@ describe("ExplorerPaneToolbarActions", () => {
       );
     });
 
-    const copyPathItem = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
-      (item) => item.textContent?.includes("Copy Current Path"),
-    );
+    const copyPathItem = [
+      ...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ].find((item) => item.textContent?.includes("Copy Current Path"));
     expect(copyPathItem).toBeTruthy();
 
     act(() => copyPathItem?.click());

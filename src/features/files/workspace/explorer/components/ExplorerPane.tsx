@@ -10,35 +10,47 @@ import { useExplorerStore } from "../store";
 import { FileBrowser } from "./FileBrowser";
 
 const paneStyles = {
-  shell: "grid h-full min-h-0 w-full min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden",
+  shell:
+    "grid h-full min-h-0 w-full min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden",
   shellInactive: "opacity-65 transition-opacity hover:opacity-85",
 } as const;
 
 const emptySelectedIds: string[] = [];
 
-export const ExplorerPane = memo(function ExplorerPane(props: ExplorerPaneProps) {
-  const { pane, viewMode, itemScale, sort, showHidden, inlineEdit, clipboard } = useExplorerStore(
-    useShallow((state) => ({
-      pane: state.panes[props.paneId],
-      viewMode: state.paneViewModes[props.paneId] ?? state.viewMode,
-      itemScale: state.paneFileItemScales[props.paneId] ?? state.fileItemScale,
-      sort: state.paneSorts[props.paneId] ?? state.sort,
-      showHidden: state.paneShowHidden[props.paneId] ?? state.showHidden,
-      inlineEdit: inlineEditForPane(state.inlineEdit, props.paneId),
-      clipboard: state.clipboard,
-    })),
-  );
+export const ExplorerPane = memo(function ExplorerPane(
+  props: ExplorerPaneProps,
+) {
+  const { pane, viewMode, itemScale, sort, showHidden, inlineEdit, clipboard } =
+    useExplorerStore(
+      useShallow((state) => ({
+        pane: state.panes[props.paneId],
+        viewMode: state.paneViewModes[props.paneId] ?? state.viewMode,
+        itemScale:
+          state.paneFileItemScales[props.paneId] ?? state.fileItemScale,
+        sort: state.paneSorts[props.paneId] ?? state.sort,
+        showHidden: state.paneShowHidden[props.paneId] ?? state.showHidden,
+        inlineEdit: inlineEditForPane(state.inlineEdit, props.paneId),
+        clipboard: state.clipboard,
+      })),
+    );
   const directorySizes = useExplorerStore((state) => state.directorySizes);
   const listing = pane?.listing ?? null;
   const cutPaths = useMemo(
-    () => new Set(clipboard?.operation === "move" ? clipboard.items.map((item) => item.path) : []),
+    () =>
+      new Set(
+        clipboard?.operation === "move"
+          ? clipboard.items.map((item) => item.path)
+          : [],
+      ),
     [clipboard],
   );
 
   useEffect(() => {
     if (pane?.loading) return;
     if (pane?.needsLoad) {
-      void useExplorerStore.getState().loadPane(props.paneId, props.path, "replace");
+      void useExplorerStore
+        .getState()
+        .loadPane(props.paneId, props.path, "replace");
     } else if (!listing || listing.path !== props.path) {
       void useExplorerStore.getState().navigatePane(props.paneId, props.path);
     }
@@ -80,7 +92,9 @@ export const ExplorerPane = memo(function ExplorerPane(props: ExplorerPaneProps)
   const handleBackgroundContextMenu = useCallback(
     (event: MouseEvent) => {
       event.preventDefault();
-      useExplorerStore.getState().openContextMenu(props.paneId, event.clientX, event.clientY, null);
+      useExplorerStore
+        .getState()
+        .openContextMenu(props.paneId, event.clientX, event.clientY, null);
     },
     [props.paneId],
   );
@@ -138,8 +152,12 @@ export const ExplorerPane = memo(function ExplorerPane(props: ExplorerPaneProps)
         directorySizes={directorySizes}
         cutPaths={cutPaths}
         inlineEdit={inlineEdit}
-        onSort={(column) => useExplorerStore.getState().setSort(column, props.paneId)}
-        onToggleHidden={() => void useExplorerStore.getState().toggleHidden(props.paneId)}
+        onSort={(column) =>
+          useExplorerStore.getState().setSort(column, props.paneId)
+        }
+        onToggleHidden={() =>
+          void useExplorerStore.getState().toggleHidden(props.paneId)
+        }
         onSelect={handleSelect}
         onClearSelection={handleClearSelection}
         onOpen={handleOpen}
@@ -160,7 +178,10 @@ function inlineEditForPane(
 ) {
   if (!edit) return null;
   if (edit.paneId === paneId) return edit;
-  if (edit.kind === "rename" && edit.batchItems?.some((item) => item.paneId === paneId)) {
+  if (
+    edit.kind === "rename" &&
+    edit.batchItems?.some((item) => item.paneId === paneId)
+  ) {
     return edit;
   }
   return null;

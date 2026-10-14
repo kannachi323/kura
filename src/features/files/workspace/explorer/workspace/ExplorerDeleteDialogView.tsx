@@ -37,8 +37,9 @@ export function ExplorerDeleteDialogView({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Permanently</AlertDialogTitle>
           <AlertDialogDescription>
-            Delete <strong className="font-semibold text-cream">{deleteLabel}</strong>? This cannot
-            be undone.
+            Delete{" "}
+            <strong className="font-semibold text-cream">{deleteLabel}</strong>?
+            This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error ? (
@@ -57,7 +58,11 @@ export function ExplorerDeleteDialogView({
               setWorking(true);
               setError(null);
               void onConfirm()
-                .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+                .catch((cause) =>
+                  setError(
+                    cause instanceof Error ? cause.message : String(cause),
+                  ),
+                )
                 .finally(() => setWorking(false));
             }}
           >

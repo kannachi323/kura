@@ -1,4 +1,8 @@
-import { savedSearchesDelete, savedSearchesSave, savedSearchesSnapshot } from "../../../native";
+import {
+  savedSearchesDelete,
+  savedSearchesSave,
+  savedSearchesSnapshot,
+} from "../../../native";
 import { useSearchStore } from "../../../search";
 import { createSidebarSmartFolders } from "./createSidebarSmartFolders";
 export const useSidebarSmartFolders = createSidebarSmartFolders({

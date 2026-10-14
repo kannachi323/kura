@@ -61,7 +61,12 @@ function archiveEntry(overrides: Partial<FileEntry> = {}): FileEntry {
     path: "/Users/misty/Downloads/backup.zip",
     kind: "file",
     isDeleted: false,
-    location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+    location: {
+      kind: "local",
+      providerType: null,
+      remoteName: null,
+      remotePath: null,
+    },
     sizeBytes: 1024,
     modifiedMs: 0,
     ...overrides,
@@ -73,7 +78,7 @@ describe("canActOnLocalArchiveFile", () => {
     expect(canActOnLocalArchiveFile(archiveEntry(), false)).toBe(true);
   });
 
-  it("blocks a remote archive file — local archive tools cannot read a misty:// path", () => {
+  it("blocks a remote archive file — local archive tools cannot read a kura:// path", () => {
     const remoteEntry = archiveEntry({
       location: {
         kind: "remote",
@@ -93,9 +98,12 @@ describe("canActOnLocalArchiveFile", () => {
   });
 
   it("blocks a non-archive file", () => {
-    expect(canActOnLocalArchiveFile(archiveEntry({ path: "/Users/misty/notes.txt" }), false)).toBe(
-      false,
-    );
+    expect(
+      canActOnLocalArchiveFile(
+        archiveEntry({ path: "/Users/misty/notes.txt" }),
+        false,
+      ),
+    ).toBe(false);
   });
 
   it("blocks a folder even if its name ends in an archive extension", () => {
@@ -119,7 +127,9 @@ describe("archive extraction refreshes the pane it was invoked from", () => {
   // though the extract itself succeeded. Passing paneId as an argument fixed it.
 
   it("extractArchiveHere refreshes the pane it was extracted into", async () => {
-    backendMocks.archiveExtract.mockResolvedValue({ message: "Extracted 3 files." });
+    backendMocks.archiveExtract.mockResolvedValue({
+      message: "Extracted 3 files.",
+    });
 
     await extractArchiveHere("/Users/misty/Downloads/backup.zip", "pane-42");
 
@@ -132,10 +142,14 @@ describe("archive extraction refreshes the pane it was invoked from", () => {
   });
 
   it("extractArchiveTo refreshes the pane it was extracted into", async () => {
-    backendMocks.archiveExtract.mockResolvedValue({ message: "Extracted 3 files." });
+    backendMocks.archiveExtract.mockResolvedValue({
+      message: "Extracted 3 files.",
+    });
     vi.stubGlobal(
       "window",
-      Object.assign(Object.create(window), { prompt: () => "/Users/misty/Documents/backup" }),
+      Object.assign(Object.create(window), {
+        prompt: () => "/Users/misty/Documents/backup",
+      }),
     );
 
     await extractArchiveTo("/Users/misty/Downloads/backup.zip", "pane-42");

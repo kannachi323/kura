@@ -1,14 +1,9 @@
-import { useSmartLibraryStore } from "@/features/library/library";
 import { useMultiPanelStoreContext } from "@/features/workspace/MultiPanelWorkspace";
 import {
   useMultiPanelStore,
   type MultiPanelStoreHook,
 } from "@/features/workspace/useMultiPanelStore";
-import {
-  explorerPathIsDirectory,
-  explorerPrepareDragItems,
-  explorerQueueDeleteItems,
-} from "../../native";
+import { explorerQueueDeleteItems } from "../../native";
 import { useMemo, type ReactNode } from "react";
 import {
   transferDropAcceptance,
@@ -94,25 +89,24 @@ export function createExplorerDropTargetSpec(options: {
 }
 
 export function dropKindForPath(path: string): TargetKind {
-  if (path === "misty://trash") return "trash";
-  if (path === "misty://library") return "library";
-  // The device itself refuses changes it has not allowed.
-  if (path.startsWith("misty://device/")) return "directory";
-  if (path.startsWith("misty://")) return "invalid";
+  if (path === "kura://trash") return "trash";
+  if (path.startsWith("kura://")) return "invalid";
   return "directory";
 }
 
-function acceptanceForTarget(kind: TargetKind, payload: ExplorerDragPayload, destination: string) {
+function acceptanceForTarget(
+  kind: TargetKind,
+  payload: ExplorerDragPayload,
+  destination: string,
+) {
   if (kind === "invalid")
-    return { valid: false, label: "Not a drop destination", action: "invalid" as const };
-  if (kind === "trash") return { valid: true, label: "Move to Trash", action: "trash" as const };
-  if (kind === "library") {
-    if (payload.items.length > 500)
-      return { valid: false, label: "Library accepts up to 500 files", action: "invalid" as const };
-    if (payload.items.some((item) => item.isDirectory))
-      return { valid: false, label: "Library accepts files only", action: "invalid" as const };
-    return { valid: true, label: "Review for Library", action: "library" as const };
-  }
+    return {
+      valid: false,
+      label: "Not a drop destination",
+      action: "invalid" as const,
+    };
+  if (kind === "trash")
+    return { valid: true, label: "Move to Trash", action: "trash" as const };
   return transferDropAcceptance(payload, destination);
 }
 
@@ -126,7 +120,8 @@ async function dropOnTarget(
   multiPanelStore?: MultiPanelStoreHook,
 ) {
   const explorer = useExplorerStore.getState();
-  const targetPaneId = paneId ?? (multiPanelStore ?? useMultiPanelStore).getState().activePaneId;
+  const targetPaneId =
+    paneId ?? (multiPanelStore ?? useMultiPanelStore).getState().activePaneId;
   if (kind === "trash") {
     await explorerQueueDeleteItems({
       paths: payload.items.map((item) => item.path),
@@ -137,11 +132,6 @@ async function dropOnTarget(
       "success",
     );
     refreshAllPanes();
-    return;
-  }
-  if (kind === "library") {
-    const items = await resolveLibraryFiles(payload);
-    await useSmartLibraryStore.getState().requestDroppedFiles(items);
     return;
   }
   if (kind !== "directory" || !targetPaneId) return;
@@ -158,41 +148,17 @@ async function dropOnTarget(
     storageIdForPath(destination, remoteName),
     modifiers.copyRequested,
   );
-  if (groups.move.length) await explorer.dropItems(targetPaneId, groups.move, destination, "move");
-  if (groups.copy.length) await explorer.dropItems(targetPaneId, groups.copy, destination, "copy");
-}
-
-async function resolveLibraryFiles(payload: ExplorerDragPayload): Promise<string[]> {
-  const directoryFlags =
-    payload.origin === "external"
-      ? await Promise.all(payload.items.map((item) => explorerPathIsDirectory(item.path)))
-      : payload.items.map((item) => item.isDirectory);
-  if (directoryFlags.some(Boolean))
-    throw new Error("Folders cannot be added to Library by dropping.");
-  const remote = payload.items.filter((item) => item.location && item.location.kind !== "local");
-  const local = payload.items
-    .filter((item) => !item.location || item.location.kind === "local")
-    .map((item) => item.path);
-  if (!remote.length) return local;
-  const prepared = await explorerPrepareDragItems({
-    items: remote.map((item) => ({
-      path: item.path,
-      isDirectory: false,
-      sizeBytes: item.sizeBytes,
-      remoteModified: item.remoteModified,
-    })),
-  });
-  if (prepared.skipped.length) {
-    useExplorerStore
-      .getState()
-      .pushNotification(`Skipped ${prepared.skipped.length} remote Library item(s).`, "error");
-  }
-  return [...local, ...prepared.items.map((item) => item.localPath)];
+  if (groups.move.length)
+    await explorer.dropItems(targetPaneId, groups.move, destination, "move");
+  if (groups.copy.length)
+    await explorer.dropItems(targetPaneId, groups.copy, destination, "copy");
 }
 
 function refreshAllPanes() {
   const explorer = useExplorerStore.getState();
-  Object.keys(explorer.panes).forEach((paneId) => void explorer.refreshPane(paneId));
+  Object.keys(explorer.panes).forEach(
+    (paneId) => void explorer.refreshPane(paneId),
+  );
 }
 
-export type TargetKind = "directory" | "trash" | "library" | "invalid";
+export type TargetKind = "directory" | "trash" | "invalid";

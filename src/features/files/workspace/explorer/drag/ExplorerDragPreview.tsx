@@ -1,10 +1,15 @@
 import { DragPreviewCard } from "@/shared/ui";
 import type { ExplorerDragViewState } from "@/features/file-ui";
 
-export function ExplorerDragPreview({ state }: { state: ExplorerDragViewState }) {
+export function ExplorerDragPreview({
+  state,
+}: {
+  state: ExplorerDragViewState;
+}) {
   // Internal drags lift the row itself; the card only appears for files dragged
   // in from the OS, or while files are being prepared to leave the app.
-  if (!state.payload || !state.pointer || state.phase === "native-egress") return null;
+  if (!state.payload || !state.pointer || state.phase === "native-egress")
+    return null;
   if (state.payload.origin === "internal" && !state.preparing) return null;
   const itemCount = `${state.payload.items.length} item${state.payload.items.length === 1 ? "" : "s"}`;
   const label = state.preparing ? `${itemCount} · Preparing…` : itemCount;

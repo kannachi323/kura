@@ -25,7 +25,11 @@ import {
 } from "@/features/file-ui";
 import type { SearchResultThumbnail } from "./SearchResultThumbnail";
 export interface ExplorerToolbarSearchRuntime {
-  query(query: string, path: string, signal: AbortSignal): Promise<SearchResult[]>;
+  query(
+    query: string,
+    path: string,
+    signal: AbortSignal,
+  ): Promise<SearchResult[]>;
   openSearch(path: string): void;
   Error: ComponentType<ComponentProps<typeof SystemErrorActivity>>;
   Thumbnail: ComponentType<ComponentProps<typeof SearchResultThumbnail>>;
@@ -39,7 +43,9 @@ export function ExplorerToolbarSearchView(
   const [indexedSearching, setIndexedSearching] = useState(false);
   const [indexedError, setIndexedError] = useState<string | null>(null);
   const searchMode = props.commandQueryMode === "search";
-  const locationFilter = searchMode ? props.commandQuery.trim().toLowerCase() : "";
+  const locationFilter = searchMode
+    ? props.commandQuery.trim().toLowerCase()
+    : "";
   const filteredLocations = useMemo(() => {
     if (!locationFilter) return [];
     return props.locationResults
@@ -102,8 +108,9 @@ export function ExplorerToolbarSearchView(
       setSearchFocused(false);
       props.runtime.openSearch(props.path);
     };
-    window.addEventListener("misty:explorer-search-focus", onSearchFocus);
-    return () => window.removeEventListener("misty:explorer-search-focus", onSearchFocus);
+    window.addEventListener("kura:explorer-search-focus", onSearchFocus);
+    return () =>
+      window.removeEventListener("kura:explorer-search-focus", onSearchFocus);
   }, [props.paneId, props.path, props.runtime]);
 
   const closePalette = () => setSearchFocused(false);
@@ -171,7 +178,8 @@ function LocationResults(props: {
   onLocation: (path: string) => void;
   onResult: (result: SearchResult) => void;
 }) {
-  const empty = props.locations.length === 0 && props.indexedResults.length === 0;
+  const empty =
+    props.locations.length === 0 && props.indexedResults.length === 0;
   return (
     <>
       {props.error ? (
@@ -179,7 +187,6 @@ function LocationResults(props: {
           error={props.error}
           scope="files:toolbar-search"
           title="File search could not be completed"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       {props.locations.length > 0 ? (
@@ -193,7 +200,9 @@ function LocationResults(props: {
             >
               <Folder />
               <span className={toolbarStyles.paletteText}>
-                <span className={toolbarStyles.paletteTitle}>{location.label}</span>
+                <span className={toolbarStyles.paletteTitle}>
+                  {location.label}
+                </span>
                 <span className={toolbarStyles.paletteSubtitle}>
                   {location.badge} · {location.subtitle}
                 </span>
@@ -202,7 +211,9 @@ function LocationResults(props: {
           ))}
         </CommandGroup>
       ) : null}
-      {props.locations.length > 0 && props.indexedResults.length > 0 ? <CommandSeparator /> : null}
+      {props.locations.length > 0 && props.indexedResults.length > 0 ? (
+        <CommandSeparator />
+      ) : null}
       {props.indexedResults.length > 0 ? (
         <CommandGroup heading="Files">
           {props.indexedResults.map((result) => (
@@ -218,9 +229,15 @@ function LocationResults(props: {
                 imageClassName={toolbarStyles.paletteThumbnailImage}
               />
               <span className={toolbarStyles.paletteText}>
-                <span className={toolbarStyles.paletteTitle}>{result.entry.name}</span>
-                <span className={toolbarStyles.paletteSummary}>{searchResultSummary(result)}</span>
-                <span className={toolbarStyles.paletteSubtitle}>{searchResultContext(result)}</span>
+                <span className={toolbarStyles.paletteTitle}>
+                  {result.entry.name}
+                </span>
+                <span className={toolbarStyles.paletteSummary}>
+                  {searchResultSummary(result)}
+                </span>
+                <span className={toolbarStyles.paletteSubtitle}>
+                  {searchResultContext(result)}
+                </span>
               </span>
             </CommandItem>
           ))}

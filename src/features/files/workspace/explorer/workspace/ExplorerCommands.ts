@@ -1,21 +1,26 @@
 import { useOperationQueueStore } from "../store/useOperationQueueStore";
-export { newestUndoableTransfer, transferTypeLabel } from "./explorerCommands/transferLabels";
-import { dockLeaves, multiPanelStoreForPane, useWorkspaceStore } from "@/features/workspace";
-import { operationQueueRedo, operationQueueUndo, transfersSnapshot } from "../../native";
+export {
+  newestUndoableTransfer,
+  transferTypeLabel,
+} from "./explorerCommands/transferLabels";
+import { multiPanelStoreForPane } from "@/features/workspace";
+import {
+  operationQueueRedo,
+  operationQueueUndo,
+  transfersSnapshot,
+} from "../../native";
 import { errorText } from "@/shared/lib/format";
 import { selectedPathsForPane, useExplorerStore } from "../store";
 import { openCompareWith } from "./ExplorerContextMenu";
 import { useSearchStore } from "../../search";
-import { invokeShortcutCommand } from "@/features/shortcuts";
 import { toggleActiveTabPanelVisibility } from "./ExplorerDesktopPlugins";
-import { applySharedClipboardToSystem } from "./explorerCommands/clipboardPayloads";
 import {
   newestUndoableTransfer,
-  publishSharedClipboard,
   transferTypeLabel,
 } from "./explorerCommands/transferLabels";
 
-const explorerDuplicateFinderEvent = "misty:explorer-duplicate-finder";
+const explorerDuplicateFinderEvent = "kura:explorer-duplicate-finder";
+export const kuraOpenSettingsEvent = "kura:open-settings";
 
 export const executableShortcutCommands = [
   "explorer.new_folder",
@@ -37,50 +42,31 @@ export const executableShortcutCommands = [
   "explorer.toggle_hidden",
   "explorer.preview.toggle",
   "explorer.sidebar.toggle",
+  "explorer.new_tab",
+  "explorer.close_tab",
+  "explorer.restore_tab",
+  "explorer.next_workspace",
+  "explorer.tab_1",
+  "explorer.tab_2",
+  "explorer.tab_3",
+  "explorer.tab_4",
+  "explorer.tab_5",
+  "explorer.tab_6",
+  "explorer.tab_7",
+  "explorer.tab_8",
+  "explorer.tab_9",
+  "app.open_settings",
 ] as const;
 
-export function runExplorerCommand(
-  commandId: string,
-  paneId: string,
-  navigateRoute: (path: string) => void,
-): void {
+export function runExplorerCommand(commandId: string, paneId: string): void {
   const explorer = useExplorerStore.getState();
   const multiPanelStore = multiPanelStoreForPane(paneId);
   const multi = multiPanelStore.getState();
-  const activeTab = multi.tabs.find((tab) => tab.id === multi.activeTabId) ?? multi.tabs[0];
-  const workspace = useWorkspaceStore.getState();
-  const dockPane = dockLeaves(workspace.layout.root).find(
-    (pane) => pane.id === workspace.layout.focusedPaneId,
-  );
-  const dockTab = dockPane?.views.find(
-    (tab) => tab.id === dockPane.activeViewId && tab.surfaceId === "files",
-  );
-  const openDockedFiles = () => {
-    const path = activeTab?.path ?? explorer.panes[paneId]?.listing?.path ?? "/";
-    const tab = workspace.openSurface({
-      surfaceId: "files",
-      groupKey: "tool:files",
-      title: activeTab?.title || "Files",
-      route: "/files",
-      instancePolicy: "multiple",
-      forceNew: true,
-      paneId: dockPane?.id,
-      state: { version: 1, path },
-    });
-    workspace.focusView(tab.id);
-    navigateRoute(tab.route);
-  };
+  const activeTab =
+    multi.tabs.find((tab) => tab.id === multi.activeTabId) ?? multi.tabs[0];
   switch (commandId) {
     case "app.open_settings":
-      window.dispatchEvent(
-        new CustomEvent("misty:open-settings", { detail: { section: "files" } }),
-      );
-      break;
-    case "clipboard.publish_shared":
-      void publishSharedClipboard();
-      break;
-    case "clipboard.apply_shared":
-      void applySharedClipboardToSystem();
+      window.dispatchEvent(new CustomEvent(kuraOpenSettingsEvent));
       break;
     case "explorer.new_folder":
       void explorer.createItem(paneId, "folder");
@@ -88,12 +74,17 @@ export function runExplorerCommand(
     case "explorer.search":
       openDeepSearch(paneId);
       break;
-    case "explorer.new_tab":
-      openDockedFiles();
+    case "explorer.new_tab": {
+      const path =
+        activeTab?.path ?? explorer.panes[paneId]?.listing?.path ?? "/";
+      multi.addTab(path, activeTab?.title || "Files");
+      break;
+    }
+    case "explorer.close_tab":
+      if (activeTab && multi.tabs.length > 1) multi.closeTab(activeTab.id);
       break;
     case "explorer.restore_tab":
-      if (dockTab) invokeShortcutCommand("workspace.reopen_tab");
-      else multi.restoreTab();
+      multi.restoreTab();
       break;
     case "explorer.refresh":
       void explorer.refreshPane(paneId);
@@ -149,20 +140,6 @@ export function runExplorerCommand(
       toggleActiveTabPanelVisibility("sidebar", multiPanelStore);
       break;
     case "explorer.next_workspace": {
-      if (dockPane && dockTab) {
-        const filesTabs = dockPane.views.filter((tab) => tab.surfaceId === "files");
-        if (filesTabs.length <= 1) break;
-        const activeIndex = Math.max(
-          0,
-          filesTabs.findIndex((tab) => tab.id === dockTab.id),
-        );
-        const next = filesTabs[(activeIndex + 1) % filesTabs.length];
-        if (next) {
-          workspace.focusView(next.id);
-          navigateRoute(next.route);
-        }
-        break;
-      }
       if (multi.tabs.length <= 1) break;
       const activeIndex = Math.max(
         0,
@@ -182,14 +159,6 @@ export function runExplorerCommand(
     case "explorer.tab_8":
     case "explorer.tab_9": {
       const index = Number(commandId.slice("explorer.tab_".length)) - 1;
-      if (dockPane && dockTab) {
-        const tab = dockPane.views.filter((candidate) => candidate.surfaceId === "files")[index];
-        if (tab) {
-          workspace.focusView(tab.id);
-          navigateRoute(tab.route);
-        }
-        break;
-      }
       const tab = multi.tabs[index];
       if (tab) multi.selectTab(tab.id);
       break;
@@ -198,11 +167,14 @@ export function runExplorerCommand(
 }
 
 function openDuplicateFinder(paneId: string): void {
-  window.dispatchEvent(new CustomEvent(explorerDuplicateFinderEvent, { detail: { paneId } }));
+  window.dispatchEvent(
+    new CustomEvent(explorerDuplicateFinderEvent, { detail: { paneId } }),
+  );
 }
 
 function openDeepSearch(paneId: string): void {
-  const currentPath = useExplorerStore.getState().panes[paneId]?.listing?.path ?? "";
+  const currentPath =
+    useExplorerStore.getState().panes[paneId]?.listing?.path ?? "";
   void useSearchStore.getState().openSearch(currentPath);
 }
 
@@ -212,7 +184,11 @@ export async function undoLatestTransferOperation(): Promise<void> {
     const rows = (await transfersSnapshot({ limit: 500 })).rows;
     const latest = newestUndoableTransfer(rows);
     if (!latest) {
-      explorer.pushNotification("No completed rename or move is available to undo.", "info", 3500);
+      explorer.pushNotification(
+        "No completed rename or move is available to undo.",
+        "info",
+        3500,
+      );
       return;
     }
 
@@ -225,7 +201,11 @@ export async function undoLatestTransferOperation(): Promise<void> {
       3500,
     );
   } catch (error) {
-    explorer.pushNotification(`Undo failed: ${errorText(error)}`, "error", 4500);
+    explorer.pushNotification(
+      `Undo failed: ${errorText(error)}`,
+      "error",
+      4500,
+    );
   }
 }
 
@@ -237,6 +217,10 @@ export async function redoLatestTransferOperation(): Promise<void> {
     await useOperationQueueStore.getState().load({ silent: true });
     explorer.pushNotification("Redo queued.", "success", 3500);
   } catch (error) {
-    explorer.pushNotification(`Redo failed: ${errorText(error)}`, "error", 4500);
+    explorer.pushNotification(
+      `Redo failed: ${errorText(error)}`,
+      "error",
+      4500,
+    );
   }
 }

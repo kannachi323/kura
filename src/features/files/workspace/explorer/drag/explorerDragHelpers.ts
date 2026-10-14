@@ -6,16 +6,24 @@ import {
 } from "@/features/file-ui";
 const EDGE_SCROLL_SIZE = 32;
 export function modifiersFromEvent(
-  event: Pick<PointerEvent | KeyboardEvent | ReactPointerEvent, "altKey" | "ctrlKey" | "shiftKey">,
+  event: Pick<
+    PointerEvent | KeyboardEvent | ReactPointerEvent,
+    "altKey" | "ctrlKey" | "shiftKey"
+  >,
 ): ExplorerDragModifiers {
-  return { copyRequested: event.altKey || event.ctrlKey, moveRequested: event.shiftKey };
+  return {
+    copyRequested: event.altKey || event.ctrlKey,
+    moveRequested: event.shiftKey,
+  };
 }
 
 export function isInteractiveDragTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
     Boolean(
-      target.closest("button,input,textarea,select,a,[contenteditable=true],.inline-name-editor"),
+      target.closest(
+        "button,input,textarea,select,a,[contenteditable=true],.inline-name-editor",
+      ),
     )
   );
 }
@@ -28,13 +36,21 @@ export function autoScrollAt(x: number, y: number): void {
   if (typeof document.elementsFromPoint !== "function") return;
   const container = document
     .elementsFromPoint(x, y)
-    .map((element) => element.closest<HTMLElement>("[data-explorer-scroll-container]"))
+    .map((element) =>
+      element.closest<HTMLElement>("[data-explorer-scroll-container]"),
+    )
     .find(Boolean);
   if (!container) return;
   const rect = container.getBoundingClientRect();
   const vertical = edgeScrollDelta(y, rect.top, rect.bottom, EDGE_SCROLL_SIZE);
-  const horizontal = edgeScrollDelta(x, rect.left, rect.right, EDGE_SCROLL_SIZE);
-  if (vertical || horizontal) container.scrollBy({ top: vertical, left: horizontal });
+  const horizontal = edgeScrollDelta(
+    x,
+    rect.left,
+    rect.right,
+    EDGE_SCROLL_SIZE,
+  );
+  if (vertical || horizontal)
+    container.scrollBy({ top: vertical, left: horizontal });
 }
 
 export function dragPreviewDataUrl(items: ExplorerDragItem[]): string {

@@ -16,8 +16,12 @@ export function useExplorerDialogEvents(
   activePaneIdRef: RefObject<string>,
   ownsPane: (paneId: string) => boolean = () => true,
 ) {
-  const [duplicateFinderPaneId, setDuplicateFinderPaneId] = useState<string | null>(null);
-  const [compareDialog, setCompareDialog] = useState<CompareDialogSeed | null>(null);
+  const [duplicateFinderPaneId, setDuplicateFinderPaneId] = useState<
+    string | null
+  >(null);
+  const [compareDialog, setCompareDialog] = useState<CompareDialogSeed | null>(
+    null,
+  );
 
   useEffect(() => {
     const openDuplicateFinder = (event: Event) => {
@@ -26,7 +30,11 @@ export function useExplorerDialogEvents(
       if (ownsPane(paneId)) setDuplicateFinderPaneId(paneId);
     };
     window.addEventListener(explorerDuplicateFinderEvent, openDuplicateFinder);
-    return () => window.removeEventListener(explorerDuplicateFinderEvent, openDuplicateFinder);
+    return () =>
+      window.removeEventListener(
+        explorerDuplicateFinderEvent,
+        openDuplicateFinder,
+      );
   }, [activePaneIdRef, ownsPane]);
 
   useEffect(() => {
@@ -36,8 +44,14 @@ export function useExplorerDialogEvents(
       if (ownsPane(seed.paneId)) setCompareDialog(seed);
     };
     window.addEventListener(explorerCompareWithEvent, openCompareWith);
-    return () => window.removeEventListener(explorerCompareWithEvent, openCompareWith);
+    return () =>
+      window.removeEventListener(explorerCompareWithEvent, openCompareWith);
   }, [activePaneIdRef, ownsPane]);
 
-  return { duplicateFinderPaneId, setDuplicateFinderPaneId, compareDialog, setCompareDialog };
+  return {
+    duplicateFinderPaneId,
+    setDuplicateFinderPaneId,
+    compareDialog,
+    setCompareDialog,
+  };
 }

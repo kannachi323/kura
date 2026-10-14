@@ -1,4 +1,7 @@
-import type { CompareMode, CompareTextDiffKind } from "../../types/workspace/ExplorerCompareDialog";
+import type {
+  CompareMode,
+  CompareTextDiffKind,
+} from "../../types/workspace/ExplorerCompareDialog";
 
 export interface CompareDialogSeed {
   paneId: string;

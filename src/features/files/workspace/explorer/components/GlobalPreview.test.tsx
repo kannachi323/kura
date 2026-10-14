@@ -25,8 +25,16 @@ describe("globalPreviewKindForSource", () => {
   it.each([
     ["md", "text/markdown", "markdown"],
     ["pdf", "application/pdf", "pdf"],
-    ["docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "document"],
-    ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "document"],
+    [
+      "docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "document",
+    ],
+    [
+      "xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "document",
+    ],
     [
       "pptx",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -38,10 +46,15 @@ describe("globalPreviewKindForSource", () => {
     ["mov", "video/quicktime", "video"],
     ["png", "image/png", "image"],
     ["zip", "application/zip", "archive"],
-  ] as const)("routes .%s through the %s reader", (extension, mimeType, expected) => {
-    expect(globalPreviewKindForSource(extension, mimeType)).toBe(expected);
-  });
+  ] as const)(
+    "routes .%s through the %s reader",
+    (extension, mimeType, expected) => {
+      expect(globalPreviewKindForSource(extension, mimeType)).toBe(expected);
+    },
+  );
   it("reserves the generic fallback for unknown custom formats", () => {
-    expect(globalPreviewKindForSource("mistycustom", "application/x-misty-custom")).toBe("generic");
+    expect(
+      globalPreviewKindForSource("mistycustom", "application/x-misty-custom"),
+    ).toBe("generic");
   });
 });

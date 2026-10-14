@@ -8,7 +8,9 @@ export function CompareDiffLine(props: {
 }) {
   return (
     <span className={`${compareStyles.diffLine} ${diffLineStyle(props.kind)}`}>
-      <span className={compareStyles.diffLineNumber}>{props.lineNumber ?? ""}</span>
+      <span className={compareStyles.diffLineNumber}>
+        {props.lineNumber ?? ""}
+      </span>
       <span className={compareStyles.diffText}>{props.text || " "}</span>
     </span>
   );

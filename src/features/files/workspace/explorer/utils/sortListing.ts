@@ -1,4 +1,8 @@
-import type { DirectoryListing, DirectorySizeRecord, FileEntry } from "@/native/ipc";
+import type {
+  DirectoryListing,
+  DirectorySizeRecord,
+  FileEntry,
+} from "@/native/ipc";
 import type { ExplorerSortState } from "../model/interfaces/store/types";
 import type { ExplorerSortColumn } from "../model/types/store/types";
 import { entrySizeBytes } from "@/features/file-ui";
@@ -8,7 +12,8 @@ export function sortListing(
   directorySizes: Record<string, DirectorySizeRecord> = {},
 ): DirectoryListing {
   const entries = [...listing.entries].sort((left, right) => {
-    const folderBias = Number(right.kind === "folder") - Number(left.kind === "folder");
+    const folderBias =
+      Number(right.kind === "folder") - Number(left.kind === "folder");
     if (folderBias !== 0) return folderBias;
     const direction = sort.direction === "asc" ? 1 : -1;
     return compareEntries(left, right, sort.column, directorySizes) * direction;
@@ -38,12 +43,18 @@ export function compareEntries(
     );
   }
   if (column === "type") {
-    return compareText(typeLabel(left), typeLabel(right)) || compareText(left.name, right.name);
+    return (
+      compareText(typeLabel(left), typeLabel(right)) ||
+      compareText(left.name, right.name)
+    );
   }
   return compareText(left.name, right.name);
 }
 
-export function compareNullableNumber(left: number | null, right: number | null): number {
+export function compareNullableNumber(
+  left: number | null,
+  right: number | null,
+): number {
   if (left == null && right == null) return 0;
   if (left == null) return 1;
   if (right == null) return -1;
@@ -51,9 +62,14 @@ export function compareNullableNumber(left: number | null, right: number | null)
 }
 
 export function compareText(left: string | null, right: string | null): number {
-  return (left ?? "").localeCompare(right ?? "", undefined, { numeric: true, sensitivity: "base" });
+  return (left ?? "").localeCompare(right ?? "", undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 export function typeLabel(entry: FileEntry): string {
-  return entry.kind === "folder" ? "Folder" : entry.mimeType || entry.extension || entry.kind;
+  return entry.kind === "folder"
+    ? "Folder"
+    : entry.mimeType || entry.extension || entry.kind;
 }

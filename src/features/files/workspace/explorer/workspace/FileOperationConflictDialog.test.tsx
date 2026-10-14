@@ -30,13 +30,21 @@ beforeEach(() => {
 
 describe("file operation conflicts", () => {
   it("resolves a name collision without a Transfers workspace", async () => {
-    const next = { conflictDialog: { ...conflict, open: false } } as OperationQueueSnapshot;
+    const next = {
+      conflictDialog: { ...conflict, open: false },
+    } as OperationQueueSnapshot;
     vi.mocked(operationQueueResolveConflict).mockResolvedValue(next);
     render(<FileOperationConflictDialog />);
-    fireEvent.click(screen.getByRole("checkbox", { name: "Apply to remaining files" }));
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Apply to remaining files" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Keep both" }));
     await waitFor(() =>
-      expect(operationQueueResolveConflict).toHaveBeenCalledWith(7, "keep_both", true),
+      expect(operationQueueResolveConflict).toHaveBeenCalledWith(
+        7,
+        "keep_both",
+        true,
+      ),
     );
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
@@ -44,7 +52,11 @@ describe("file operation conflicts", () => {
   it("keeps a failed resolution visible and hides unsupported choices", async () => {
     useOperationQueueStore.setState({
       snapshot: {
-        conflictDialog: { ...conflict, supportsReplace: false, supportsKeepBoth: false },
+        conflictDialog: {
+          ...conflict,
+          supportsReplace: false,
+          supportsKeepBoth: false,
+        },
       } as OperationQueueSnapshot,
     });
     vi.mocked(operationQueueResolveConflict).mockRejectedValue(
@@ -54,7 +66,9 @@ describe("file operation conflicts", () => {
     expect(screen.queryByRole("button", { name: "Replace" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Keep both" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("Destination unavailable");
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Destination unavailable",
+    );
     expect(screen.getByRole("alertdialog")).toBeTruthy();
   });
 });

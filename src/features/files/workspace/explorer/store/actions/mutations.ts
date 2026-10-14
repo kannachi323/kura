@@ -1,4 +1,7 @@
-import { selectGeneralPreferences, useSettingsStore } from "@/features/settings";
+import {
+  selectGeneralPreferences,
+  useSettingsStore,
+} from "@/features/settings";
 import {
   explorerQueueCreateItem,
   explorerQueueDeleteItems,
@@ -7,11 +10,17 @@ import {
   explorerQueueRenameItems,
 } from "../../../native";
 import { userFacingErrorText } from "@/shared/lib/format";
-import type { ExplorerInlineEditState, ExplorerStore } from "../../model/interfaces/store/types";
+import type {
+  ExplorerInlineEditState,
+  ExplorerStore,
+} from "../../model/interfaces/store/types";
 import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
 
-export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Partial<ExplorerStore> {
+export function createMutationsActions(
+  set: ExplorerSet,
+  get: ExplorerGet,
+): Partial<ExplorerStore> {
   return {
     canCreateItem: (paneId, kind) =>
       H.canCreateItemInPane(get().panes[paneId], kind, get().inlineEdit),
@@ -20,7 +29,8 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
       const pane = get().panes[paneId];
       const directory = pane?.listing?.path;
       if (!directory) return;
-      const defaultName = kind === "folder" ? "Untitled Folder" : "Untitled File";
+      const defaultName =
+        kind === "folder" ? "Untitled Folder" : "Untitled File";
       if (name == null) {
         if (!H.canCreateItemInPane(pane, kind, get().inlineEdit)) return;
         const inlineEdit: ExplorerInlineEditState = {
@@ -41,7 +51,14 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         inlineEdit?.kind === "create" &&
         inlineEdit.paneId === paneId &&
         inlineEdit.itemKind === kind;
-      if (!H.canCreateItemInPane(pane, kind, submittingCurrentCreate ? null : inlineEdit)) return;
+      if (
+        !H.canCreateItemInPane(
+          pane,
+          kind,
+          submittingCurrentCreate ? null : inlineEdit,
+        )
+      )
+        return;
       const requestedName = name;
       if (!requestedName) return;
       try {
@@ -63,14 +80,18 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
       const entries = H.selectedEntriesForPane(pane);
       const entry = entries[0] ?? null;
       if (name == null) {
-        const renameItems = H.selectedBatchRenameItemsAcrossPanes(get().panes, paneId);
+        const renameItems = H.selectedBatchRenameItemsAcrossPanes(
+          get().panes,
+          paneId,
+        );
         if (renameItems.length === 0) return;
         const targetItem = renameItems[0];
         const targetPaneId = targetItem?.paneId ?? paneId;
         const targetPane = get().panes[targetPaneId] ?? pane;
         const targetEntry =
-          targetPane?.listing?.entries.find((candidate) => candidate.id === targetItem?.entryId) ??
-          entry;
+          targetPane?.listing?.entries.find(
+            (candidate) => candidate.id === targetItem?.entryId,
+          ) ?? entry;
         const [value, lockedExtension] = H.splitRenameParts(targetEntry);
         const inlineEdit: ExplorerInlineEditState = {
           paneId: targetPaneId,
@@ -120,10 +141,11 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
 
     deleteSelected: async (paneId, mode) => {
       const pane = get().panes[paneId];
-      const permanent = H.deleteModeForPaneSelection(pane, mode) === "permanent";
+      const permanent =
+        H.deleteModeForPaneSelection(pane, mode) === "permanent";
       const paths = H.selectedDeletePathsForPane(pane, permanent);
       if (paths.length === 0) return;
-      const isTrashPane = pane?.listing?.path === "misty://trash";
+      const isTrashPane = pane?.listing?.path === "kura://trash";
       const shouldConfirm =
         permanent &&
         !isTrashPane &&
@@ -135,7 +157,10 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
           const directory = pane?.listing?.path;
           await explorerQueueDeleteItems({ paths, permanent });
           H.refreshFileOperationState();
-          get().pushNotification(H.deleteQueuedMessage(paths.length, permanent), "success");
+          get().pushNotification(
+            H.deleteQueuedMessage(paths.length, permanent),
+            "success",
+          );
           get().clearSelection(paneId);
           if (directory) H.queuePaneRefresh(paneId, directory);
         } catch (error) {
@@ -160,12 +185,20 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
           operation: "copy",
         });
         H.refreshFileOperationState();
-        get().pushNotification(`Queued download for ${H.itemCountLabel(items.length)}`, "success");
-        if (pane?.listing && H.samePath(pane.listing.path, downloadsDirectory)) {
+        get().pushNotification(
+          `Queued download for ${H.itemCountLabel(items.length)}`,
+          "success",
+        );
+        if (
+          pane?.listing &&
+          H.samePath(pane.listing.path, downloadsDirectory)
+        ) {
           H.queuePaneRefresh(paneId, downloadsDirectory);
         }
       } catch (error) {
-        set({ operationError: `Download failed: ${userFacingErrorText(error)}` });
+        set({
+          operationError: `Download failed: ${userFacingErrorText(error)}`,
+        });
       }
     },
 
@@ -177,7 +210,10 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         try {
           set({ operationError: null });
           const directory = get().panes[dialog.paneId]?.listing?.path;
-          await explorerQueueDeleteItems({ paths: dialog.paths, permanent: dialog.permanent });
+          await explorerQueueDeleteItems({
+            paths: dialog.paths,
+            permanent: dialog.permanent,
+          });
           H.refreshFileOperationState();
           get().pushNotification(
             H.deleteQueuedMessage(dialog.paths.length, dialog.permanent),
@@ -197,7 +233,10 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
           item,
           effectiveName: `${item.value.trim()}${item.lockedExtension}`,
         }))
-        .filter(({ item, effectiveName }) => !item.error && effectiveName !== item.originalName)
+        .filter(
+          ({ item, effectiveName }) =>
+            !item.error && effectiveName !== item.originalName,
+        )
         .map(({ item, effectiveName }) => ({
           path: item.path,
           newName: effectiveName,
@@ -205,7 +244,11 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         }));
       if (items.length === 0) {
         const hasErrors = validatedItems.some((item) => item.error);
-        set(hasErrors ? { dialog: { ...dialog, items: validatedItems } } : { dialog: null });
+        set(
+          hasErrors
+            ? { dialog: { ...dialog, items: validatedItems } }
+            : { dialog: null },
+        );
         return;
       }
       set({ dialog: null });
@@ -213,7 +256,10 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         set({ operationError: null });
         await explorerQueueRenameItems({ items });
         H.refreshFileOperationState();
-        get().pushNotification(`Queued rename for ${H.itemCountLabel(items.length)}`, "success");
+        get().pushNotification(
+          `Queued rename for ${H.itemCountLabel(items.length)}`,
+          "success",
+        );
         H.refreshAndClearRenamePanes(validatedItems);
       } catch (error) {
         set({
@@ -228,7 +274,10 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         if (!state.inlineEdit) return state;
         const draft = { ...state.inlineEdit, value };
         return {
-          inlineEdit: H.withInlineEditValidation(draft, state.panes[draft.paneId]),
+          inlineEdit: H.withInlineEditValidation(
+            draft,
+            state.panes[draft.paneId],
+          ),
         };
       }),
 
@@ -238,7 +287,9 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
         if (dialog?.kind !== "batchRename") return state;
         const items = H.validateBatchRenameItems(
           dialog.items.map((item) =>
-            item.paneId === paneId && item.entryId === entryId ? { ...item, value } : item,
+            item.paneId === paneId && item.entryId === entryId
+              ? { ...item, value }
+              : item,
           ),
         );
         return { dialog: { ...dialog, items } };
@@ -247,8 +298,11 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
     setBatchRenameItems: (paneId, items) =>
       set((state) => {
         const dialog = state.dialog;
-        if (dialog?.kind !== "batchRename" || dialog.paneId !== paneId) return state;
-        return { dialog: { ...dialog, items: H.validateBatchRenameItems(items) } };
+        if (dialog?.kind !== "batchRename" || dialog.paneId !== paneId)
+          return state;
+        return {
+          dialog: { ...dialog, items: H.validateBatchRenameItems(items) },
+        };
       }),
 
     commitInlineEdit: async () => {
@@ -257,19 +311,29 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
       const pane = get().panes[edit.paneId];
       const validated = H.withInlineEditValidation(edit, pane);
       const batchRename =
-        validated.kind === "rename" && validated.batchItems && validated.batchItems.length > 1;
+        validated.kind === "rename" &&
+        validated.batchItems &&
+        validated.batchItems.length > 1;
       if (validated.error && !batchRename) {
         set({ inlineEdit: validated });
         get().pushNotification(validated.error, "error", 4500);
         return;
       }
       const effectiveName = `${validated.value.trim()}${validated.lockedExtension}`;
-      if (validated.kind === "rename" && !batchRename && effectiveName === validated.originalName) {
+      if (
+        validated.kind === "rename" &&
+        !batchRename &&
+        effectiveName === validated.originalName
+      ) {
         set({ inlineEdit: null });
         return;
       }
       if (validated.kind === "create") {
-        await get().createItem(validated.paneId, validated.itemKind, effectiveName);
+        await get().createItem(
+          validated.paneId,
+          validated.itemKind,
+          effectiveName,
+        );
       } else if (validated.batchItems && validated.batchItems.length > 1) {
         set({
           inlineEdit: null,
@@ -291,7 +355,8 @@ export function createMutationsActions(set: ExplorerSet, get: ExplorerGet): Part
       }
     },
 
-    cancelInlineEdit: () => set((state) => (state.inlineEdit ? { inlineEdit: null } : state)),
+    cancelInlineEdit: () =>
+      set((state) => (state.inlineEdit ? { inlineEdit: null } : state)),
 
     closeDialog: () =>
       set((state) => {

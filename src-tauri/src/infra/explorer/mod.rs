@@ -8,8 +8,11 @@ use std::{
     },
     time::UNIX_EPOCH,
 };
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Cursor},
+};
 
-#[cfg(not(target_os = "macos"))]
 use image::{
     codecs::{
         gif::GifDecoder,
@@ -40,19 +43,16 @@ use crate::infra::{
     transfers::TransferService,
 };
 
-const VIRTUAL_PATH_RECENT: &str = "misty://recent";
-const VIRTUAL_PATH_STARRED: &str = "misty://starred";
-const VIRTUAL_PATH_TRASH: &str = "misty://trash";
-const VIRTUAL_PATH_LIBRARY: &str = "misty://library";
+const VIRTUAL_PATH_RECENT: &str = "kura://recent";
+const VIRTUAL_PATH_STARRED: &str = "kura://starred";
+const VIRTUAL_PATH_TRASH: &str = "kura://trash";
+const VIRTUAL_PATH_LIBRARY: &str = "kura://library";
 
 const MAX_IMAGE_PREVIEW_DIMENSION: u32 = 1600;
 const DEFAULT_IMAGE_THUMBNAIL_DIMENSION: u32 = 384;
 const MAX_GENERATED_IMAGE_THUMBNAIL_DIMENSION: u32 = 384;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_RESIZE_FILTER: FilterType = FilterType::Triangle;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_PNG_COMPRESSION: CompressionType = CompressionType::Fast;
-#[cfg(not(target_os = "macos"))]
 const IMAGE_THUMBNAIL_PNG_FILTER: PngFilterType = PngFilterType::Adaptive;
 
 static IMAGE_THUMBNAIL_CACHE_FILE_LOCK: LazyLock<StdMutex<()>> =
@@ -71,35 +71,9 @@ pub struct ExplorerService {
     clipboard_blob_cache_dir: PathBuf,
     trash_dir: PathBuf,
     image_thumbnail_cache_dir: PathBuf,
-    #[cfg(target_os = "macos")]
-    image_service: Option<Arc<crate::infra::document_intelligence::ServiceLease>>,
 }
 
 impl ExplorerService {
-    #[cfg(target_os = "macos")]
-    pub(crate) fn with_image_service(
-        mut self,
-        service: Arc<crate::infra::document_intelligence::ServiceLease>,
-    ) -> Self {
-        let key = hex::encode(Sha256::digest(service.namespace.as_bytes()));
-        self.image_thumbnail_cache_dir = self
-            .image_thumbnail_cache_dir
-            .join("space-owned-v1")
-            .join(key);
-        self.image_service = Some(service);
-        self
-    }
-    #[cfg(target_os = "macos")]
-    fn image_service(&self) -> ApiResult<Arc<crate::infra::document_intelligence::ServiceLease>> {
-        let service = self
-            .image_service
-            .as_ref()
-            .ok_or_else(|| ApiError::Message("Open Files in this Space to use previews.".into()))?;
-        if service.cancelled() {
-            return Err(ApiError::Message("Files preview access changed.".into()));
-        }
-        Ok(service.clone())
-    }
 
     pub fn new(
         environment: AppEnvironmentService,
@@ -119,8 +93,6 @@ impl ExplorerService {
             clipboard_blob_cache_dir: cache_dir.join("clipboard-paste").join("blob"),
             trash_dir: cache_dir.join("trash"),
             image_thumbnail_cache_dir: cache_dir.join("thumbnails"),
-            #[cfg(target_os = "macos")]
-            image_service: None,
         }
     }
 }

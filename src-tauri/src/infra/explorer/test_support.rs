@@ -27,7 +27,7 @@ pub(super) fn test_explorer_service() -> ExplorerService {
 
 pub(super) fn test_explorer_service_for_home(home_dir: PathBuf) -> ExplorerService {
     let environment = AppEnvironmentService::for_test_home(home_dir);
-    if let Some(db_dir) = environment.misty_db_path().parent() {
+    if let Some(db_dir) = environment.kura_db_path().parent() {
         let _ = std::fs::create_dir_all(db_dir);
     }
     let transfers = TransferService::new(environment.clone());

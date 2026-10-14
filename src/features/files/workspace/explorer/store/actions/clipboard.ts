@@ -12,7 +12,10 @@ import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
 import { explorerRuntime } from "../runtime";
 
-export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Partial<ExplorerStore> {
+export function createClipboardActions(
+  set: ExplorerSet,
+  get: ExplorerGet,
+): Partial<ExplorerStore> {
   return {
     copySelected: (paneId) => {
       const pane = get().panes[paneId];
@@ -22,7 +25,9 @@ export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Part
       void clipboardSetLocal(H.clipboardPayloadForPane(pane)).catch((error) => {
         set({ operationError: `Clipboard update failed: ${errorText(error)}` });
       });
-      void H.writeNativeOrTextClipboardForSelection(pane).catch(() => undefined);
+      void H.writeNativeOrTextClipboardForSelection(pane).catch(
+        () => undefined,
+      );
     },
 
     cutSelected: (paneId) => {
@@ -81,21 +86,38 @@ export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Part
       const directory = get().panes[paneId]?.listing?.path;
       if (!directory) return;
       if (!hasTauriInternals()) {
-        set({ operationError: "Uploading local files is only available in the Misty app." });
+        set({
+          operationError:
+            "Uploading local files is only available in the Kura app.",
+        });
         return;
       }
       try {
-        const selection = await open({ multiple: true, directory: sourceKind === "folders" });
-        const paths = selection == null ? [] : Array.isArray(selection) ? selection : [selection];
+        const selection = await open({
+          multiple: true,
+          directory: sourceKind === "folders",
+        });
+        const paths =
+          selection == null
+            ? []
+            : Array.isArray(selection)
+              ? selection
+              : [selection];
         if (paths.length === 0) return;
         set({ operationError: null });
         await explorerQueuePasteItems({
-          sources: paths.map((path) => ({ path, isDirectory: sourceKind === "folders" })),
+          sources: paths.map((path) => ({
+            path,
+            isDirectory: sourceKind === "folders",
+          })),
           destinationDirectory: directory,
           operation: "copy",
         });
         H.refreshFileOperationState();
-        get().pushNotification(`Queued upload for ${H.itemCountLabel(paths.length)}`, "success");
+        get().pushNotification(
+          `Queued upload for ${H.itemCountLabel(paths.length)}`,
+          "success",
+        );
         H.queuePaneRefresh(paneId, directory);
       } catch (error) {
         set({ operationError: `Upload failed: ${userFacingErrorText(error)}` });
@@ -140,7 +162,10 @@ export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Part
           operation: "copy",
         });
         H.refreshFileOperationState();
-        get().pushNotification(`Queued drop for ${H.itemCountLabel(sources.length)}`, "success");
+        get().pushNotification(
+          `Queued drop for ${H.itemCountLabel(sources.length)}`,
+          "success",
+        );
         const current = get().panes[paneId]?.listing?.path;
         if (current) H.queuePaneRefresh(paneId, current);
       } catch (error) {
@@ -152,7 +177,9 @@ export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Part
       try {
         if (Object.values(get().panes).every((pane) => !pane.listing)) return;
         const page = await transfersSnapshot({ limit: 50 });
-        const completedRows = page.rows.filter((row) => row.status === "completed");
+        const completedRows = page.rows.filter(
+          (row) => row.status === "completed",
+        );
         if (!explorerRuntime.transferRefreshObserverReady) {
           explorerRuntime.transferRefreshObserverReady = true;
           explorerRuntime.transferRefreshWatermarkMs = Math.max(
@@ -187,7 +214,9 @@ export function createClipboardActions(set: ExplorerSet, get: ExplorerGet): Part
           const currentPath = pane.listing?.path;
           if (!currentPath) continue;
           if (
-            newlyCompleted.some((row) => H.transferTouchesDirectory(row, currentPath, mountRoot))
+            newlyCompleted.some((row) =>
+              H.transferTouchesDirectory(row, currentPath, mountRoot),
+            )
           ) {
             H.queuePaneRefresh(paneId, currentPath, { immediate: true });
           }

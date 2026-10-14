@@ -1,6 +1,8 @@
 import type { FileEntry } from "@/native/ipc";
 
-export function compileEntryFilterMatcher(query: string): EntryFilterMatcher | null {
+export function compileEntryFilterMatcher(
+  query: string,
+): EntryFilterMatcher | null {
   if (!query) return null;
   const regexExpression = regexExpressionForFilterQuery(query);
   if (regexExpression) return { kind: "pattern", expression: regexExpression };
@@ -10,7 +12,10 @@ export function compileEntryFilterMatcher(query: string): EntryFilterMatcher | n
   return { kind: "substring", query: query.toLowerCase() };
 }
 
-export function entryMatchesQuery(entry: FileEntry, matcher: EntryFilterMatcher): boolean {
+export function entryMatchesQuery(
+  entry: FileEntry,
+  matcher: EntryFilterMatcher,
+): boolean {
   const haystack = [
     entry.name,
     entry.extension,
@@ -51,7 +56,11 @@ function lastUnescapedSlashIndex(value: string): number {
   for (let index = value.length - 1; index > 0; index -= 1) {
     if (value[index] !== "/") continue;
     let backslashCount = 0;
-    for (let cursor = index - 1; cursor >= 0 && value[cursor] === "\\"; cursor -= 1) {
+    for (
+      let cursor = index - 1;
+      cursor >= 0 && value[cursor] === "\\";
+      cursor -= 1
+    ) {
       backslashCount += 1;
     }
     if (backslashCount % 2 === 0) return index;
@@ -62,9 +71,12 @@ function lastUnescapedSlashIndex(value: string): number {
 function normalizeRegexFlags(flags: string): string {
   const allowed = new Set(["d", "i", "m", "s", "u", "v"]);
   const normalized = Array.from(flags).filter(
-    (flag, index, source) => allowed.has(flag) && source.indexOf(flag) === index,
+    (flag, index, source) =>
+      allowed.has(flag) && source.indexOf(flag) === index,
   );
-  return normalized.includes("i") ? normalized.join("") : `${normalized.join("")}i`;
+  return normalized.includes("i")
+    ? normalized.join("")
+    : `${normalized.join("")}i`;
 }
 
 function safeRegex(pattern: string, flags: string): RegExp | null {
@@ -80,4 +92,5 @@ function escapeRegexCharacter(character: string): string {
 }
 
 export type EntryFilterMatcher =
-  { kind: "substring"; query: string } | { kind: "pattern"; expression: RegExp };
+  | { kind: "substring"; query: string }
+  | { kind: "pattern"; expression: RegExp };

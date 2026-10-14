@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OperationQueueSnapshot, TransferPage } from "@/native/ipc";
-import { operationQueueSnapshot, transfersSnapshot } from "@/native/transfers-tools";
+import {
+  operationQueueSnapshot,
+  transfersSnapshot,
+} from "@/native/transfers-tools";
 import { errorText } from "@/shared/lib/format";
 import { useOperationQueueStore } from "../workspace/explorer/store/useOperationQueueStore";
 import type { TransferSection } from "./transferModel";
 
 export const transfersPageSize = 50;
-export function useTransfers(section: TransferSection, search: string, offset: number) {
+export function useTransfers(
+  section: TransferSection,
+  search: string,
+  offset: number,
+) {
   const [data, setData] = useState<{
     key: string;
     page: TransferPage;
@@ -32,7 +39,12 @@ export function useTransfers(section: TransferSection, search: string, offset: n
       inFlight = true;
       try {
         const [page, queue] = await Promise.all([
-          transfersSnapshot({ section, search, offset, limit: transfersPageSize }),
+          transfersSnapshot({
+            section,
+            search,
+            offset,
+            limit: transfersPageSize,
+          }),
           operationQueueSnapshot(),
         ]);
         if (!disposed) {
@@ -61,25 +73,30 @@ export function useTransfers(section: TransferSection, search: string, offset: n
     };
   }, [key, section, search, offset, revision]);
   const [actionError, setActionError] = useState<string | null>(null);
-  const run = useCallback(async (action: () => Promise<OperationQueueSnapshot>) => {
-    if (actionInFlight.current) return;
-    actionInFlight.current = true;
-    setWorking(true);
-    setActionError(null);
-    try {
-      const snapshot = await action();
-      useOperationQueueStore.setState({ snapshot });
-      if (mounted.current) {
-        setData((current) => (current ? { ...current, queue: snapshot } : current));
-        setRevision((value) => value + 1);
+  const run = useCallback(
+    async (action: () => Promise<OperationQueueSnapshot>) => {
+      if (actionInFlight.current) return;
+      actionInFlight.current = true;
+      setWorking(true);
+      setActionError(null);
+      try {
+        const snapshot = await action();
+        useOperationQueueStore.setState({ snapshot });
+        if (mounted.current) {
+          setData((current) =>
+            current ? { ...current, queue: snapshot } : current,
+          );
+          setRevision((value) => value + 1);
+        }
+      } catch (cause) {
+        if (mounted.current) setActionError(errorText(cause));
+      } finally {
+        actionInFlight.current = false;
+        if (mounted.current) setWorking(false);
       }
-    } catch (cause) {
-      if (mounted.current) setActionError(errorText(cause));
-    } finally {
-      actionInFlight.current = false;
-      if (mounted.current) setWorking(false);
-    }
-  }, []);
+    },
+    [],
+  );
   const current = data?.key === key ? data : null;
   return {
     page: current?.page,

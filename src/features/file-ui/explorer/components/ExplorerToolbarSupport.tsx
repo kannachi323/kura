@@ -63,7 +63,9 @@ export const paneToolbarActionStyles = {
   buttonActive: "bg-charcoal-hover text-cream",
 } as const;
 
-export function cx(...classes: Array<string | false | null | undefined>): string {
+export function cx(
+  ...classes: Array<string | false | null | undefined>
+): string {
   return cn(classes);
 }
 
@@ -80,18 +82,25 @@ export function fuzzyIncludes(haystack: string, needle: string): boolean {
 
 export function searchResultSummary(result: SearchResult): string {
   const reasons = (result.match?.reasons ?? []).filter(
-    (reason) => reason && !["semantic", "metadata", "hybrid"].includes(reason.toLocaleLowerCase()),
+    (reason) =>
+      reason &&
+      !["semantic", "metadata", "hybrid"].includes(reason.toLocaleLowerCase()),
   );
   if (reasons.length > 0) return reasons.slice(0, 2).join(" · ");
   if (result.match?.description) return result.match.description;
-  if (result.match?.tags?.length) return result.match.tags.slice(0, 3).join(" · ");
-  return result.entry.kind === "folder" ? "Folder name match" : "Filename match";
+  if (result.match?.tags?.length)
+    return result.match.tags.slice(0, 3).join(" · ");
+  return result.entry.kind === "folder"
+    ? "Folder name match"
+    : "Filename match";
 }
 
 export function searchResultContext(result: SearchResult): string {
   const entry = result.entry;
   const source =
-    entry.location.kind === "remote" ? (entry.location.remoteName ?? "Remote") : "Local";
+    entry.location.kind === "remote"
+      ? (entry.location.remoteName ?? "Remote")
+      : "Local";
   const match =
     result.match?.mediaMatchKind === "spoken"
       ? `${formatSearchTime(result.match.mediaStartMs ?? 0)} · Spoken audio`
@@ -107,7 +116,9 @@ export function searchResultContext(result: SearchResult): string {
     (entry.kind === "folder"
       ? "Folder"
       : entry.extension.replace(/^\./, "").toUpperCase() || "File");
-  return [match, source, kind, parentName(entry.path)].filter(Boolean).join(" · ");
+  return [match, source, kind, parentName(entry.path)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function formatSearchTime(ms: number): string {

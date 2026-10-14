@@ -39,7 +39,9 @@ export function validateRenameValue(
     effectiveName !== originalName &&
     pane?.listing?.entries.some(
       (entry) =>
-        entry.id !== entryId && !reservedNames?.has(entry.id) && entry.name === effectiveName,
+        entry.id !== entryId &&
+        !reservedNames?.has(entry.id) &&
+        entry.name === effectiveName,
     )
   ) {
     return "Name already exists in this folder.";
@@ -71,7 +73,8 @@ export function validateBatchRenameItems(
       ((targetCounts.get(targetPath) ?? 0) > 1
         ? "Another selected item will use this name."
         : null) ??
-      (effectiveName !== item.originalName && item.siblingNames.includes(effectiveName)
+      (effectiveName !== item.originalName &&
+      item.siblingNames.includes(effectiveName)
         ? "Name already exists in this folder."
         : null);
     return { ...item, error };

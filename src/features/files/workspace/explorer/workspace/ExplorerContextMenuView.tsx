@@ -51,7 +51,11 @@ export function ExplorerContextMenuView({
     >
       <Portal>
         <DropdownMenuTrigger asChild>
-          <span aria-hidden="true" className="fixed size-0" style={{ left: x, top: y }} />
+          <span
+            aria-hidden="true"
+            className="fixed size-0"
+            style={{ left: x, top: y }}
+          />
         </DropdownMenuTrigger>
       </Portal>
       <DropdownMenuContent

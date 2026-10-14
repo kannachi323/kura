@@ -10,7 +10,11 @@ import {
   formatArchiveEntrySize,
 } from "./archivePresentation";
 
-export function PreviewImage(props: { className: string; src: string; alt: string }) {
+export function PreviewImage(props: {
+  className: string;
+  src: string;
+  alt: string;
+}) {
   return (
     <img
       className={props.className}
@@ -23,9 +27,15 @@ export function PreviewImage(props: { className: string; src: string; alt: strin
   );
 }
 
-export function AudioPreview(props: { preview: LoadedInspectorPreview; title: string }) {
+export function AudioPreview(props: {
+  preview: LoadedInspectorPreview;
+  title: string;
+}) {
   return (
-    <div className={inspectorStyles.audioPreview} aria-label={`Audio preview of ${props.title}`}>
+    <div
+      className={inspectorStyles.audioPreview}
+      aria-label={`Audio preview of ${props.title}`}
+    >
       <div className={inspectorStyles.audioIcon} aria-hidden="true">
         <Music size={25} />
       </div>
@@ -39,13 +49,20 @@ export function AudioPreview(props: { preview: LoadedInspectorPreview; title: st
   );
 }
 
-export function ArchiveContentsPreview(props: { preview: LoadedInspectorPreview }) {
+export function ArchiveContentsPreview(props: {
+  preview: LoadedInspectorPreview;
+}) {
   const entries = props.preview.archiveEntries ?? [];
   const totalCount = props.preview.archiveTotalCount ?? entries.length;
   if (totalCount === 0)
-    return <span className={inspectorStyles.previewStatus}>Archive is empty</span>;
+    return (
+      <span className={inspectorStyles.previewStatus}>Archive is empty</span>
+    );
   return (
-    <div className={inspectorStyles.folderPreview} aria-label="Archive contents preview">
+    <div
+      className={inspectorStyles.folderPreview}
+      aria-label="Archive contents preview"
+    >
       <div className={inspectorStyles.archivePreviewSummary}>
         <span>{props.preview.archiveFormat ?? "archive"}</span>
         <span>
@@ -70,7 +87,10 @@ export function ArchiveContentsPreview(props: { preview: LoadedInspectorPreview 
                   <FileText size={20} />
                 )}
               </div>
-              <span className={inspectorStyles.folderPreviewName} title={entry.path}>
+              <span
+                className={inspectorStyles.folderPreviewName}
+                title={entry.path}
+              >
                 {name}
               </span>
               <span className={inspectorStyles.folderPreviewSize}>
@@ -91,7 +111,9 @@ export function FolderContentsPreview(props: {
   onOpenEntry: (entry: FileEntry) => void;
 }) {
   if (props.loading)
-    return <SkeletonList label="Folder contents" rows={5} leading="icon" lines={1} />;
+    return (
+      <SkeletonList label="Folder contents" rows={5} leading="icon" lines={1} />
+    );
   if (props.entries.length === 0) {
     return (
       <span className={inspectorStyles.previewStatus}>
@@ -100,7 +122,10 @@ export function FolderContentsPreview(props: {
     );
   }
   return (
-    <div className={inspectorStyles.folderPreview} aria-label="Directory contents preview">
+    <div
+      className={inspectorStyles.folderPreview}
+      aria-label="Directory contents preview"
+    >
       <div className={inspectorStyles.folderPreviewList}>
         {props.entries.map((entry) => (
           <Button
@@ -109,7 +134,9 @@ export function FolderContentsPreview(props: {
             key={entry.id}
             type="button"
             aria-label={
-              entry.kind === "folder" ? `Open folder ${entry.name}` : `Open ${entry.name}`
+              entry.kind === "folder"
+                ? `Open folder ${entry.name}`
+                : `Open ${entry.name}`
             }
             title={entry.name}
             onClick={() => props.onOpenEntry(entry)}
@@ -117,7 +144,10 @@ export function FolderContentsPreview(props: {
             <div className={inspectorStyles.folderPreviewThumb}>
               <FileIcon entry={entry} size={20} variant="table" />
             </div>
-            <span className={inspectorStyles.folderPreviewName} title={entry.name}>
+            <span
+              className={inspectorStyles.folderPreviewName}
+              title={entry.name}
+            >
               {entry.name}
             </span>
             <span className={inspectorStyles.folderPreviewSize}>

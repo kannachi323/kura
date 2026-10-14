@@ -22,7 +22,11 @@ import {
   dragDistance,
   selectDropCandidate,
 } from "@/features/file-ui";
-import { dragAnnouncement, ExplorerDragPreview, setWebviewDragActive } from "./ExplorerDragPreview";
+import {
+  dragAnnouncement,
+  ExplorerDragPreview,
+  setWebviewDragActive,
+} from "./ExplorerDragPreview";
 import { liftFilePreview } from "./liftedFilePreview";
 import "./explorerDrag.css";
 import {
@@ -94,17 +98,23 @@ export function ExplorerDragProviderView(props: {
     (message?: string) => {
       const prepared = preparedRef.current;
       if (prepared && !prepared.settled)
-        void runtime.cancelPreparation(prepared.sessionId).catch(() => undefined);
+        void runtime
+          .cancelPreparation(prepared.sessionId)
+          .catch(() => undefined);
       preparedRef.current = null;
       armedRef.current = null;
       pointerHeldRef.current = false;
       liftedRef.current?.remove();
       liftedRef.current = null;
-      if (springTimerRef.current !== null) window.clearTimeout(springTimerRef.current);
+      if (springTimerRef.current !== null)
+        window.clearTimeout(springTimerRef.current);
       springTimerRef.current = null;
-      if (hitFrameRef.current !== null) window.cancelAnimationFrame(hitFrameRef.current);
+      if (hitFrameRef.current !== null)
+        window.cancelAnimationFrame(hitFrameRef.current);
       hitFrameRef.current = null;
-      zonesRef.current.forEach(({ element }) => delete element.dataset.explorerDropActive);
+      zonesRef.current.forEach(
+        ({ element }) => delete element.dataset.explorerDropActive,
+      );
       setWebviewDragActive(false);
       const next = message ? { ...initialState, error: message } : initialState;
       stateRef.current = next;
@@ -119,7 +129,9 @@ export function ExplorerDragProviderView(props: {
     const candidates: Array<{ zone: RegisteredZone; depth: number }> = [];
     const seen = new Set<string>();
     document.elementsFromPoint(x, y).forEach((element, depth) => {
-      const zoneElement = element.closest<HTMLElement>("[data-explorer-drop-zone-id]");
+      const zoneElement = element.closest<HTMLElement>(
+        "[data-explorer-drop-zone-id]",
+      );
       const id = zoneElement?.dataset.explorerDropZoneId;
       if (!id || seen.has(id)) return;
       const zone = zonesRef.current.get(id);
@@ -134,8 +146,11 @@ export function ExplorerDragProviderView(props: {
           priority: candidate.zone.spec.priority ?? 0,
         })),
       )?.zone ?? null;
-    const acceptance = selected?.spec.accepts(payload, modifiersRef.current) ?? null;
-    zonesRef.current.forEach(({ element }) => delete element.dataset.explorerDropActive);
+    const acceptance =
+      selected?.spec.accepts(payload, modifiersRef.current) ?? null;
+    zonesRef.current.forEach(
+      ({ element }) => delete element.dataset.explorerDropActive,
+    );
     // Only highlight items (folders, sidebar rows, path segments) that will
     // actually take the drop; panes and sections accept drops without lighting up.
     if (selected?.spec.springLoad && acceptance?.valid)
@@ -153,7 +168,8 @@ export function ExplorerDragProviderView(props: {
 
   const scheduleHitTest = useCallback(
     (x: number, y: number) => {
-      if (hitFrameRef.current !== null) window.cancelAnimationFrame(hitFrameRef.current);
+      if (hitFrameRef.current !== null)
+        window.cancelAnimationFrame(hitFrameRef.current);
       hitFrameRef.current = window.requestAnimationFrame(() => {
         hitFrameRef.current = null;
         resolveTargetAt(x, y);
@@ -167,9 +183,11 @@ export function ExplorerDragProviderView(props: {
       element.dataset.explorerDropZoneId = spec.id;
       zonesRef.current.set(spec.id, { element, spec });
       const pointer = stateRef.current.pointer;
-      if (stateRef.current.payload && pointer) scheduleHitTest(pointer.x, pointer.y);
+      if (stateRef.current.payload && pointer)
+        scheduleHitTest(pointer.x, pointer.y);
       return () => {
-        if (zonesRef.current.get(spec.id)?.element === element) zonesRef.current.delete(spec.id);
+        if (zonesRef.current.get(spec.id)?.element === element)
+          zonesRef.current.delete(spec.id);
         if (element.dataset.explorerDropZoneId === spec.id)
           delete element.dataset.explorerDropZoneId;
         delete element.dataset.explorerDropActive;
@@ -207,17 +225,24 @@ export function ExplorerDragProviderView(props: {
           })
           .then((result) => {
             if (result.skipped.length > 0) {
-              runtime.notify(`Skipped ${result.skipped.length} item(s) while preparing drag-out.`);
+              runtime.notify(
+                `Skipped ${result.skipped.length} item(s) while preparing drag-out.`,
+              );
             }
-            const paths = [...localPaths, ...result.items.map((item) => item.localPath)];
-            if (paths.length === 0) throw new Error("No items could be prepared for drag-out.");
+            const paths = [
+              ...localPaths,
+              ...result.items.map((item) => item.localPath),
+            ];
+            if (paths.length === 0)
+              throw new Error("No items could be prepared for drag-out.");
             preparation.paths = paths;
             preparation.settled = true;
             return paths;
           })
           .catch((error: unknown) => {
             preparation.settled = true;
-            preparation.error = error instanceof Error ? error.message : String(error);
+            preparation.error =
+              error instanceof Error ? error.message : String(error);
             throw error;
           });
         void preparation.promise.catch(() => undefined);
@@ -234,7 +259,12 @@ export function ExplorerDragProviderView(props: {
         origin: "internal",
         items: armed.items,
       };
-      stateRef.current = { ...initialState, phase: "internal", payload, pointer: point };
+      stateRef.current = {
+        ...initialState,
+        phase: "internal",
+        payload,
+        pointer: point,
+      };
       setState(stateRef.current);
       liftedRef.current = liftFilePreview(
         armed.source,
@@ -252,7 +282,11 @@ export function ExplorerDragProviderView(props: {
 
   const performDrop = useCallback(async () => {
     const current = stateRef.current;
-    if (!current.payload || !current.activeZoneId || !current.acceptance?.valid) {
+    if (
+      !current.payload ||
+      !current.activeZoneId ||
+      !current.acceptance?.valid
+    ) {
       cancel();
       return;
     }
@@ -276,8 +310,13 @@ export function ExplorerDragProviderView(props: {
   const beginNativeEgress = useCallback(async () => {
     const current = stateRef.current;
     const preparation = preparedRef.current;
-    if (current.phase !== "internal" || !current.payload || !preparation) return;
-    stateRef.current = { ...current, phase: "preparing-egress", preparing: !preparation.settled };
+    if (current.phase !== "internal" || !current.payload || !preparation)
+      return;
+    stateRef.current = {
+      ...current,
+      phase: "preparing-egress",
+      preparing: !preparation.settled,
+    };
     setState(stateRef.current);
     try {
       const paths = preparation.paths ?? (await preparation.promise);
@@ -285,18 +324,28 @@ export function ExplorerDragProviderView(props: {
       const allLocal = current.payload.items.every(
         (item) => !item.location || item.location.kind === "local",
       );
-      const mode = modifiersRef.current.moveRequested && allLocal ? "move" : "copy";
+      const mode =
+        modifiersRef.current.moveRequested && allLocal ? "move" : "copy";
       liftedRef.current?.hide();
-      stateRef.current = { ...stateRef.current, phase: "native-egress", preparing: false };
+      stateRef.current = {
+        ...stateRef.current,
+        phase: "native-egress",
+        preparing: false,
+      };
       setState(stateRef.current);
       nativeEgressRef.current = true;
-      await runtime.startDrag(paths, dragPreviewDataUrl(current.payload.items), mode, (dropped) => {
-        if (dropped && mode === "move") runtime.refresh();
-        cancel();
-        window.setTimeout(() => {
-          nativeEgressRef.current = false;
-        }, 250);
-      });
+      await runtime.startDrag(
+        paths,
+        dragPreviewDataUrl(current.payload.items),
+        mode,
+        (dropped) => {
+          if (dropped && mode === "move") runtime.refresh();
+          cancel();
+          window.setTimeout(() => {
+            nativeEgressRef.current = false;
+          }, 250);
+        },
+      );
     } catch (error) {
       nativeEgressRef.current = false;
       const message = error instanceof Error ? error.message : String(error);
@@ -360,7 +409,8 @@ export function ExplorerDragProviderView(props: {
     };
     const onKeyDown = (event: KeyboardEvent) => {
       modifiersRef.current = modifiersFromEvent(event);
-      if (event.key === "Escape" && stateRef.current.phase !== "idle") cancel("Drag canceled.");
+      if (event.key === "Escape" && stateRef.current.phase !== "idle")
+        cancel("Drag canceled.");
     };
     const onKeyUp = (event: KeyboardEvent) => {
       modifiersRef.current = modifiersFromEvent(event);
@@ -391,7 +441,11 @@ export function ExplorerDragProviderView(props: {
       window.removeEventListener("pointermove", onPointerMove, true);
       window.removeEventListener("pointerup", onPointerUp, true);
       window.removeEventListener("pointercancel", onPointerCancel, true);
-      window.removeEventListener("lostpointercapture", onLostPointerCapture, true);
+      window.removeEventListener(
+        "lostpointercapture",
+        onLostPointerCapture,
+        true,
+      );
       window.removeEventListener("pointerout", onPointerOut, true);
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("keyup", onKeyUp, true);
@@ -400,8 +454,11 @@ export function ExplorerDragProviderView(props: {
   }, [beginInternal, beginNativeEgress, cancel, performDrop, scheduleHitTest]);
 
   useEffect(() => {
-    const zone = state.activeZoneId ? zonesRef.current.get(state.activeZoneId) : null;
-    if (springTimerRef.current !== null) window.clearTimeout(springTimerRef.current);
+    const zone = state.activeZoneId
+      ? zonesRef.current.get(state.activeZoneId)
+      : null;
+    if (springTimerRef.current !== null)
+      window.clearTimeout(springTimerRef.current);
     springTimerRef.current = null;
     if (!zone?.spec.springLoad || !zone.spec.onSpringLoad) return;
     springTimerRef.current = window.setTimeout(() => {
@@ -412,20 +469,26 @@ export function ExplorerDragProviderView(props: {
         delete zone.element.dataset.explorerSpringFlash;
         zone.spec.onSpringLoad?.();
         const pointer = stateRef.current.pointer;
-        if (pointer) window.requestAnimationFrame(() => resolveTargetAt(pointer.x, pointer.y));
+        if (pointer)
+          window.requestAnimationFrame(() =>
+            resolveTargetAt(pointer.x, pointer.y),
+          );
       }, SPRING_FLASH_MS);
     }, SPRING_LOAD_MS);
     return () => {
-      if (springTimerRef.current !== null) window.clearTimeout(springTimerRef.current);
+      if (springTimerRef.current !== null)
+        window.clearTimeout(springTimerRef.current);
       springTimerRef.current = null;
       if (zone) delete zone.element.dataset.explorerSpringFlash;
     };
   }, [resolveTargetAt, state.activeZoneId]);
 
   useEffect(() => {
-    const preventNativeWebviewDrag = (event: DragEvent) => event.preventDefault();
+    const preventNativeWebviewDrag = (event: DragEvent) =>
+      event.preventDefault();
     window.addEventListener("dragstart", preventNativeWebviewDrag, true);
-    return () => window.removeEventListener("dragstart", preventNativeWebviewDrag, true);
+    return () =>
+      window.removeEventListener("dragstart", preventNativeWebviewDrag, true);
   }, [runtime]);
 
   useEffect(() => {
@@ -434,7 +497,11 @@ export function ExplorerDragProviderView(props: {
     let unsubscribe: (() => void) | undefined;
     void runtime
       .subscribeNative((payload) => {
-        if (disposed || nativeEgressRef.current || stateRef.current.phase === "native-egress")
+        if (
+          disposed ||
+          nativeEgressRef.current ||
+          stateRef.current.phase === "native-egress"
+        )
           return;
         if (payload.type === "leave") return cancel();
         const point = payload.position;
@@ -457,7 +524,8 @@ export function ExplorerDragProviderView(props: {
           setWebviewDragActive(true);
         }
         scheduleHitTest(point.x, point.y);
-        if (payload.type === "drop") window.requestAnimationFrame(() => void performDrop());
+        if (payload.type === "drop")
+          window.requestAnimationFrame(() => void performDrop());
       })
       .then((remove) => {
         if (disposed) remove();

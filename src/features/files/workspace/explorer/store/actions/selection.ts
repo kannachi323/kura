@@ -1,12 +1,22 @@
-import { explorerOpenPath, explorerOpenWith, explorerPathIsDirectory } from "../../../native";
-import { selectGeneralPreferences, useSettingsStore } from "@/features/settings";
+import {
+  explorerOpenPath,
+  explorerOpenWith,
+  explorerPathIsDirectory,
+} from "../../../native";
+import {
+  selectGeneralPreferences,
+  useSettingsStore,
+} from "@/features/settings";
 import { userFacingErrorText } from "@/shared/lib/format";
 import { hasTauriInternals } from "@/shared/platform/tauri";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ExplorerStore } from "../../model/interfaces/store/types";
 import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
-export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Partial<ExplorerStore> {
+export function createSelectionActions(
+  set: ExplorerSet,
+  get: ExplorerGet,
+): Partial<ExplorerStore> {
   return {
     selectEntry: (paneId, entryId, options = {}) => {
       set((state) => {
@@ -15,15 +25,27 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
         const path = pane.listing?.path ?? "";
         const entryIndex = entries.findIndex((entry) => entry.id === entryId);
         let selectedIds: string[];
-        if (options.range && pane.listing && entryIndex >= 0 && options.visibleEntryIds?.length) {
+        if (
+          options.range &&
+          pane.listing &&
+          entryIndex >= 0 &&
+          options.visibleEntryIds?.length
+        ) {
           const entryIds = new Set(entries.map((entry) => entry.id));
-          const visibleEntryIds = options.visibleEntryIds.filter((id) => entryIds.has(id));
+          const visibleEntryIds = options.visibleEntryIds.filter((id) =>
+            entryIds.has(id),
+          );
           const targetVisibleIndex = visibleEntryIds.indexOf(entryId);
           const previousAnchor = pane.lastSelectedIndexByPath[path];
           const anchorEntryId =
-            previousAnchor === undefined ? entryId : entries[previousAnchor]?.id;
-          const anchorVisibleIndex = anchorEntryId ? visibleEntryIds.indexOf(anchorEntryId) : -1;
-          const anchor = anchorVisibleIndex >= 0 ? anchorVisibleIndex : targetVisibleIndex;
+            previousAnchor === undefined
+              ? entryId
+              : entries[previousAnchor]?.id;
+          const anchorVisibleIndex = anchorEntryId
+            ? visibleEntryIds.indexOf(anchorEntryId)
+            : -1;
+          const anchor =
+            anchorVisibleIndex >= 0 ? anchorVisibleIndex : targetVisibleIndex;
           const target = targetVisibleIndex >= 0 ? targetVisibleIndex : anchor;
           const start = Math.min(anchor, target);
           const end = Math.max(anchor, target);
@@ -69,7 +91,12 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
         };
         return {
           panes,
-          inlineEdit: H.syncInlineRenameSelection(state.inlineEdit, panes, paneId, entryId),
+          inlineEdit: H.syncInlineRenameSelection(
+            state.inlineEdit,
+            panes,
+            paneId,
+            entryId,
+          ),
         };
       });
     },
@@ -128,7 +155,10 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
         useSettingsStore.getState().settings?.document,
       ).defaultFileActionIndex;
       const isRemoteFile = entry.location.kind !== "local";
-      if (!isRemoteFile && (defaultFileAction === 1 || defaultFileAction === 2)) {
+      if (
+        !isRemoteFile &&
+        (defaultFileAction === 1 || defaultFileAction === 2)
+      ) {
         H.setPreviewVisibleForPane(paneId);
         set({
           operationError: null,
@@ -153,7 +183,9 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
         if (isRemoteFile) {
           const cacheHit = prepared.cacheHit ?? prepared.cached;
           get().pushNotification(
-            cacheHit ? `Opened ${entry.name} from cache` : `Downloaded ${entry.name}`,
+            cacheHit
+              ? `Opened ${entry.name} from cache`
+              : `Downloaded ${entry.name}`,
             cacheHit ? "info" : "success",
             2200,
             false,
@@ -171,7 +203,8 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
       if (!entry || entry.kind === "folder" || entry.kind === "symlink") return;
       if (!hasTauriInternals()) {
         set({
-          operationError: "Choosing a local application is only available in the Misty app.",
+          operationError:
+            "Choosing a local application is only available in the Kura app.",
         });
         return;
       }
@@ -181,13 +214,18 @@ export function createSelectionActions(set: ExplorerSet, get: ExplorerGet): Part
           multiple: false,
           directory: false,
         });
-        const applicationPath = Array.isArray(selection) ? selection[0] : selection;
+        const applicationPath = Array.isArray(selection)
+          ? selection[0]
+          : selection;
         if (!applicationPath) return;
         set({
           operationError: null,
         });
         await H.setAssociationForPath(entry.path, applicationPath);
-        await explorerOpenWith(applicationPath, await H.localPathForEntry(entry));
+        await explorerOpenWith(
+          applicationPath,
+          await H.localPathForEntry(entry),
+        );
       } catch (error) {
         set({
           operationError: `Open With failed: ${userFacingErrorText(error)}`,

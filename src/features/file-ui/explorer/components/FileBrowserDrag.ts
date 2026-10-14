@@ -15,7 +15,9 @@ export function dragItemsForEntry(
   if (entry.isDeleted) return [];
   const sourceEntries =
     selectedIds.has(entry.id) && selectedIds.size > 1
-      ? entries.filter((candidate) => selectedIds.has(candidate.id) && !candidate.isDeleted)
+      ? entries.filter(
+          (candidate) => selectedIds.has(candidate.id) && !candidate.isDeleted,
+        )
       : [entry];
   return sourceEntries.map((candidate) => ({
     entryId: candidate.id,
@@ -49,12 +51,15 @@ export function transferDropAcceptance(
       action: "invalid",
     };
   const reason =
-    payload.origin === "internal" ? invalidTransferReason(payload.items, destination) : null;
+    payload.origin === "internal"
+      ? invalidTransferReason(payload.items, destination)
+      : null;
   return reason
     ? { valid: false, label: "Cannot drop here", reason, action: "invalid" }
     : {
         valid: true,
-        label: payload.origin === "external" ? "Copy here" : "Move or copy here",
+        label:
+          payload.origin === "external" ? "Copy here" : "Move or copy here",
         action: "transfer",
       };
 }

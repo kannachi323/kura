@@ -19,7 +19,8 @@ export function registerExplorerStore(store: StoreApi<ExplorerStore>): void {
 }
 
 export function getExplorerStore(): StoreApi<ExplorerStore> {
-  if (!explorerRuntime.store) throw new Error("Explorer store has not been initialized.");
+  if (!explorerRuntime.store)
+    throw new Error("Explorer store has not been initialized.");
   return explorerRuntime.store;
 }
 
@@ -30,7 +31,10 @@ export interface ExplorerRuntime {
   transferRefreshStatuses: Record<number, string>;
   nextExplorerNotificationId: number;
   directorySizeSchedulerTimer: number | null;
-  pendingPaneRefreshes: Map<string, { firstTimer: number | null; followupTimer: number | null }>;
+  pendingPaneRefreshes: Map<
+    string,
+    { firstTimer: number | null; followupTimer: number | null }
+  >;
   paneLoadRequestsInFlight: Map<string, Promise<void>>;
   directorySizeRefreshIntervalMs: number;
   store: StoreApi<ExplorerStore> | null;

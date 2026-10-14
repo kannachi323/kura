@@ -1,4 +1,7 @@
-import { operationQueueSnapshot, transfersSnapshot } from "@/native/transfers-tools";
+import {
+  operationQueueSnapshot,
+  transfersSnapshot,
+} from "@/native/transfers-tools";
 import type { OperationQueueSnapshot, TransferRecord } from "@/native/ipc";
 import { errorText } from "@/shared/lib/format";
 import { create } from "zustand";
@@ -27,12 +30,20 @@ export const useOperationQueueStore = create<{
       ]);
       const latestUndoable =
         history.rows
-          .filter((row) => row.undoable && row.undoTokenId > 0 && row.status === "completed")
+          .filter(
+            (row) =>
+              row.undoable && row.undoTokenId > 0 && row.status === "completed",
+          )
           .sort(
             (left, right) =>
-              (right.completedAtMs || right.startedAtMs || right.queuedAtMs || right.id) -
-                (left.completedAtMs || left.startedAtMs || left.queuedAtMs || left.id) ||
-              right.id - left.id,
+              (right.completedAtMs ||
+                right.startedAtMs ||
+                right.queuedAtMs ||
+                right.id) -
+                (left.completedAtMs ||
+                  left.startedAtMs ||
+                  left.queuedAtMs ||
+                  left.id) || right.id - left.id,
           )[0] ?? null;
       set({ snapshot, latestUndoable });
     } catch (error) {

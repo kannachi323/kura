@@ -4,34 +4,47 @@ import { hasTauriInternals } from "@/shared/platform/tauri";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { devicesChangedEvent, emptyMountedDevices } from "./ExplorerWorkspaceConstants";
+import {
+  devicesChangedEvent,
+  emptyMountedDevices,
+} from "./ExplorerWorkspaceConstants";
 import { mountedDevicesEqual } from "./ExplorerWorkspaceUtils";
 export function useExplorerDevices() {
   const deviceRefreshInFlightRef = useRef(false);
   const deviceRefreshMountedRef = useRef(true);
-  const [mountedDevices, setMountedDevices] = useState<MountedDevice[]>(emptyMountedDevices);
+  const [mountedDevices, setMountedDevices] =
+    useState<MountedDevice[]>(emptyMountedDevices);
   const [devicesLoading, setDevicesLoading] = useState(false);
-  const refreshDevices = useCallback(async (options?: { showLoading?: boolean }) => {
-    if (deviceRefreshInFlightRef.current) return;
-    const showLoading = options?.showLoading ?? true;
-    deviceRefreshInFlightRef.current = true;
-    if (showLoading && deviceRefreshMountedRef.current) setDevicesLoading(true);
-    try {
-      const snapshot = await devicesSnapshot();
-      if (deviceRefreshMountedRef.current) {
-        setMountedDevices((current) =>
-          mountedDevicesEqual(current, snapshot.devices) ? current : snapshot.devices,
-        );
+  const refreshDevices = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (deviceRefreshInFlightRef.current) return;
+      const showLoading = options?.showLoading ?? true;
+      deviceRefreshInFlightRef.current = true;
+      if (showLoading && deviceRefreshMountedRef.current)
+        setDevicesLoading(true);
+      try {
+        const snapshot = await devicesSnapshot();
+        if (deviceRefreshMountedRef.current) {
+          setMountedDevices((current) =>
+            mountedDevicesEqual(current, snapshot.devices)
+              ? current
+              : snapshot.devices,
+          );
+        }
+      } catch {
+        if (deviceRefreshMountedRef.current) {
+          setMountedDevices((current) =>
+            current.length === 0 ? current : emptyMountedDevices,
+          );
+        }
+      } finally {
+        deviceRefreshInFlightRef.current = false;
+        if (showLoading && deviceRefreshMountedRef.current)
+          setDevicesLoading(false);
       }
-    } catch {
-      if (deviceRefreshMountedRef.current) {
-        setMountedDevices((current) => (current.length === 0 ? current : emptyMountedDevices));
-      }
-    } finally {
-      deviceRefreshInFlightRef.current = false;
-      if (showLoading && deviceRefreshMountedRef.current) setDevicesLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
   useEffect(() => {
     deviceRefreshMountedRef.current = true;
     void refreshDevices();
@@ -55,7 +68,10 @@ export function useExplorerDevices() {
     void (async () => {
       try {
         if (!hasTauriInternals()) return;
-        const stopListening = await listen(devicesChangedEvent, refreshFromDeviceEvent);
+        const stopListening = await listen(
+          devicesChangedEvent,
+          refreshFromDeviceEvent,
+        );
         if (active) {
           unlisten = stopListening;
         } else {

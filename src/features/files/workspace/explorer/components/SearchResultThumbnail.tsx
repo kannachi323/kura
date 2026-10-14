@@ -28,7 +28,9 @@ export function SearchResultThumbnail(props: {
 }) {
   const entry = props.result.entry;
   const cacheKey = `${entry.path}:${entry.modifiedMs ?? entry.remoteModified ?? ""}:${entry.sizeBytes ?? ""}`;
-  const [url, setUrl] = useState<string | null>(() => thumbnailCache.get(cacheKey) ?? null);
+  const [url, setUrl] = useState<string | null>(
+    () => thumbnailCache.get(cacheKey) ?? null,
+  );
 
   useEffect(() => {
     setUrl(thumbnailCache.get(cacheKey) ?? null);
@@ -53,7 +55,14 @@ export function SearchResultThumbnail(props: {
     return () => {
       active = false;
     };
-  }, [cacheKey, entry.modifiedMs, entry.path, entry.remoteModified, entry.sizeBytes, props.result]);
+  }, [
+    cacheKey,
+    entry.modifiedMs,
+    entry.path,
+    entry.remoteModified,
+    entry.sizeBytes,
+    props.result,
+  ]);
 
   return (
     <span className={props.className} aria-hidden="true">

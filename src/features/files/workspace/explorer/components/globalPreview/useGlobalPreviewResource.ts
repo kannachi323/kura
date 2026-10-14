@@ -1,6 +1,5 @@
 import {
   archiveList,
-  connectedDevicesMediaUrl,
   explorerPrepareOpenItem,
   explorerPreviewItem,
 } from "../../../native";
@@ -14,8 +13,12 @@ import {
   globalPreviewKindForSource,
   extractDocumentText as readBuiltinDocument,
 } from "@/features/resource-preview";
-export { extractDocumentText, globalPreviewKindForSource } from "@/features/resource-preview";
-const loadBuiltinPreview = (source: GlobalPreviewSource) => loadGlobalPreview(source);
+export {
+  extractDocumentText,
+  globalPreviewKindForSource,
+} from "@/features/resource-preview";
+const loadBuiltinPreview = (source: GlobalPreviewSource) =>
+  loadGlobalPreview(source);
 export function useHostDocumentLoader() {
   return loadBuiltinPreview;
 }
@@ -35,9 +38,6 @@ export async function loadGlobalPreview(
     audioMimeTypes[extension] ||
     "application/octet-stream";
   const kind = globalPreviewKindForSource(extension, mimeType);
-  if (source.peer && (kind === "video" || kind === "audio" || kind === "pdf")) {
-    return { kind, url: await connectedDevicesMediaUrl(source.path), mimeType };
-  }
   const preparedPath = source.remote
     ? (
         await explorerPrepareOpenItem({
@@ -47,8 +47,10 @@ export async function loadGlobalPreview(
         })
       ).localPath
     : source.path;
-  if (kind === "video") return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
-  if (kind === "audio") return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
+  if (kind === "video")
+    return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
+  if (kind === "audio")
+    return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
   if (kind === "archive") {
     const archive = await archiveList({ path: preparedPath });
     return {
@@ -58,7 +60,8 @@ export async function loadGlobalPreview(
       archiveFormat: archive.format,
     };
   }
-  if (kind === "image") return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
+  if (kind === "image")
+    return { kind, url: safeTauriAssetUrl(preparedPath), mimeType };
   const payload = await explorerPreviewItem(preparedPath);
   const bytes = new Uint8Array(payload.bytes);
   if (kind === "pdf" || payload.mimeType === "application/pdf")

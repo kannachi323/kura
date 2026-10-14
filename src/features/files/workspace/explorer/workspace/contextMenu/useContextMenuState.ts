@@ -1,6 +1,6 @@
 import { useShallow } from "zustand/react/shallow";
 import { selectedDeletePathsForPane, useExplorerStore } from "../../store";
-import { selectedCountAcrossPanes } from "../ExplorerAgentPanels";
+import { selectedCountAcrossPanes } from "../selectionAcrossPanes";
 import { normalizedPath } from "./remoteVerification";
 import {
   localFilePathsForPane,
@@ -43,14 +43,25 @@ export function useContextMenuState() {
       const targetPane = open ? state.panes[paneId] : undefined;
       const targetEntry =
         open && entryId
-          ? (targetPane?.listing?.entries.find((entry) => entry.id === entryId) ?? null)
+          ? (targetPane?.listing?.entries.find(
+              (entry) => entry.id === entryId,
+            ) ?? null)
           : null;
       const selectedCount = open ? selectedActionableEntryCount(targetPane) : 0;
-      const selectedFolderCount = open ? selectedFolderEntryCount(targetPane) : 0;
-      const remoteSelectedCount = open ? selectedRemoteEntryCount(targetPane) : 0;
-      const trashableCount = open ? selectedDeletePathsForPane(targetPane, false).length : 0;
-      const permanentDeleteCount = open ? selectedDeletePathsForPane(targetPane, true).length : 0;
-      const pinnedPaths = open && entryId ? state.pinnedPaths : emptyPinnedPaths;
+      const selectedFolderCount = open
+        ? selectedFolderEntryCount(targetPane)
+        : 0;
+      const remoteSelectedCount = open
+        ? selectedRemoteEntryCount(targetPane)
+        : 0;
+      const trashableCount = open
+        ? selectedDeletePathsForPane(targetPane, false).length
+        : 0;
+      const permanentDeleteCount = open
+        ? selectedDeletePathsForPane(targetPane, true).length
+        : 0;
+      const pinnedPaths =
+        open && entryId ? state.pinnedPaths : emptyPinnedPaths;
       return {
         open,
         x,
@@ -61,13 +72,17 @@ export function useContextMenuState() {
         showHidden: state.paneShowHidden[paneId] ?? state.showHidden,
         targetEntry,
         hasSelection: Boolean(entryId && selectedCount),
-        selectedAcrossPanesCount: open ? selectedCountAcrossPanes(state.panes) : 0,
+        selectedAcrossPanesCount: open
+          ? selectedCountAcrossPanes(state.panes)
+          : 0,
         hasRemoteSelection: Boolean(remoteSelectedCount),
         canCalculateDirectorySizes: selectedFolderCount > 0,
         targetPinned: Boolean(
           targetEntry &&
           !targetEntry.isDeleted &&
-          pinnedPaths.some((path) => normalizedPath(path) === normalizedPath(targetEntry.path)),
+          pinnedPaths.some(
+            (path) => normalizedPath(path) === normalizedPath(targetEntry.path),
+          ),
         ),
         targetCanOpenWith: Boolean(
           targetEntry &&
@@ -76,11 +91,16 @@ export function useContextMenuState() {
           targetEntry.kind !== "symlink",
         ),
         targetRemoteName:
-          targetEntry?.location.kind === "remote" ? targetEntry.location.remoteName : null,
+          targetEntry?.location.kind === "remote"
+            ? targetEntry.location.remoteName
+            : null,
         targetRemotePath:
-          targetEntry?.location.kind === "remote" ? targetEntry.location.remotePath : null,
-        inTrash: targetPane?.listing?.path === "misty://trash",
-        canTrashSelection: trashableCount > 0 && trashableCount === selectedCount,
+          targetEntry?.location.kind === "remote"
+            ? targetEntry.location.remotePath
+            : null,
+        inTrash: targetPane?.listing?.path === "kura://trash",
+        canTrashSelection:
+          trashableCount > 0 && trashableCount === selectedCount,
         hasPermanentDeleteSelection: permanentDeleteCount > 0,
         canCreateFile: state.canCreateItem(paneId, "file"),
         canCreateFolder: state.canCreateItem(paneId, "folder"),

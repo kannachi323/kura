@@ -10,8 +10,14 @@ export async function clipboardImagePng(): Promise<ClipboardPngImage | null> {
   canvas.height = size.height;
   const context = canvas.getContext("2d");
   if (!context) return null;
-  context.putImageData(new ImageData(new Uint8ClampedArray(rgba), size.width, size.height), 0, 0);
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  context.putImageData(
+    new ImageData(new Uint8ClampedArray(rgba), size.width, size.height),
+    0,
+    0,
+  );
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png"),
+  );
   if (!blob) return null;
   return {
     bytes: new Uint8Array(await blob.arrayBuffer()),

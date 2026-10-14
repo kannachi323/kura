@@ -1,4 +1,3 @@
-import { selectNotificationPreferences, useSettingsStore } from "@/features/settings";
 import { errorText } from "@/shared/lib/format";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { ExplorerStore } from "../../model/interfaces/store/types";
@@ -6,16 +5,24 @@ import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
 import { explorerRuntime, getExplorerStore } from "../runtime";
 
-export function createShellActions(set: ExplorerSet, get: ExplorerGet): Partial<ExplorerStore> {
+export function createShellActions(
+  set: ExplorerSet,
+  get: ExplorerGet,
+): Partial<ExplorerStore> {
   return {
     togglePinnedPath: (path) => {
       const normalized = H.normalizedPath(path);
       const current = H.normalizePinnedPaths(get().pinnedPaths);
-      const pinnedPaths = current.some((candidate) => H.samePath(candidate, normalized))
+      const pinnedPaths = current.some((candidate) =>
+        H.samePath(candidate, normalized),
+      )
         ? current.filter((candidate) => !H.samePath(candidate, normalized))
         : H.normalizePinnedPaths([...current, normalized]);
       if (H.arraysEqual(current, pinnedPaths)) return;
-      window.localStorage.setItem("misty.explorer.pinnedPaths", JSON.stringify(pinnedPaths));
+      window.localStorage.setItem(
+        "misty.explorer.pinnedPaths",
+        JSON.stringify(pinnedPaths),
+      );
       set({ pinnedPaths });
     },
 
@@ -31,7 +38,10 @@ export function createShellActions(set: ExplorerSet, get: ExplorerGet): Partial<
 
     openContextMenu: (paneId, x, y, entryId = null) => {
       const currentState = get();
-      if (entryId && !currentState.panes[paneId]?.selectedIds.includes(entryId)) {
+      if (
+        entryId &&
+        !currentState.panes[paneId]?.selectedIds.includes(entryId)
+      ) {
         currentState.selectEntry(paneId, entryId);
       }
       set((state) => {
@@ -52,15 +62,27 @@ export function createShellActions(set: ExplorerSet, get: ExplorerGet): Partial<
     closeContextMenu: () => {
       set((state) =>
         state.contextMenu.open
-          ? { contextMenu: { open: false, x: 0, y: 0, paneId: "", entryId: null } }
+          ? {
+              contextMenu: {
+                open: false,
+                x: 0,
+                y: 0,
+                paneId: "",
+                entryId: null,
+              },
+            }
           : state,
       );
     },
 
     setSidebarVisible: (sidebarVisible) =>
-      set((state) => (state.sidebarVisible === sidebarVisible ? state : { sidebarVisible })),
+      set((state) =>
+        state.sidebarVisible === sidebarVisible ? state : { sidebarVisible },
+      ),
     setPreviewVisible: (previewVisible) =>
-      set((state) => (state.previewVisible === previewVisible ? state : { previewVisible })),
+      set((state) =>
+        state.previewVisible === previewVisible ? state : { previewVisible },
+      ),
     setSidebarWidth: (sidebarWidth) =>
       set((state) => {
         const width = Math.round(sidebarWidth);
@@ -76,17 +98,16 @@ export function createShellActions(set: ExplorerSet, get: ExplorerGet): Partial<
       if (message) set({ operationError: null });
       return message;
     },
-    pushNotification: (message, type = "info", durationMs = 3000, showInActivity = false) => {
+    pushNotification: (
+      message,
+      type = "info",
+      durationMs = 3000,
+      showInActivity = false,
+    ) => {
       const trimmed = message.trim();
       if (!trimmed) return 0;
-      const notificationPreferences = selectNotificationPreferences(
-        useSettingsStore.getState().settings?.document,
-      );
-      const quietSuppressed = notificationPreferences.quietHoursEnabled && type !== "error";
-      const digestSuppressed =
-        notificationPreferences.digestNotificationsEnabled && type !== "error";
-      const alertSuppressed = quietSuppressed || digestSuppressed;
-      const showToast = notificationPreferences.inAppNotificationsEnabled && !alertSuppressed;
+      const alertSuppressed = false;
+      const showToast = true;
       const recordActivity = showInActivity;
       const id = explorerRuntime.nextExplorerNotificationId++;
       const notification = {
@@ -125,13 +146,17 @@ export function createShellActions(set: ExplorerSet, get: ExplorerGet): Partial<
         showInActivity: true,
       };
       set((state) => ({
-        notificationHistory: [...state.notificationHistory, notification].slice(-200),
+        notificationHistory: [...state.notificationHistory, notification].slice(
+          -200,
+        ),
       }));
       return id;
     },
     dismissNotification: (id) =>
       set((state) => ({
-        notifications: state.notifications.filter((notification) => notification.id !== id),
+        notifications: state.notifications.filter(
+          (notification) => notification.id !== id,
+        ),
       })),
     markNotificationsRead: () =>
       set((state) => ({

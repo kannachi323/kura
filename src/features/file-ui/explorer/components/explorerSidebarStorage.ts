@@ -7,19 +7,29 @@ import { normalizeExplorerPath } from "@/shared/lib/pathNormalization";
 /** The sidebar's per-device layout: hidden and ordered Quick access rows, devices, collapsed sections. */
 const DEVICE_CUSTOMIZATION_STORAGE_KEY = "misty.explorer.sidebar.devices";
 const SIDEBAR_COLLAPSE_STORAGE_KEY = "misty.explorer.sidebar.collapsed";
-const QUICK_ACCESS_HIDDEN_STORAGE_KEY = "misty.explorer.sidebar.quickAccessHidden";
-const QUICK_ACCESS_ORDER_STORAGE_KEY = "misty.explorer.sidebar.quickAccessOrder";
+const QUICK_ACCESS_HIDDEN_STORAGE_KEY =
+  "misty.explorer.sidebar.quickAccessHidden";
+const QUICK_ACCESS_ORDER_STORAGE_KEY =
+  "misty.explorer.sidebar.quickAccessOrder";
 
 export function normalizeSidebarPath(path: string): string {
   return normalizeExplorerPath(path);
 }
 
-export function quickAccessPathHidden(path: string, hiddenPaths: string[]): boolean {
+export function quickAccessPathHidden(
+  path: string,
+  hiddenPaths: string[],
+): boolean {
   const normalized = normalizeSidebarPath(path);
-  return hiddenPaths.some((candidate) => normalizeSidebarPath(candidate) === normalized);
+  return hiddenPaths.some(
+    (candidate) => normalizeSidebarPath(candidate) === normalized,
+  );
 }
 
-export function addHiddenQuickAccessPath(paths: string[], path: string): string[] {
+export function addHiddenQuickAccessPath(
+  paths: string[],
+  path: string,
+): string[] {
   const normalized = normalizeSidebarPath(path);
   if (!normalized || quickAccessPathHidden(normalized, paths)) return paths;
   return [...paths, normalized];
@@ -27,13 +37,16 @@ export function addHiddenQuickAccessPath(paths: string[], path: string): string[
 
 export function loadHiddenQuickAccessPaths(): string[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(QUICK_ACCESS_HIDDEN_STORAGE_KEY) ?? "[]");
+    const parsed = JSON.parse(
+      window.localStorage.getItem(QUICK_ACCESS_HIDDEN_STORAGE_KEY) ?? "[]",
+    );
     if (!Array.isArray(parsed)) return [];
     const hiddenPaths: string[] = [];
     for (const value of parsed) {
       if (typeof value !== "string") continue;
       const normalized = normalizeSidebarPath(value);
-      if (!normalized || quickAccessPathHidden(normalized, hiddenPaths)) continue;
+      if (!normalized || quickAccessPathHidden(normalized, hiddenPaths))
+        continue;
       hiddenPaths.push(normalized);
     }
     return hiddenPaths;
@@ -43,13 +56,18 @@ export function loadHiddenQuickAccessPaths(): string[] {
 }
 
 export function saveHiddenQuickAccessPaths(paths: string[]): void {
-  window.localStorage.setItem(QUICK_ACCESS_HIDDEN_STORAGE_KEY, JSON.stringify(paths));
+  window.localStorage.setItem(
+    QUICK_ACCESS_HIDDEN_STORAGE_KEY,
+    JSON.stringify(paths),
+  );
 }
 
 /** Quick access paths in the order the user dragged them; unknown paths keep their place. */
 export function loadQuickAccessOrder(): string[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(QUICK_ACCESS_ORDER_STORAGE_KEY) ?? "[]");
+    const parsed = JSON.parse(
+      window.localStorage.getItem(QUICK_ACCESS_ORDER_STORAGE_KEY) ?? "[]",
+    );
     return Array.isArray(parsed)
       ? parsed.filter((value): value is string => typeof value === "string")
       : [];
@@ -59,18 +77,30 @@ export function loadQuickAccessOrder(): string[] {
 }
 
 export function saveQuickAccessOrder(paths: string[]): void {
-  window.localStorage.setItem(QUICK_ACCESS_ORDER_STORAGE_KEY, JSON.stringify(paths));
+  window.localStorage.setItem(
+    QUICK_ACCESS_ORDER_STORAGE_KEY,
+    JSON.stringify(paths),
+  );
 }
 
 /** Sorts rows by a saved path order, leaving rows the order doesn't mention in place at the end. */
-export function orderQuickAccessRows<T extends { path: string }>(rows: T[], order: string[]): T[] {
-  const rank = new Map(order.map((path, index) => [normalizeSidebarPath(path), index]));
+export function orderQuickAccessRows<T extends { path: string }>(
+  rows: T[],
+  order: string[],
+): T[] {
+  const rank = new Map(
+    order.map((path, index) => [normalizeSidebarPath(path), index]),
+  );
   return rows
-    .map((row, index) => ({ row, index, rank: rank.get(normalizeSidebarPath(row.path)) }))
+    .map((row, index) => ({
+      row,
+      index,
+      rank: rank.get(normalizeSidebarPath(row.path)),
+    }))
     .sort(
       (a, b) =>
-        (a.rank ?? order.length + a.index) - (b.rank ?? order.length + b.index) ||
-        a.index - b.index,
+        (a.rank ?? order.length + a.index) -
+          (b.rank ?? order.length + b.index) || a.index - b.index,
     )
     .map(({ row }) => row);
 }
@@ -87,7 +117,8 @@ export function loadDeviceCustomization(): DeviceCustomizationState {
         !Array.isArray(parsed.nameOverrides)
           ? Object.fromEntries(
               Object.entries(parsed.nameOverrides).filter(
-                (entry): entry is [string, string] => typeof entry[1] === "string",
+                (entry): entry is [string, string] =>
+                  typeof entry[1] === "string",
               ),
             )
           : {},
@@ -109,7 +140,10 @@ export function loadDeviceCustomization(): DeviceCustomizationState {
 }
 
 export function saveDeviceCustomization(state: DeviceCustomizationState): void {
-  window.localStorage.setItem(DEVICE_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(
+    DEVICE_CUSTOMIZATION_STORAGE_KEY,
+    JSON.stringify(state),
+  );
 }
 
 export function loadSidebarCollapsedState(): SidebarCollapsedState {
@@ -134,7 +168,10 @@ export function loadSidebarCollapsedState(): SidebarCollapsedState {
 }
 
 export function saveSidebarCollapsedState(state: SidebarCollapsedState): void {
-  window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(
+    SIDEBAR_COLLAPSE_STORAGE_KEY,
+    JSON.stringify(state),
+  );
 }
 
 export function normalizeDevicePath(path: string): string {

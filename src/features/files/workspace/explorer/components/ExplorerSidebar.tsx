@@ -3,5 +3,7 @@ import { hostExplorerSidebarRuntime } from "./explorerSidebar/hostExplorerSideba
 import { ExplorerSidebarView } from "./ExplorerSidebarView";
 export type { ExplorerSidebarProps } from "../model/interfaces/components/ExplorerSidebar";
 export function ExplorerSidebar(props: ExplorerSidebarProps) {
-  return <ExplorerSidebarView {...props} runtime={hostExplorerSidebarRuntime} />;
+  return (
+    <ExplorerSidebarView {...props} runtime={hostExplorerSidebarRuntime} />
+  );
 }

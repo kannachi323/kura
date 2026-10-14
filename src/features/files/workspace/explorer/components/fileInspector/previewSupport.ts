@@ -2,7 +2,6 @@ import {
   archiveList,
   explorerGenerateImageThumbnail,
   explorerPrepareOpenItem,
-  connectedDevicesMediaUrl,
 } from "../../../native";
 import type { FileEntry } from "@/native/ipc";
 import { errorText } from "@/shared/lib/format";
@@ -23,11 +22,16 @@ import {
 } from "./previewConstants";
 
 export function folderPreviewEntries(entries: FileEntry[]): FileEntry[] {
-  return entries.filter((candidate) => !candidate.isDeleted).slice(0, FOLDER_PREVIEW_LIMIT);
+  return entries
+    .filter((candidate) => !candidate.isDeleted)
+    .slice(0, FOLDER_PREVIEW_LIMIT);
 }
 
-export async function previewPathForEntry(entry: FileEntry): Promise<PreparedPreviewPath> {
-  if (entry.location.kind === "local") return { path: entry.path, prepared: null };
+export async function previewPathForEntry(
+  entry: FileEntry,
+): Promise<PreparedPreviewPath> {
+  if (entry.location.kind === "local")
+    return { path: entry.path, prepared: null };
   const prepared = await explorerPrepareOpenItem({
     path: entry.path,
     sizeBytes: entry.sizeBytes,
@@ -51,10 +55,15 @@ export function previewSupported(entry: FileEntry): boolean {
 
 export function previewImageMimeType(entry: FileEntry): string | null {
   if (entry.kind === "folder" || entry.kind === "symlink") return null;
-  return browserImageMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ?? null;
+  return (
+    browserImageMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ??
+    null
+  );
 }
 
-export async function loadNativeImagePreview(entry: FileEntry): Promise<LoadedInspectorPreview> {
+export async function loadNativeImagePreview(
+  entry: FileEntry,
+): Promise<LoadedInspectorPreview> {
   const payload = await explorerGenerateImageThumbnail(
     entry.path,
     INSPECTOR_IMAGE_PREVIEW_MAX_DIMENSION,
@@ -74,12 +83,18 @@ export async function loadNativeImagePreview(entry: FileEntry): Promise<LoadedIn
 
 export function previewVideoMimeType(entry: FileEntry): string | null {
   if (entry.kind === "folder" || entry.kind === "symlink") return null;
-  return browserVideoMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ?? null;
+  return (
+    browserVideoMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ??
+    null
+  );
 }
 
 export function previewAudioMimeType(entry: FileEntry): string | null {
   if (entry.kind === "folder" || entry.kind === "symlink") return null;
-  return browserAudioMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ?? null;
+  return (
+    browserAudioMimeTypes[entry.extension.toLowerCase().replace(/^\./, "")] ??
+    null
+  );
 }
 
 export function archivePreviewSupported(entry: FileEntry): boolean {
@@ -103,14 +118,18 @@ export async function loadDirectMediaPreview(
   kind: "image" | "video" | "audio",
   mimeType: string,
 ): Promise<LoadedInspectorPreview> {
-  if (entry.location.kind === "peer_device") {
-    return { kind, text: null, url: await connectedDevicesMediaUrl(entry.path), mimeType };
-  }
   const preparedPath = await previewPathForEntry(entry);
-  return { kind, text: null, url: safeTauriAssetUrl(preparedPath.path), mimeType };
+  return {
+    kind,
+    text: null,
+    url: safeTauriAssetUrl(preparedPath.path),
+    mimeType,
+  };
 }
 
-export async function loadArchivePreview(entry: FileEntry): Promise<LoadedInspectorPreview> {
+export async function loadArchivePreview(
+  entry: FileEntry,
+): Promise<LoadedInspectorPreview> {
   const preparedPath = await previewPathForEntry(entry);
   const result = await archiveList({ path: preparedPath.path });
   return {
@@ -126,13 +145,19 @@ export async function loadArchivePreview(entry: FileEntry): Promise<LoadedInspec
 
 export function previewErrorTextForDisplay(error: unknown): string | null {
   const message = errorText(error);
-  return message.toLowerCase().includes("too large to thumbnail") ? null : message;
+  return message.toLowerCase().includes("too large to thumbnail")
+    ? null
+    : message;
 }
 
 export function nativeImageThumbnailSupported(entry: FileEntry): boolean {
-  return nativeImageThumbnailExtensions.has(entry.extension.toLowerCase().replace(/^\./, ""));
+  return nativeImageThumbnailExtensions.has(
+    entry.extension.toLowerCase().replace(/^\./, ""),
+  );
 }
 
 export function previewPayloadIsText(mimeType: string): boolean {
-  return mimeType.startsWith("text/") || mimeType.startsWith("application/json");
+  return (
+    mimeType.startsWith("text/") || mimeType.startsWith("application/json")
+  );
 }

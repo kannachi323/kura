@@ -6,7 +6,8 @@ export function pathAllowed(
   options: ExplorerSearchOptions,
 ): boolean {
   if (sourceKind !== "local") return false;
-  if (options.includeHidden === false && baseName(path).startsWith(".")) return false;
+  if (options.includeHidden === false && baseName(path).startsWith("."))
+    return false;
   if (options.scope === "local" && sourceKind !== "local") return false;
   if (options.scope === "remotes") return false;
   if (options.scope === "current" && options.currentPath)
@@ -61,7 +62,9 @@ export function semanticCacheKey(
   return JSON.stringify([
     query.toLocaleLowerCase(),
     options.scope ?? "everything",
-    options.scope === "current" ? normalizePath(options.currentPath ?? "/") : "",
+    options.scope === "current"
+      ? normalizePath(options.currentPath ?? "/")
+      : "",
     limit,
   ]);
 }
@@ -85,7 +88,10 @@ export function stringValue(value: unknown): string | null {
 export function stringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? uniqueStrings(
-        value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())),
+        value.filter(
+          (item): item is string =>
+            typeof item === "string" && Boolean(item.trim()),
+        ),
       )
     : [];
 }

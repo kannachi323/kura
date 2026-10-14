@@ -25,7 +25,14 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ExplorerToolbarRuntime } from "./ExplorerToolbarRuntime";
 import type { ExplorerToolbarProps } from "../model/interfaces/components/ExplorerToolbarModel";
 import { breadcrumbSegments, cx, toolbarStyles } from "@/features/file-ui";
@@ -97,7 +104,10 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
         </div>
 
         <div
-          className={cx(toolbarStyles.pathBar, pathEditing && toolbarStyles.pathBarEditing)}
+          className={cx(
+            toolbarStyles.pathBar,
+            pathEditing && toolbarStyles.pathBarEditing,
+          )}
           data-misty-window-drag-block="true"
           title={pathEditing ? undefined : "Click empty space to edit path"}
           onClick={(event) => {
@@ -125,30 +135,35 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
               }}
             />
           ) : (
-            (props.breadcrumbs ?? breadcrumbSegments(props.path)).map((segment, index) => (
-              <DropTarget
-                key={`${segment.path}-${index}`}
-                id={`breadcrumb:${props.paneId}:${segment.path}`}
-                path={segment.path}
-                paneId={props.paneId}
-                springLoad
-                onSpringLoad={() => props.onNavigate(segment.path)}
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={toolbarStyles.pathButton}
-                  onClick={() => props.onNavigate(segment.path)}
-                  onDoubleClick={(event) => event.stopPropagation()}
+            (props.breadcrumbs ?? breadcrumbSegments(props.path)).map(
+              (segment, index) => (
+                <DropTarget
+                  key={`${segment.path}-${index}`}
+                  id={`breadcrumb:${props.paneId}:${segment.path}`}
+                  path={segment.path}
+                  paneId={props.paneId}
+                  springLoad
+                  onSpringLoad={() => props.onNavigate(segment.path)}
                 >
-                  {index > 0 ? (
-                    <ChevronRight className={toolbarStyles.breadcrumbCaret} size={14} />
-                  ) : null}
-                  {segment.label}
-                </Button>
-              </DropTarget>
-            ))
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={toolbarStyles.pathButton}
+                    onClick={() => props.onNavigate(segment.path)}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                  >
+                    {index > 0 ? (
+                      <ChevronRight
+                        className={toolbarStyles.breadcrumbCaret}
+                        size={14}
+                      />
+                    ) : null}
+                    {segment.label}
+                  </Button>
+                </DropTarget>
+              ),
+            )
           )}
         </div>
 
@@ -167,10 +182,18 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
         </div>
       </div>
 
-      <div role="toolbar" aria-label="File actions" className={toolbarStyles.actionRow}>
+      <div
+        role="toolbar"
+        aria-label="File actions"
+        className={toolbarStyles.actionRow}
+      >
         <div className={toolbarStyles.actionLeft}>
           <DropdownMenu>
-            <MenuTrigger label="New" icon={<Plus size={16} />} className="text-cream" />
+            <MenuTrigger
+              label="New"
+              icon={<Plus size={16} />}
+              className="text-cream"
+            />
             <DropdownMenuContent align="start" sideOffset={6} width="sm">
               <DropdownMenuLabel>Create in this folder</DropdownMenuLabel>
               <MenuItem
@@ -187,19 +210,39 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
               />
             </DropdownMenuContent>
           </DropdownMenu>
-          <IconButton label={props.undoTitle} disabled={!props.canUndo} onClick={props.onUndo}>
+          <IconButton
+            label={props.undoTitle}
+            disabled={!props.canUndo}
+            onClick={props.onUndo}
+          >
             <Undo2 {...toolbarIconProps} />
           </IconButton>
-          <IconButton label={props.redoTitle} disabled={!props.canRedo} onClick={props.onRedo}>
+          <IconButton
+            label={props.redoTitle}
+            disabled={!props.canRedo}
+            onClick={props.onRedo}
+          >
             <Redo2 {...toolbarIconProps} />
           </IconButton>
-          <IconButton label="Cut" disabled={props.canCut === false} onClick={props.onCut}>
+          <IconButton
+            label="Cut"
+            disabled={props.canCut === false}
+            onClick={props.onCut}
+          >
             <Scissors {...toolbarIconProps} />
           </IconButton>
-          <IconButton label="Copy" disabled={props.canCopy === false} onClick={props.onCopy}>
+          <IconButton
+            label="Copy"
+            disabled={props.canCopy === false}
+            onClick={props.onCopy}
+          >
             <Copy {...toolbarIconProps} />
           </IconButton>
-          <IconButton label="Paste" disabled={props.canPaste === false} onClick={props.onPaste}>
+          <IconButton
+            label="Paste"
+            disabled={props.canPaste === false}
+            onClick={props.onPaste}
+          >
             <Clipboard {...toolbarIconProps} />
           </IconButton>
           {props.onRestore && (
@@ -211,10 +254,18 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
               <RotateCcw {...toolbarIconProps} />
             </IconButton>
           )}
-          <IconButton label="Rename" disabled={props.canRename === false} onClick={props.onRename}>
+          <IconButton
+            label="Rename"
+            disabled={props.canRename === false}
+            onClick={props.onRename}
+          >
             <Pencil {...toolbarIconProps} />
           </IconButton>
-          <IconButton label="Delete" disabled={props.canDelete === false} onClick={props.onDelete}>
+          <IconButton
+            label="Delete"
+            disabled={props.canDelete === false}
+            onClick={props.onDelete}
+          >
             <Trash2 {...toolbarIconProps} />
           </IconButton>
         </div>

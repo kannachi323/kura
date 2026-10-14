@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
-import { explorerCancelDragPreparation, explorerPrepareDragItems } from "../../native";
+import {
+  explorerCancelDragPreparation,
+  explorerPrepareDragItems,
+} from "../../native";
 import { getAppliedAppZoom } from "@/shared/hooks/useAppZoom";
 import { hasTauriInternals } from "@/shared/platform/tauri";
 import { useExplorerStore } from "../store";
-import { ExplorerDragProviderView, type ExplorerDragRuntime } from "./ExplorerDragProviderView";
+import {
+  ExplorerDragProviderView,
+  type ExplorerDragRuntime,
+} from "./ExplorerDragProviderView";
 import { physicalToClientPoint } from "@/features/file-ui";
 export {
   Droppable,
@@ -14,14 +20,17 @@ export {
 const runtime: ExplorerDragRuntime = {
   prepare: explorerPrepareDragItems,
   cancelPreparation: explorerCancelDragPreparation,
-  notify: (message) => useExplorerStore.getState().pushNotification(String(message), "error"),
+  notify: (message) =>
+    useExplorerStore.getState().pushNotification(String(message), "error"),
   refresh: () => {
     const store = useExplorerStore.getState();
     Object.keys(store.panes).forEach((id) => void store.refreshPane(id));
   },
   async startDrag(paths, icon, mode, done) {
     const { startDrag } = await import("@crabnebula/tauri-plugin-drag");
-    await startDrag({ item: paths, icon, mode }, (event) => done(event.result === "Dropped"));
+    await startDrag({ item: paths, icon, mode }, (event) =>
+      done(event.result === "Dropped"),
+    );
   },
   async subscribeNative(listener) {
     if (!hasTauriInternals()) return () => {};
@@ -35,14 +44,21 @@ const runtime: ExplorerDragRuntime = {
       scale = payload.scaleFactor;
     });
     try {
-      const removeDrag = await webview.getCurrentWebview().onDragDropEvent(({ payload }) => {
-        if (payload.type === "leave") listener({ type: "leave", position: { x: 0, y: 0 } });
-        else
-          listener({
-            ...payload,
-            position: physicalToClientPoint(payload.position, scale, getAppliedAppZoom()),
-          });
-      });
+      const removeDrag = await webview
+        .getCurrentWebview()
+        .onDragDropEvent(({ payload }) => {
+          if (payload.type === "leave")
+            listener({ type: "leave", position: { x: 0, y: 0 } });
+          else
+            listener({
+              ...payload,
+              position: physicalToClientPoint(
+                payload.position,
+                scale,
+                getAppliedAppZoom(),
+              ),
+            });
+        });
       return () => {
         removeScale();
         removeDrag();

@@ -34,8 +34,14 @@ export interface DropAcceptance {
 export interface ExplorerDropZoneSpec {
   id: string;
   priority?: number;
-  accepts: (payload: ExplorerDragPayload, modifiers: ExplorerDragModifiers) => DropAcceptance;
-  onDrop: (payload: ExplorerDragPayload, modifiers: ExplorerDragModifiers) => void | Promise<void>;
+  accepts: (
+    payload: ExplorerDragPayload,
+    modifiers: ExplorerDragModifiers,
+  ) => DropAcceptance;
+  onDrop: (
+    payload: ExplorerDragPayload,
+    modifiers: ExplorerDragModifiers,
+  ) => void | Promise<void>;
   onSpringLoad?: () => void;
   springLoad?: boolean;
 }

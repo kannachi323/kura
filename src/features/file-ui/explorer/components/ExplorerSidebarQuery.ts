@@ -8,7 +8,9 @@ export function smartFolderQueryFromRules(
     .filter((rule) => rule.field !== "__match" && rule.value.trim())
     .map(smartFolderRuleQuery)
     .filter(Boolean);
-  return matchMode === "any" && parts.length > 1 ? parts.join(" OR ") : parts.join(" ");
+  return matchMode === "any" && parts.length > 1
+    ? parts.join(" OR ")
+    : parts.join(" ");
 }
 
 function smartFolderRuleQuery(rule: SavedSearchRule): string {

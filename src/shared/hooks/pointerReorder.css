@@ -1,0 +1,114 @@
+[data-reorder-list] [data-reorder-handle],
+[data-reorder-list] [data-reorder-handle] * {
+  -webkit-user-drag: none !important;
+  -webkit-app-region: no-drag;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+[data-reorder-list] [data-reorder-handle] {
+  cursor: pointer;
+}
+[data-reorder-list] [data-reorder-handle]:active {
+  cursor: grabbing;
+}
+[data-reorder-dragging="true"] {
+  opacity: 0.5;
+}
+html[data-pointer-dragging="true"],
+html[data-pointer-dragging="true"] * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+.pointer-reorder-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483400;
+  cursor: grabbing;
+}
+.pointer-reorder-preview {
+  position: fixed;
+  z-index: 2147483500;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.pointer-reorder-preview * {
+  pointer-events: none !important;
+}
+.pointer-reorder-indicator {
+  position: fixed;
+  z-index: 2147483501;
+  pointer-events: none;
+  background: var(--color-cream, #eee);
+  border-radius: 1px;
+}
+
+.pointer-pane-title {
+  max-width: min(320px, calc(100vw - 16px));
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border: 1px solid var(--color-charcoal-border, #262626);
+  border-radius: 6px;
+  background: var(--color-charcoal-card, #191919);
+  color: var(--color-cream, #e0e0e0);
+  font:
+    500 13px/20px system-ui,
+    sans-serif;
+  opacity: 1;
+}
+
+[data-reorder-lifted="true"] {
+  opacity: 0;
+}
+.pointer-reorder-tab-preview {
+  opacity: 1;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.18));
+}
+/* A connected tab joins the toolbar; a drop shadow would smear onto it. */
+.pointer-reorder-shaped-preview {
+  filter: none;
+}
+
+/* How many files ride along with a lifted explorer row. */
+.explorer-drag-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-cream, #e0e0e0);
+  color: var(--color-charcoal-bg, #111);
+  font:
+    600 11px/18px system-ui,
+    sans-serif;
+  text-align: center;
+}
+
+/* A dragged file: its icon and name only, not the whole row. */
+.explorer-drag-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 6px;
+  background: var(--color-charcoal-card, #191919);
+  color: var(--color-cream, #e0e0e0);
+  font:
+    500 13px/20px system-ui,
+    sans-serif;
+  opacity: 0.9;
+}
+.explorer-drag-chip > :first-child:not(.explorer-drag-chip-name) {
+  flex-shrink: 0;
+}
+.explorer-drag-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

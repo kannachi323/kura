@@ -45,17 +45,21 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 export function titleFromPath(path: string): string {
-  if (path.startsWith("misty://local/")) return "Local";
-  if (path === "misty://recent") return "Recent";
-  if (path === "misty://starred") return "Starred";
-  if (path === "misty://trash") return "Trash";
-  if (path === "misty://local") return "Local";
+  if (path.startsWith("kura://local/")) return "Local";
+  if (path === "kura://recent") return "Recent";
+  if (path === "kura://starred") return "Starred";
+  if (path === "kura://trash") return "Trash";
+  if (path === "kura://local") return "Local";
   const clean = H.normalizedPath(path);
   return clean.split("/").filter(Boolean).pop() || clean || "Home";
 }
 
 export function ensureDirectorySizeScheduler(): void {
-  if (typeof window === "undefined" || explorerRuntime.directorySizeSchedulerTimer !== null) return;
+  if (
+    typeof window === "undefined" ||
+    explorerRuntime.directorySizeSchedulerTimer !== null
+  )
+    return;
   explorerRuntime.directorySizeSchedulerTimer = window.setInterval(() => {
     void getExplorerStore().getState().runScheduledDirectorySizeRefresh();
   }, explorerRuntime.directorySizeRefreshIntervalMs);
@@ -65,20 +69,28 @@ export function uniqueDirectorySizePaths(paths: string[]): string[] {
   const unique: string[] = [];
   for (const path of paths) {
     const normalized = H.normalizedPath(path.trim());
-    if (!normalized || unique.some((candidate) => H.samePath(candidate, normalized))) continue;
+    if (
+      !normalized ||
+      unique.some((candidate) => H.samePath(candidate, normalized))
+    )
+      continue;
     unique.push(normalized);
   }
   return unique;
 }
 
-export function folderPathsForListing(listing: DirectoryListing | null): string[] {
+export function folderPathsForListing(
+  listing: DirectoryListing | null,
+): string[] {
   if (!listing || !H.directorySizeEligibleListing(listing)) return [];
   return listing.entries
     .filter((entry) => !entry.isDeleted && entry.kind === "folder")
     .map((entry) => entry.path);
 }
 
-export function directorySizeEligibleListing(listing: DirectoryListing): boolean {
+export function directorySizeEligibleListing(
+  listing: DirectoryListing,
+): boolean {
   return (
     !listing.path.includes("://") &&
     (listing.location.kind === "local" || listing.location.kind === "remote")
@@ -87,7 +99,9 @@ export function directorySizeEligibleListing(listing: DirectoryListing): boolean
 
 export function openPaneDirectorySizePaths(state: ExplorerStore): string[] {
   return H.uniqueDirectorySizePaths(
-    Object.values(state.panes).flatMap((pane) => H.folderPathsForListing(pane.listing)),
+    Object.values(state.panes).flatMap((pane) =>
+      H.folderPathsForListing(pane.listing),
+    ),
   );
 }
 
@@ -168,7 +182,10 @@ export function resortSizeSortedPanes(
     const sort = state.paneSorts[paneId] ?? state.sort;
     if (!pane.listing || sort.column !== "size") continue;
     if (panes === state.panes) panes = { ...state.panes };
-    panes[paneId] = { ...pane, listing: H.sortListing(pane.listing, sort, directorySizes) };
+    panes[paneId] = {
+      ...pane,
+      listing: H.sortListing(pane.listing, sort, directorySizes),
+    };
   }
   return panes;
 }

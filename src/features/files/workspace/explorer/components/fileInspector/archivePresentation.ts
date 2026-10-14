@@ -9,7 +9,9 @@ export function archiveEntryName(path: string): string {
 
 export function archiveEntryIsArchive(path: string): boolean {
   const lowerPath = path.toLowerCase();
-  return [...archivePreviewExtensions].some((extension) => lowerPath.endsWith(`.${extension}`));
+  return [...archivePreviewExtensions].some((extension) =>
+    lowerPath.endsWith(`.${extension}`),
+  );
 }
 
 export function formatArchiveEntrySize(entry: ArchiveEntry): string {

@@ -1,12 +1,18 @@
 import { useMemo } from "react";
 import { SystemErrorActivity } from "@/features/activity";
-import { selectAppearancePreferences, useSettingsStore } from "@/features/settings";
+import {
+  selectAppearancePreferences,
+  useSettingsStore,
+} from "@/features/settings";
 import {
   FileBrowserView,
   FileBrowserRuntimeProvider,
   type FileBrowserProps,
 } from "@/features/file-ui";
-import { prewarmGridThumbnails, requestGridThumbnail } from "./fileBrowser/gridThumbnails";
+import {
+  prewarmGridThumbnails,
+  requestGridThumbnail,
+} from "./fileBrowser/gridThumbnails";
 export type {
   FileBrowserProps,
   GridThumbnailJob,
@@ -22,16 +28,18 @@ function ErrorView({ error, paneId }: { error: string; paneId: string }) {
       error={error}
       scope={`files:browser:${paneId}`}
       title="Files could not be loaded"
-      target={{ kind: "workspace-tool", tool: "files" }}
     />
   );
 }
 export function FileBrowser(props: FileBrowserProps) {
   const thumbnailPreviewsEnabled = useSettingsStore(
-    (state) => selectAppearancePreferences(state.settings?.document).thumbnailPreviewsEnabled,
+    (state) =>
+      selectAppearancePreferences(state.settings?.document)
+        .thumbnailPreviewsEnabled,
   );
   const compactModeEnabled = useSettingsStore(
-    (state) => selectAppearancePreferences(state.settings?.document).compactModeEnabled,
+    (state) =>
+      selectAppearancePreferences(state.settings?.document).compactModeEnabled,
   );
   const runtime = useMemo(
     () => ({

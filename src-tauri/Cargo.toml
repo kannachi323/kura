@@ -1,0 +1,84 @@
+[package]
+name = "kura"
+version = "0.1.0"
+description = "A fast, private file manager"
+authors = ["Kura contributors"]
+license = "MIT"
+edition = "2021"
+default-run = "kura"
+
+[lib]
+name = "kura"
+crate-type = ["lib"]
+
+[[bin]]
+name = "kura"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+arboard = "3.6.1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+dirs = "6.0.0"
+hex = "0.4"
+libc = "0.2"
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+tauri = { version = "2", features = ["protocol-asset", "image-png"] }
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-os = "2"
+thiserror = "1"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+url = "2"
+walkdir = "2.5"
+image = { version = "0.25.10", default-features = false, features = ["bmp", "gif", "hdr", "jpeg", "png", "pnm", "tga", "webp"] }
+zip = { version = "4.6.1", default-features = false, features = ["deflate-flate2"] }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+percent-encoding = "2"
+notify = { version = "6", default-features = false, features = ["macos_fsevent"] }
+cap-std = "4.0.3"
+tantivy = "0.26.2"
+zune-psd = "0.5.1"
+calamine = "0.31"
+csv = "1"
+pdf-extract = "0.12"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+objc2 = "0.6.4"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSPasteboard"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSURL"] }
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = { version = "2.4.3", features = ["deep-link"] }
+tauri-plugin-drag = "2.1.1"
+tauri-plugin-process = "2.3.1"
+tauri-plugin-updater = "2.10.1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_UI_WindowsAndMessaging"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.dev]
+debug = 1
+incremental = true
+
+[profile.dev.package."*"]
+debug = false
+
+[patch.crates-io]
+# Preserve the clipboard API while using AppKit instead of a bundled TIFF decoder on macOS.
+arboard = { path = "vendor/arboard" }

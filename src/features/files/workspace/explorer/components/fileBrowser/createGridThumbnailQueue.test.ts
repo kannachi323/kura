@@ -4,7 +4,9 @@ import { createGridThumbnailQueue } from "./createGridThumbnailQueue";
 
 it("disposes stale and late thumbnail URLs without publishing them to another listing", async () => {
   const pending: ((url: string) => void)[] = [];
-  const load = vi.fn(() => new Promise<string>((resolve) => pending.push(resolve)));
+  const load = vi.fn(
+    () => new Promise<string>((resolve) => pending.push(resolve)),
+  );
   const release = vi.fn(),
     old = vi.fn(),
     current = vi.fn(),
@@ -23,7 +25,12 @@ it("disposes stale and late thumbnail URLs without publishing them to another li
     createdMs: 1,
     readonly: true,
     hidden: false,
-    location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+    location: {
+      kind: "local",
+      providerType: null,
+      remoteName: null,
+      remotePath: null,
+    },
   };
   queue.requestGridThumbnail(entry, 128, old);
   queue.clear();

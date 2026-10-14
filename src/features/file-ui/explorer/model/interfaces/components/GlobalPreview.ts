@@ -19,7 +19,15 @@ export interface GlobalPreviewSource {
 
 export interface PreviewResource {
   kind:
-    "image" | "video" | "audio" | "pdf" | "markdown" | "text" | "document" | "archive" | "generic";
+    | "image"
+    | "video"
+    | "audio"
+    | "pdf"
+    | "markdown"
+    | "text"
+    | "document"
+    | "archive"
+    | "generic";
   url?: string;
   text?: string;
   mimeType: string;

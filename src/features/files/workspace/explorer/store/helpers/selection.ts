@@ -10,7 +10,10 @@ import type {
   ExplorerInlineEditState,
   PaneExplorerState,
 } from "../../model/interfaces/store/types";
-import type { ExplorerDeleteMode, ExplorerDialogState } from "../../model/types/store/types";
+import type {
+  ExplorerDeleteMode,
+  ExplorerDialogState,
+} from "../../model/types/store/types";
 import { getExplorerStore } from "../runtime";
 import * as H from "./index";
 
@@ -32,9 +35,14 @@ export function emptyPaneState(): PaneExplorerState {
   };
 }
 
-export function selectedEntryForPane(pane: PaneExplorerState | undefined): FileEntry | null {
+export function selectedEntryForPane(
+  pane: PaneExplorerState | undefined,
+): FileEntry | null {
   if (!pane?.listing || pane.selectedIds.length === 0) return null;
-  return pane.listing.entries.find((entry) => entry.id === pane.selectedIds[0]) ?? null;
+  return (
+    pane.listing.entries.find((entry) => entry.id === pane.selectedIds[0]) ??
+    null
+  );
 }
 
 export function paneExplorerStatesEqual(
@@ -59,7 +67,9 @@ export function paneExplorerStatesEqual(
   );
 }
 
-export function selectedEntriesForPane(pane: PaneExplorerState | undefined): FileEntry[] {
+export function selectedEntriesForPane(
+  pane: PaneExplorerState | undefined,
+): FileEntry[] {
   if (!pane?.listing || pane.selectedIds.length === 0) return [];
   if (pane.selectedIds.length === 1) {
     const entry = H.selectedEntryForPane(pane);
@@ -69,13 +79,20 @@ export function selectedEntriesForPane(pane: PaneExplorerState | undefined): Fil
   return pane.listing.entries.filter((entry) => selected.has(entry.id));
 }
 
-export function selectedRemotePasteItemsForPane(pane: PaneExplorerState | undefined): PasteItem[] {
+export function selectedRemotePasteItemsForPane(
+  pane: PaneExplorerState | undefined,
+): PasteItem[] {
   return H.selectedEntriesForPane(pane)
-    .filter((entry) => !entry.isDeleted && entry.location.kind === "peer_device")
+    .filter(
+      (entry) => !entry.isDeleted && entry.location.kind === "peer_device",
+    )
     .map(H.pasteItemForEntry);
 }
 
-export function arraysEqual(left: readonly string[], right: readonly string[]): boolean {
+export function arraysEqual(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
   if (left === right) return true;
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
@@ -150,7 +167,7 @@ export function selectedBatchRenameItemsAcrossPanes(
   const seenPaths = new Set<string>();
   const items: ExplorerBatchRenameItem[] = [];
   for (const [paneId, pane] of orderedPaneEntries) {
-    if (pane.listing?.path === "misty://trash") continue;
+    if (pane.listing?.path === "kura://trash") continue;
     for (const entry of H.selectedEntriesForPane(pane)) {
       if (!H.isFileMasterEntry(entry)) continue;
       // Its device has not allowed changes from this one.
@@ -172,19 +189,28 @@ export function syncInlineRenameSelection(
 ): ExplorerInlineEditState | null {
   if (edit?.kind !== "rename") return edit;
 
-  const items = H.selectedBatchRenameItemsAcrossPanes(panes, preferredPaneId ?? edit.paneId);
+  const items = H.selectedBatchRenameItemsAcrossPanes(
+    panes,
+    preferredPaneId ?? edit.paneId,
+  );
   if (items.length === 0) return null;
 
   const focusItem =
-    items.find((item) => item.paneId === preferredPaneId && item.entryId === preferredEntryId) ??
-    items.find((item) => item.paneId === edit.paneId && item.entryId === edit.entryId) ??
+    items.find(
+      (item) =>
+        item.paneId === preferredPaneId && item.entryId === preferredEntryId,
+    ) ??
+    items.find(
+      (item) => item.paneId === edit.paneId && item.entryId === edit.entryId,
+    ) ??
     items[0];
   const batchItems = H.validateBatchRenameItems(
     items.map((item) => ({ ...item, value: edit.value })),
   );
   const focused =
     batchItems.find(
-      (item) => item.paneId === focusItem.paneId && item.entryId === focusItem.entryId,
+      (item) =>
+        item.paneId === focusItem.paneId && item.entryId === focusItem.entryId,
     ) ?? focusItem;
   const next: ExplorerInlineEditState = {
     ...edit,
@@ -202,11 +228,14 @@ export function syncInlineRenameSelection(
 export function inlineEditFromBatchRenameDialog(
   dialog: NonNullable<ExplorerDialogState> & { kind: "batchRename" },
 ): ExplorerInlineEditState | null {
-  const focusItem = dialog.items.find((item) => item.paneId === dialog.paneId) ?? dialog.items[0];
+  const focusItem =
+    dialog.items.find((item) => item.paneId === dialog.paneId) ??
+    dialog.items[0];
   if (!focusItem) return null;
   const batchItems = H.validateBatchRenameItems(dialog.items);
   const focused = batchItems.find(
-    (item) => item.paneId === focusItem.paneId && item.entryId === focusItem.entryId,
+    (item) =>
+      item.paneId === focusItem.paneId && item.entryId === focusItem.entryId,
   );
   const invalidCount = batchItems.filter((item) => item.error).length;
   const restored: ExplorerInlineEditState = {
@@ -227,7 +256,9 @@ export function inlineEditFromBatchRenameDialog(
   return restored;
 }
 
-export function refreshAndClearRenamePanes(items: ExplorerBatchRenameItem[]): void {
+export function refreshAndClearRenamePanes(
+  items: ExplorerBatchRenameItem[],
+): void {
   const paneDirectories = new Map<string, Set<string>>();
   for (const item of items) {
     const directories = paneDirectories.get(item.paneId) ?? new Set<string>();
@@ -256,14 +287,16 @@ export function canCreateItemInPane(
   // A connected device says whether it lets this device change its files.
   if (pane.listing.location.kind === "peer_device")
     return pane.listing.location.peerWritable === true;
-  if (pane.listing.path.startsWith("misty://")) return false;
+  if (pane.listing.path.startsWith("kura://")) return false;
   if (pane.listing.location.kind === "remote_provider") return false;
   return true;
 }
 
-export function selectedPathsForPane(pane: PaneExplorerState | undefined): string[] {
+export function selectedPathsForPane(
+  pane: PaneExplorerState | undefined,
+): string[] {
   if (!pane?.listing) return [];
-  if (pane.listing.path === "misty://trash") return [];
+  if (pane.listing.path === "kura://trash") return [];
   if (pane.selectedIds.length === 1) {
     const entry = H.selectedEntryForPane(pane);
     return entry && H.isFileMasterEntry(entry) ? [entry.path] : [];
@@ -280,22 +313,26 @@ export function selectedDeletePathsForPane(
 ): string[] {
   if (!pane?.listing) return [];
   const selected = new Set(pane.selectedIds);
-  const inTrash = pane.listing.path === "misty://trash";
+  const inTrash = pane.listing.path === "kura://trash";
   return pane.listing.entries
     .filter((entry) => {
       if (!selected.has(entry.id)) return false;
       if (entry.readonly) return false;
       if (inTrash) return permanent && entry.isDeleted;
-      // A connected device's Trash is its own Misty Trash.
-      const hasTrash = entry.location.kind === "local" || entry.location.kind === "peer_device";
+      // Trash listings come from Kura's own Trash folder.
+      const hasTrash =
+        entry.location.kind === "local" ||
+        entry.location.kind === "peer_device";
       return permanent ? !entry.isDeleted : !entry.isDeleted && hasTrash;
     })
     .map((entry) => entry.path);
 }
 
-export function selectedPasteItemsForPane(pane: PaneExplorerState | undefined): PasteItem[] {
+export function selectedPasteItemsForPane(
+  pane: PaneExplorerState | undefined,
+): PasteItem[] {
   if (!pane?.listing) return [];
-  if (pane.listing.path === "misty://trash") return [];
+  if (pane.listing.path === "kura://trash") return [];
   const selected = new Set(pane.selectedIds);
   return pane.listing.entries
     .filter((entry) => selected.has(entry.id) && H.isFileMasterEntry(entry))
@@ -320,14 +357,21 @@ export function deleteModeForPaneSelection(
   requestedMode: ExplorerDeleteMode | undefined,
 ): ExplorerDeleteMode {
   if (requestedMode) return requestedMode;
-  if (pane?.listing?.path === "misty://trash") return "permanent";
+  if (pane?.listing?.path === "kura://trash") return "permanent";
   const selected = new Set(pane?.selectedIds ?? []);
   const selectedEntries =
-    pane?.listing?.entries.filter((entry) => selected.has(entry.id) && !entry.isDeleted) ?? [];
+    pane?.listing?.entries.filter(
+      (entry) => selected.has(entry.id) && !entry.isDeleted,
+    ) ?? [];
   const hasRemoteSelection = selectedEntries.some(
-    (entry) => selected.has(entry.id) && !entry.isDeleted && entry.location.kind === "remote",
+    (entry) =>
+      selected.has(entry.id) &&
+      !entry.isDeleted &&
+      entry.location.kind === "remote",
   );
-  const hasLocalSelection = selectedEntries.some((entry) => entry.location.kind === "local");
+  const hasLocalSelection = selectedEntries.some(
+    (entry) => entry.location.kind === "local",
+  );
   return hasRemoteSelection && !hasLocalSelection ? "permanent" : "trash";
 }
 

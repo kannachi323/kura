@@ -31,9 +31,16 @@ const fieldClass = "grid gap-1.5 text-xs font-medium text-cream-muted";
 const groupListClass = "mt-4 grid max-h-[360px] gap-3 overflow-auto pr-1";
 
 export interface DuplicateFinderRuntime {
-  scan(request: { roots: string[]; hashAll: boolean }): Promise<DuplicateScanResult>;
+  scan(request: {
+    roots: string[];
+    hashAll: boolean;
+  }): Promise<DuplicateScanResult>;
   cancel(scanId?: string): Promise<unknown>;
-  cleanup(paths: string[], mode: "trash" | "move", destination: string): Promise<void>;
+  cleanup(
+    paths: string[],
+    mode: "trash" | "move",
+    destination: string,
+  ): Promise<void>;
   Error: ComponentType<{ error: string }>;
 }
 export function DuplicateFinderDialogView(props: {
@@ -56,13 +63,18 @@ export function DuplicateFinderDialogView(props: {
   const [hashAll, setHashAll] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<DuplicateScanResult | null>(null);
-  const [selectedCleanupPaths, setSelectedCleanupPaths] = useState<string[]>([]);
+  const [selectedCleanupPaths, setSelectedCleanupPaths] = useState<string[]>(
+    [],
+  );
   const [cleanupMode, setCleanupMode] = useState<"trash" | "move">("trash");
   const [cleanupMoveDestination, setCleanupMoveDestination] = useState(
-    initialRoot.startsWith("misty://") ? "/" : initialRoot,
+    initialRoot.startsWith("kura://") ? "/" : initialRoot,
   );
   const [error, setError] = useState<string | null>(null);
-  const selectedSet = useMemo(() => new Set(selectedCleanupPaths), [selectedCleanupPaths]);
+  const selectedSet = useMemo(
+    () => new Set(selectedCleanupPaths),
+    [selectedCleanupPaths],
+  );
   const roots = useMemo(() => parseDuplicateRoots(rootsText), [rootsText]);
   const cleanupCount = selectedCleanupPaths.length;
   const cleanupBytes = useMemo(
@@ -96,23 +108,31 @@ export function DuplicateFinderDialogView(props: {
     setScanning(false);
   }, [runtime]);
 
-  const toggleCleanupPath = useCallback((group: DuplicateGroup, path: string) => {
-    setSelectedCleanupPaths((current) => {
-      const currentSet = new Set(current);
-      if (currentSet.has(path)) {
-        currentSet.delete(path);
+  const toggleCleanupPath = useCallback(
+    (group: DuplicateGroup, path: string) => {
+      setSelectedCleanupPaths((current) => {
+        const currentSet = new Set(current);
+        if (currentSet.has(path)) {
+          currentSet.delete(path);
+          return [...currentSet];
+        }
+        const selectedInGroup = group.items.filter((item) =>
+          currentSet.has(item.path),
+        ).length;
+        if (selectedInGroup >= group.items.length - 1) return current;
+        currentSet.add(path);
         return [...currentSet];
-      }
-      const selectedInGroup = group.items.filter((item) => currentSet.has(item.path)).length;
-      if (selectedInGroup >= group.items.length - 1) return current;
-      currentSet.add(path);
-      return [...currentSet];
-    });
-  }, []);
+      });
+    },
+    [],
+  );
 
   const queueCleanup = useCallback(async () => {
     if (selectedCleanupPaths.length === 0) return;
-    const safeItems = duplicateSafeCleanupItems(result?.groups ?? [], selectedSet);
+    const safeItems = duplicateSafeCleanupItems(
+      result?.groups ?? [],
+      selectedSet,
+    );
     if (safeItems.length === 0) {
       setError("Keep at least one file in every duplicate group.");
       return;
@@ -184,7 +204,12 @@ export function DuplicateFinderDialogView(props: {
                 <Button type="submit" disabled={scanning}>
                   {scanning ? "Scanning" : "Scan"}
                 </Button>
-                <Button variant="outline" type="button" disabled={!scanning} onClick={cancelScan}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={!scanning}
+                  onClick={cancelScan}
+                >
                   Cancel
                 </Button>
               </div>
@@ -201,8 +226,9 @@ export function DuplicateFinderDialogView(props: {
               <Card className="mt-3 grid gap-1 border-0 bg-charcoal-card p-3 text-sm text-cream-muted shadow-none">
                 <span>{result.message}</span>
                 <span>
-                  {result.scannedCount} scanned, {result.hashedCount} hashed, {cleanupCount}{" "}
-                  selected for cleanup ({formatBytes(cleanupBytes)}).
+                  {result.scannedCount} scanned, {result.hashedCount} hashed,{" "}
+                  {cleanupCount} selected for cleanup (
+                  {formatBytes(cleanupBytes)}).
                 </span>
               </Card>
             ) : null}
@@ -220,9 +246,12 @@ export function DuplicateFinderDialogView(props: {
                   >
                     <header className="flex items-center justify-between gap-3 border-b border-charcoal-border/70 px-3 py-2 text-xs">
                       <strong>
-                        {group.items.length} copies · {formatBytes(group.sizeBytes)}
+                        {group.items.length} copies ·{" "}
+                        {formatBytes(group.sizeBytes)}
                       </strong>
-                      <span className="truncate text-cream-muted">{group.key}</span>
+                      <span className="truncate text-cream-muted">
+                        {group.key}
+                      </span>
                     </header>
                     {group.items.map((item) => {
                       const selected = selectedSet.has(item.path);
@@ -236,19 +265,30 @@ export function DuplicateFinderDialogView(props: {
                         >
                           <Checkbox
                             checked={selected}
-                            onCheckedChange={() => toggleCleanupPath(group, item.path)}
+                            onCheckedChange={() =>
+                              toggleCleanupPath(group, item.path)
+                            }
                           />
                           <span className="grid min-w-0 gap-1">
-                            <span className="truncate text-cream" title={item.path}>
+                            <span
+                              className="truncate text-cream"
+                              title={item.path}
+                            >
                               {item.path}
                             </span>
                             <small className="text-cream-muted">
                               {formatDate(item.modifiedMs)}
-                              {item.sha256 ? ` · ${item.sha256.slice(0, 12)}` : ""}
+                              {item.sha256
+                                ? ` · ${item.sha256.slice(0, 12)}`
+                                : ""}
                             </small>
                           </span>
                           <Badge variant={selected ? "secondary" : "outline"}>
-                            {selected ? (cleanupMode === "move" ? "Move" : "Trash") : "Keep"}
+                            {selected
+                              ? cleanupMode === "move"
+                                ? "Move"
+                                : "Trash"
+                              : "Keep"}
                           </Badge>
                         </label>
                       );
@@ -261,7 +301,9 @@ export function DuplicateFinderDialogView(props: {
           <DialogFooter className="mt-0 flex-row flex-wrap border-t border-charcoal-border px-5 py-4">
             <Select
               value={cleanupMode}
-              onValueChange={(value) => setCleanupMode(value === "move" ? "move" : "trash")}
+              onValueChange={(value) =>
+                setCleanupMode(value === "move" ? "move" : "trash")
+              }
             >
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -277,13 +319,19 @@ export function DuplicateFinderDialogView(props: {
                 value={cleanupMoveDestination}
                 placeholder="Destination folder"
                 aria-label="Duplicate cleanup destination"
-                onChange={(event) => setCleanupMoveDestination(event.target.value)}
+                onChange={(event) =>
+                  setCleanupMoveDestination(event.target.value)
+                }
               />
             ) : null}
             <Button variant="outline" type="button" onClick={props.onClose}>
               Close
             </Button>
-            <Button type="button" disabled={cleanupCount === 0} onClick={() => void queueCleanup()}>
+            <Button
+              type="button"
+              disabled={cleanupCount === 0}
+              onClick={() => void queueCleanup()}
+            >
               Queue Cleanup
             </Button>
           </DialogFooter>
@@ -306,20 +354,30 @@ function parseDuplicateRoots(value: string): string[] {
 }
 
 function defaultDuplicateCleanupPaths(groups: DuplicateGroup[]): string[] {
-  return groups.flatMap((group) => group.items.slice(1).map((item) => item.path));
+  return groups.flatMap((group) =>
+    group.items.slice(1).map((item) => item.path),
+  );
 }
 
-function duplicateSafeCleanupItems(groups: DuplicateGroup[], selected: Set<string>) {
+function duplicateSafeCleanupItems(
+  groups: DuplicateGroup[],
+  selected: Set<string>,
+) {
   const items: DuplicateGroup["items"] = [];
   for (const group of groups) {
-    const selectedInGroup = group.items.filter((item) => selected.has(item.path));
+    const selectedInGroup = group.items.filter((item) =>
+      selected.has(item.path),
+    );
     if (selectedInGroup.length >= group.items.length) continue;
     items.push(...selectedInGroup);
   }
   return items;
 }
 
-function duplicateCleanupBytes(groups: DuplicateGroup[], selected: Set<string>): number {
+function duplicateCleanupBytes(
+  groups: DuplicateGroup[],
+  selected: Set<string>,
+): number {
   return duplicateSafeCleanupItems(groups, selected).reduce(
     (total, item) => total + (item.sizeBytes ?? 0),
     0,

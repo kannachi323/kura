@@ -19,7 +19,9 @@ export const SortableHeader = memo(function SortableHeader(props: {
   const direction = active ? props.sort.direction : null;
   return (
     <TableHead
-      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
       className={`${fileBrowserStyles.tableHeadCell} ${props.column === "size" ? fileBrowserStyles.tableNumericHeader : ""}`}
     >
       <Button

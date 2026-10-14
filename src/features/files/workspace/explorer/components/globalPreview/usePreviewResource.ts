@@ -5,7 +5,10 @@ import {
   type PreviewResource,
   type PreviewRuntime,
 } from "@/features/file-ui";
-export function usePreviewResource(source: GlobalPreviewSource, load: PreviewRuntime["load"]) {
+export function usePreviewResource(
+  source: GlobalPreviewSource,
+  load: PreviewRuntime["load"],
+) {
   const [resource, setResource] = useState<PreviewResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

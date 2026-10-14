@@ -1,6 +1,14 @@
 import { loadPdfPreview } from "@/features/resource-preview";
-import type { DirectoryListing, DirectorySizeRecord, FileEntry } from "@/native/ipc";
-import { type PreviewRuntime, formatBytes, formatDate } from "@/features/file-ui";
+import type {
+  DirectoryListing,
+  DirectorySizeRecord,
+  FileEntry,
+} from "@/native/ipc";
+import {
+  type PreviewRuntime,
+  formatBytes,
+  formatDate,
+} from "@/features/file-ui";
 import type * as PreviewHooks from "./FileInspectorPreview";
 import { IconButton } from "@/shared/ui";
 import { FileSearch, Maximize2 } from "lucide-react";
@@ -23,25 +31,36 @@ export interface FileInspectorRuntime {
   useFolderPreview: typeof PreviewHooks.useFolderPreview;
   displayPath?(path: string): string;
 }
-export function FileInspectorView(props: FileInspectorProps & { runtime: FileInspectorRuntime }) {
+export function FileInspectorView(
+  props: FileInspectorProps & { runtime: FileInspectorRuntime },
+) {
   const displayEntry = props.selectedEntry;
   const multiple = props.selectedCount > 1;
-  const title = multiple ? "Multiple Items" : (displayEntry?.name ?? "No Selection");
-  const { preview, previewError, previewLoading } = props.runtime.useFilePreview(
-    multiple ? null : props.selectedEntry,
+  const title = multiple
+    ? "Multiple Items"
+    : (displayEntry?.name ?? "No Selection");
+  const { preview, previewError, previewLoading } =
+    props.runtime.useFilePreview(multiple ? null : props.selectedEntry);
+  const { metadata, metadataError } = props.runtime.useFileMetadata(
+    multiple ? null : displayEntry,
   );
-  const { metadata, metadataError } = props.runtime.useFileMetadata(multiple ? null : displayEntry);
   const folderPreview = props.runtime.useFolderPreview(
     !multiple ? displayEntry : null,
     props.listing,
   );
   const displayDirectorySize =
-    displayEntry?.kind === "folder" ? props.directorySizes[displayEntry.path] : undefined;
+    displayEntry?.kind === "folder"
+      ? props.directorySizes[displayEntry.path]
+      : undefined;
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const showPreviewTransition = previewLoading && displayEntry?.kind !== "folder" && !multiple;
+  const showPreviewTransition =
+    previewLoading && displayEntry?.kind !== "folder" && !multiple;
   const canOpenPreview = Boolean(
-    displayEntry && displayEntry.kind !== "folder" && displayEntry.kind !== "symlink" && !multiple,
+    displayEntry &&
+    displayEntry.kind !== "folder" &&
+    displayEntry.kind !== "symlink" &&
+    !multiple,
   );
 
   if (!displayEntry && !multiple) {
@@ -66,7 +85,6 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
           error={previewError}
           scope="files:inspector:preview"
           title="File preview could not be loaded"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       {folderPreview.error ? (
@@ -74,7 +92,6 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
           error={folderPreview.error}
           scope="files:inspector:folder"
           title="Folder preview could not be loaded"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       {metadataError ? (
@@ -82,7 +99,6 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
           error={metadataError}
           scope="files:inspector:metadata"
           title="File details could not be loaded"
-          target={{ kind: "workspace-tool", tool: "files" }}
         />
       ) : null}
       <div
@@ -101,7 +117,12 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
           <ArchiveContentsPreview preview={preview} />
         ) : preview?.kind === "pdf" ? (
           <Suspense fallback={<div className={inspectorStyles.previewMedia} />}>
-            <PdfViewer Error={props.runtime.preview.Error} url={preview.url} name={title} compact />
+            <PdfViewer
+              Error={props.runtime.preview.Error}
+              url={preview.url}
+              name={title}
+              compact
+            />
           </Suspense>
         ) : preview?.text != null ? (
           <pre className={inspectorStyles.previewText}>{preview.text}</pre>
@@ -124,9 +145,14 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
             alt={`Preview of ${title}`}
           />
         ) : previewError ? (
-          <span className={inspectorStyles.previewStatus}>Preview unavailable</span>
-        ) : !showPreviewTransition && (displayEntry?.kind !== "folder" || multiple) ? (
-          <span className={inspectorStyles.previewStatus}>Open the full reader</span>
+          <span className={inspectorStyles.previewStatus}>
+            Preview unavailable
+          </span>
+        ) : !showPreviewTransition &&
+          (displayEntry?.kind !== "folder" || multiple) ? (
+          <span className={inspectorStyles.previewStatus}>
+            Open the full reader
+          </span>
         ) : null}
         {canOpenPreview ? (
           <IconButton
@@ -140,7 +166,10 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
           </IconButton>
         ) : null}
         {showPreviewTransition ? (
-          <span className={inspectorStyles.previewLoadingOverlay} aria-hidden="true" />
+          <span
+            className={inspectorStyles.previewLoadingOverlay}
+            aria-hidden="true"
+          />
         ) : null}
       </div>
 
@@ -174,20 +203,29 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
         ) : (
           <>
             <Detail label="Name" value={title} />
-            <Detail label="Size" valueNode={sizeDetailValue(displayEntry, displayDirectorySize)} />
+            <Detail
+              label="Size"
+              valueNode={sizeDetailValue(displayEntry, displayDirectorySize)}
+            />
             <Detail
               label="Path"
               value={
                 displayEntry
-                  ? (props.runtime.displayPath?.(displayEntry.path) ?? displayEntry.path)
+                  ? (props.runtime.displayPath?.(displayEntry.path) ??
+                    displayEntry.path)
                   : "-"
               }
             />
-            <Detail label="Items" value={itemsLabel(displayEntry, props.listing)} />
+            <Detail
+              label="Items"
+              value={itemsLabel(displayEntry, props.listing)}
+            />
             <Detail
               label="Modified"
               value={formatDate(
-                metadata?.modifiedMs ?? displayEntry?.remoteModified ?? displayEntry?.modifiedMs,
+                metadata?.modifiedMs ??
+                  displayEntry?.remoteModified ??
+                  displayEntry?.modifiedMs,
               )}
             />
             <Detail
@@ -202,11 +240,17 @@ export function FileInspectorView(props: FileInspectorProps & { runtime: FileIns
   );
 }
 
-function Detail(props: { label: string; value?: string; valueNode?: ReactNode }) {
+function Detail(props: {
+  label: string;
+  value?: string;
+  valueNode?: ReactNode;
+}) {
   return (
     <div className={inspectorStyles.detailRow}>
       <span className={inspectorStyles.detailLabel}>{props.label}</span>
-      <div className={inspectorStyles.detailValue}>{props.valueNode ?? props.value}</div>
+      <div className={inspectorStyles.detailValue}>
+        {props.valueNode ?? props.value}
+      </div>
     </div>
   );
 }
@@ -217,7 +261,8 @@ function sizeDetailValue(
 ): ReactNode {
   if (!entry) return "-";
   if (entry.kind !== "folder") return formatBytes(entry.sizeBytes);
-  if (directorySize?.status === "ready") return formatBytes(directorySize.sizeBytes);
+  if (directorySize?.status === "ready")
+    return formatBytes(directorySize.sizeBytes);
   if (directorySize?.status === "calculating") return <DirectorySizeDots />;
   return "-";
 }
@@ -236,7 +281,10 @@ function DirectorySizeDots() {
   );
 }
 
-function itemsLabel(entry: FileEntry | null, listing: DirectoryListing | null): string {
+function itemsLabel(
+  entry: FileEntry | null,
+  listing: DirectoryListing | null,
+): string {
   if (!entry) return "-";
   if (listing && entry.path === listing.path) {
     return `${listing.totalCount} ${listing.totalCount === 1 ? "item" : "items"}`;

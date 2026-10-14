@@ -1,16 +1,25 @@
 import "../../../native";
-import { registerShortcutHandler, shortcutCommandsById } from "@/features/shortcuts";
 import {
-  dockLeaves,
+  registerShortcutHandler,
+  shortcutCommandsById,
+} from "@/features/shortcuts";
+import {
   useMultiPanelStore,
-  useWorkspaceStore,
   type MultiPanelStoreHook,
 } from "@/features/workspace";
 import { useEffect, type RefObject } from "react";
-import type { NavigateFunction } from "react-router-dom";
 import { useExplorerStore } from "../../store";
 import { runExplorerCommand } from "../ExplorerCommands";
 import { parsePluginTabPath } from "../ExplorerDesktopPlugins";
+import { transfersPath } from "../../../../transfers/transferModel";
+
+const tabCommandIds = new Set([
+  "explorer.new_tab",
+  "explorer.close_tab",
+  "explorer.restore_tab",
+  "explorer.next_workspace",
+  ...Array.from({ length: 9 }, (_, index) => `explorer.tab_${index + 1}`),
+]);
 export function useLegacyPluginTabMigration(options: {
   homePath: string;
   workspacePathSignature: string;
@@ -43,34 +52,26 @@ export function useOperationErrorNotification(
     const message = useExplorerStore.getState().consumeOperationError();
     if (!message) return;
     const recoveredWorkspace =
-      message.startsWith("Misty reset a damaged Explorer profile") ||
+      message.startsWith("Kura reset a damaged Explorer profile") ||
       message.startsWith("Profile could not be restored");
     pushNotification(message, recoveredWorkspace ? "info" : "error", 4500);
   }, [operationError, pushNotification]);
 }
 export function useExplorerKeyboardShortcuts(options: {
   active?: boolean;
-  navigate: NavigateFunction;
   executableCommandIdsRef: RefObject<readonly string[]>;
   multiPanelStore?: MultiPanelStoreHook;
-  workspaceId?: string;
 }): void {
-  const { navigate, executableCommandIdsRef } = options;
+  const { executableCommandIdsRef } = options;
   useEffect(() => {
     const multiPanelStore = options.multiPanelStore ?? useMultiPanelStore;
-    const enabled = () => {
-      if (options.active === false) return false;
-      const workspace = useWorkspaceStore.getState();
-      const pane = dockLeaves(workspace.layout.root).find(
-        (candidate) => candidate.id === workspace.layout.focusedPaneId,
-      );
-      const tab = pane?.views.find((candidate) => candidate.id === pane.activeViewId);
-      return options.workspaceId ? tab?.id === options.workspaceId : tab?.surfaceId === "files";
-    };
+    const enabled = () => options.active !== false;
     const onKeyDown = (event: KeyboardEvent) => {
       if (!enabled()) return;
       const target = event.target as HTMLElement | null;
-      const editing = target?.matches("input, textarea, select, [contenteditable='true']") ?? false;
+      const editing =
+        target?.matches("input, textarea, select, [contenteditable='true']") ??
+        false;
       const explorerState = useExplorerStore.getState();
       const paneId = multiPanelStore.getState().activePaneId;
       if (!paneId) return;
@@ -85,15 +86,18 @@ export function useExplorerKeyboardShortcuts(options: {
     const run = (commandId: string) => {
       const multi = multiPanelStore.getState();
       if (
-        multi.tabs.find((tab) => tab.id === multi.activeTabId)?.path === "misty-transfers://history"
+        multi.tabs.find((tab) => tab.id === multi.activeTabId)?.path ===
+          transfersPath &&
+        commandId.startsWith("explorer.") &&
+        !tabCommandIds.has(commandId)
       )
         return;
       const paneId = multiPanelStore.getState().activePaneId;
       if (!paneId) return;
-      runExplorerCommand(commandId, paneId, navigate);
+      runExplorerCommand(commandId, paneId);
     };
-    const commandIds = [...executableCommandIdsRef.current].filter((commandId) =>
-      shortcutCommandsById.has(commandId),
+    const commandIds = [...executableCommandIdsRef.current].filter(
+      (commandId) => shortcutCommandsById.has(commandId),
     );
     const unregister = commandIds.map((commandId) =>
       registerShortcutHandler(commandId, () => run(commandId), enabled),
@@ -103,7 +107,10 @@ export function useExplorerKeyboardShortcuts(options: {
         "navigation.back",
         () => {
           const paneId = multiPanelStore.getState().activePaneId;
-          if (!paneId || !useExplorerStore.getState().panes[paneId]?.backHistory.length)
+          if (
+            !paneId ||
+            !useExplorerStore.getState().panes[paneId]?.backHistory.length
+          )
             return false;
           void useExplorerStore.getState().navigateBack(paneId);
           return true;
@@ -115,7 +122,10 @@ export function useExplorerKeyboardShortcuts(options: {
         "navigation.forward",
         () => {
           const paneId = multiPanelStore.getState().activePaneId;
-          if (!paneId || !useExplorerStore.getState().panes[paneId]?.forwardHistory.length)
+          if (
+            !paneId ||
+            !useExplorerStore.getState().panes[paneId]?.forwardHistory.length
+          )
             return false;
           void useExplorerStore.getState().navigateForward(paneId);
           return true;
@@ -128,11 +138,5 @@ export function useExplorerKeyboardShortcuts(options: {
       window.removeEventListener("keydown", onKeyDown);
       unregister.forEach((remove) => remove());
     };
-  }, [
-    executableCommandIdsRef,
-    navigate,
-    options.multiPanelStore,
-    options.workspaceId,
-    options.active,
-  ]);
+  }, [executableCommandIdsRef, options.multiPanelStore, options.active]);
 }

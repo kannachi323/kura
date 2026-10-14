@@ -7,7 +7,8 @@ describe("Explorer operation notices", () => {
   });
 
   it("consumes a recovery notice exactly once", () => {
-    const message = "Misty reset a damaged Explorer layout and opened a clean file pane.";
+    const message =
+      "Kura reset a damaged Explorer layout and opened a clean file pane.";
     useExplorerStore.setState({ operationError: message });
 
     expect(useExplorerStore.getState().consumeOperationError()).toBe(message);
@@ -31,17 +32,30 @@ it("opens Transfers without a directory request and preserves back navigation", 
           entries: [],
           totalCount: 0,
           hiddenCount: 0,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
       },
     },
   });
-  await useExplorerStore.getState().navigatePane(paneId, "misty-transfers://history");
-  expect(useMultiPanelStore.getState().tabs.find((tab) => tab.activePaneId === paneId)?.title).toBe(
-    "Transfers",
+  await useExplorerStore
+    .getState()
+    .navigatePane(paneId, "kura-transfers://history");
+  expect(
+    useMultiPanelStore
+      .getState()
+      .tabs.find((tab) => tab.activePaneId === paneId)?.title,
+  ).toBe("Transfers");
+  expect(useExplorerStore.getState().panes[paneId].listing?.path).toBe(
+    "kura-transfers://history",
   );
-  expect(useExplorerStore.getState().panes[paneId].listing?.path).toBe("misty-transfers://history");
-  expect(useExplorerStore.getState().panes[paneId].backHistory).toEqual(["/Users/test"]);
+  expect(useExplorerStore.getState().panes[paneId].backHistory).toEqual([
+    "/Users/test",
+  ]);
 });
 
 it("does not let a slow folder listing replace the Transfers page", async () => {
@@ -51,7 +65,9 @@ it("does not let a slow folder listing replace the Transfers page", async () => 
   useMultiPanelStore.getState().initialize("/Users/test", "Files");
   const paneId = useMultiPanelStore.getState().activePaneId;
   useExplorerStore.setState({ panes: { [paneId]: emptyPaneState() } });
-  let finish!: (value: Awaited<ReturnType<typeof native.explorerListDirectory>>) => void;
+  let finish!: (
+    value: Awaited<ReturnType<typeof native.explorerListDirectory>>,
+  ) => void;
   const listing = vi.spyOn(native, "explorerListDirectory").mockImplementation(
     () =>
       new Promise((resolve) => {
@@ -59,19 +75,28 @@ it("does not let a slow folder listing replace the Transfers page", async () => 
       }),
   );
   try {
-    const opening = useExplorerStore.getState().navigatePane(paneId, "/Users/test/slow");
-    await useExplorerStore.getState().navigatePane(paneId, "misty-transfers://history");
+    const opening = useExplorerStore
+      .getState()
+      .navigatePane(paneId, "/Users/test/slow");
+    await useExplorerStore
+      .getState()
+      .navigatePane(paneId, "kura-transfers://history");
     finish({
       path: "/Users/test/slow",
       parentPath: "/Users/test",
       entries: [],
       totalCount: 0,
       hiddenCount: 0,
-      location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+      location: {
+        kind: "local",
+        providerType: null,
+        remoteName: null,
+        remotePath: null,
+      },
     });
     await opening;
     expect(useExplorerStore.getState().panes[paneId].listing?.path).toBe(
-      "misty-transfers://history",
+      "kura-transfers://history",
     );
   } finally {
     listing.mockRestore();

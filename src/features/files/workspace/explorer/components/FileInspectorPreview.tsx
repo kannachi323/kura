@@ -12,10 +12,13 @@ export {
 import {
   explorerListDirectory,
   explorerPreviewItem,
-  connectedDevicesMediaUrl,
   fileMetadataSnapshot,
 } from "../../native";
-import type { DirectoryListing, FileEntry, FileMetadataSnapshot } from "@/native/ipc";
+import type {
+  DirectoryListing,
+  FileEntry,
+  FileMetadataSnapshot,
+} from "@/native/ipc";
 import { errorText } from "@/shared/lib/format";
 import { useEffect, useState } from "react";
 import type { LoadedInspectorPreview } from "../model/interfaces/components/FileInspectorPreview";
@@ -150,23 +153,14 @@ export function useFilePreview(
             if (active) setPreviewLoading(false);
           });
       };
-      if (videoMimeType) return settle(loadDirectMediaPreview(entry, "video", videoMimeType));
-      if (audioMimeType) return settle(loadDirectMediaPreview(entry, "audio", audioMimeType));
-      if (
-        entry.location.kind === "peer_device" &&
-        entry.extension.toLowerCase().replace(/^\./, "") === "pdf"
-      ) {
-        return settle(
-          connectedDevicesMediaUrl(entry.path).then((url) => ({
-            kind: "pdf" as const,
-            text: null,
-            url,
-            mimeType: "application/pdf",
-          })),
-        );
-      }
-      if (archivePreviewSupported(entry)) return settle(loadArchivePreview(entry));
-      if (nativeImageThumbnailSupported(entry)) return settle(loadNativeImagePreview(entry));
+      if (videoMimeType)
+        return settle(loadDirectMediaPreview(entry, "video", videoMimeType));
+      if (audioMimeType)
+        return settle(loadDirectMediaPreview(entry, "audio", audioMimeType));
+      if (archivePreviewSupported(entry))
+        return settle(loadArchivePreview(entry));
+      if (nativeImageThumbnailSupported(entry))
+        return settle(loadNativeImagePreview(entry));
 
       void previewPathForEntry(entry)
         .then((preparedPath) => explorerPreviewItem(preparedPath.path))
@@ -182,7 +176,9 @@ export function useFilePreview(
             });
             return;
           }
-          objectUrl = URL.createObjectURL(new Blob([bytes], { type: payload.mimeType }));
+          objectUrl = URL.createObjectURL(
+            new Blob([bytes], { type: payload.mimeType }),
+          );
           setPreview({
             kind: payload.mimeType === "application/pdf" ? "pdf" : "image",
             text: null,

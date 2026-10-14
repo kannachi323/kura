@@ -1,4 +1,8 @@
-import type { DirectoryListing, DirectorySizeRecord, FileEntry } from "@/native/ipc";
+import type {
+  DirectoryListing,
+  DirectorySizeRecord,
+  FileEntry,
+} from "@/native/ipc";
 import type { MouseEvent } from "react";
 import type {
   ExplorerCommandQueryMode,
@@ -29,7 +33,11 @@ export interface FileBrowserProps {
   inlineEdit: ExplorerInlineEditState | null;
   onSort: (column: ExplorerSortColumn) => void;
   onToggleHidden: () => void;
-  onSelect: (entryId: string, event: MouseEvent, visibleEntryIds: string[]) => void;
+  onSelect: (
+    entryId: string,
+    event: MouseEvent,
+    visibleEntryIds: string[],
+  ) => void;
   onClearSelection: () => void;
   onOpen: (entry: FileEntry) => void;
   onContextMenu: (event: MouseEvent, entry: FileEntry) => void;

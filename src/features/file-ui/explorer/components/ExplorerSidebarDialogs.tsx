@@ -30,7 +30,7 @@ const smartFolderFields = [
   { value: "size", label: "Size" },
   { value: "modified", label: "Modified date" },
   { value: "hidden", label: "Hidden" },
-  { value: "tag", label: "Misty tag" },
+  { value: "tag", label: "Kura tag" },
 ] as const;
 
 const smartFolderOperators = [
@@ -95,7 +95,9 @@ export function SmartFolderDialog(props: {
           }}
         >
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Collection" : "New Collection"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit Collection" : "New Collection"}
+            </DialogTitle>
             <DialogDescription>
               Build a reusable Explorer view from a query and structured rules.
             </DialogDescription>
@@ -111,7 +113,10 @@ export function SmartFolderDialog(props: {
                 autoFocus
                 value={draft.name}
                 onChange={(event) =>
-                  setDraft((current) => ({ ...current, name: event.target.value }))
+                  setDraft((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
                 }
               />
             </div>
@@ -147,17 +152,23 @@ export function SmartFolderDialog(props: {
               id="smart-folder-query"
               value={draft.query}
               placeholder={
-                smartFolderQueryFromRules(draft.rules, draft.matchMode) || "invoice pdf tag:work"
+                smartFolderQueryFromRules(draft.rules, draft.matchMode) ||
+                "invoice pdf tag:work"
               }
               onChange={(event) =>
-                setDraft((current) => ({ ...current, query: event.target.value }))
+                setDraft((current) => ({
+                  ...current,
+                  query: event.target.value,
+                }))
               }
             />
           </div>
 
           <div className="grid gap-2 rounded-lg bg-charcoal-card p-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-cream-muted">Rules</span>
+              <span className="text-xs font-medium text-cream-muted">
+                Rules
+              </span>
               <Button variant="ghost" size="sm" type="button" onClick={addRule}>
                 <Plus size={14} /> Add rule
               </Button>
@@ -184,7 +195,9 @@ export function SmartFolderDialog(props: {
                 </Select>
                 <Select
                   value={rule.operator}
-                  onValueChange={(value) => updateRule(index, { operator: value })}
+                  onValueChange={(value) =>
+                    updateRule(index, { operator: value })
+                  }
                 >
                   <SelectTrigger aria-label={`Rule ${index + 1} operator`}>
                     <SelectValue />
@@ -200,7 +213,9 @@ export function SmartFolderDialog(props: {
                 <Input
                   value={rule.value}
                   placeholder={smartFolderValuePlaceholder(rule.field)}
-                  onChange={(event) => updateRule(index, { value: event.target.value })}
+                  onChange={(event) =>
+                    updateRule(index, { value: event.target.value })
+                  }
                   aria-label={`Rule ${index + 1} value`}
                 />
                 <IconButton

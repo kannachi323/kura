@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type RefObject,
+} from "react";
 import type { ResizeTarget } from "../../model/types/workspace";
 import { useExplorerStore } from "../../store";
 import {
@@ -40,13 +47,17 @@ export function usePanelResize(options: {
         if (rect)
           useExplorerStore
             .getState()
-            .setSidebarWidth(clamp(clientX - rect.left, minSidebarWidth, maxSidebarWidth));
+            .setSidebarWidth(
+              clamp(clientX - rect.left, minSidebarWidth, maxSidebarWidth),
+            );
       } else if (resizeTarget === "preview") {
         const rect = mainRef.current?.getBoundingClientRect();
         if (rect)
           useExplorerStore
             .getState()
-            .setPreviewWidth(clamp(rect.right - clientX, minPreviewWidth, maxPreviewWidth));
+            .setPreviewWidth(
+              clamp(rect.right - clientX, minPreviewWidth, maxPreviewWidth),
+            );
       }
     };
 

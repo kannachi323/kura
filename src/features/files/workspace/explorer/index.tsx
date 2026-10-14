@@ -6,7 +6,6 @@ export * from "./components/GlobalPreview";
 
 export * from "./drag/ExplorerDragContext";
 export * from "./drag/ExplorerDropTarget";
-export type * from "./model/stores/media/interfaces/useSmartLibraryServerStore";
 export * from "./store";
 export * from "./utils/globalSearch";
 export * from "./utils/librarySearch";

@@ -1,6 +1,9 @@
 import type { StateCreator } from "zustand";
 
-import type { ExplorerBatchRenameItem, ExplorerStore } from "../../interfaces/store/types";
+import type {
+  ExplorerBatchRenameItem,
+  ExplorerStore,
+} from "../../interfaces/store/types";
 
 export type ExplorerViewMode = "list" | "grid";
 

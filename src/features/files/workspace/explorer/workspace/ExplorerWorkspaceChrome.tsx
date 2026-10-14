@@ -22,12 +22,16 @@ function ExplorerTabBottomBar({ tab }: { tab: MultiPanelTab }) {
       onToggleSidebar={() =>
         store
           .getState()
-          .setTabPanelVisibility(tab.id, { sidebarVisible: !(tab.sidebarVisible ?? true) })
+          .setTabPanelVisibility(tab.id, {
+            sidebarVisible: !(tab.sidebarVisible ?? true),
+          })
       }
       onTogglePreview={() =>
         store
           .getState()
-          .setTabPanelVisibility(tab.id, { previewVisible: !(tab.previewVisible ?? true) })
+          .setTabPanelVisibility(tab.id, {
+            previewVisible: !(tab.previewVisible ?? true),
+          })
       }
     />
   );

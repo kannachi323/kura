@@ -31,7 +31,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -59,7 +64,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -86,7 +96,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -95,7 +110,9 @@ describe("searchNavigation", () => {
 
       const target = searchResultNavigationTarget(result);
       expect(target.path).toBe("C:/Users/User/Documents");
-      expect(target.selectEntryId).toBe("C:\\Users\\User\\Documents\\notes.txt");
+      expect(target.selectEntryId).toBe(
+        "C:\\Users\\User\\Documents\\notes.txt",
+      );
     });
 
     it("handles files in drive root on Windows", () => {
@@ -113,7 +130,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -139,7 +161,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -153,87 +180,96 @@ describe("searchNavigation", () => {
 
   describe("revealSearchResultInPane", () => {
     it("navigates pane to target path and selects matching entry", async () => {
-      const navigatePaneSpy = vi.fn().mockImplementation(async (paneId: string, path: string) => {
-        useExplorerStore.setState({
-          panes: {
-            [paneId]: {
-              loading: false,
-              showLoadingSkeleton: false,
-              needsLoad: false,
-              hasFolderEntries: false,
-              commandQuery: "",
-              commandQueryMode: "search",
-              error: null,
-              selectedIds: [],
-              selectedIdsByPath: {},
-              lastSelectedIndexByPath: {},
-              backHistory: [],
-              forwardHistory: [],
-              listing: {
-                path,
-                parentPath: "/home/user",
-                entries: [
-                  {
-                    id: "/home/user/docs/other.txt",
-                    name: "other.txt",
-                    path: "/home/user/docs/other.txt",
-                    extension: "txt",
-                    mimeType: "text/plain",
-                    remoteModified: null,
-                    kind: "file",
-                    sizeBytes: 10,
-                    modifiedMs: null,
-                    createdMs: null,
-                    readonly: false,
-                    hidden: false,
-                    location: {
-                      kind: "local",
-                      providerType: null,
-                      remoteName: null,
-                      remotePath: null,
+      const navigatePaneSpy = vi
+        .fn()
+        .mockImplementation(async (paneId: string, path: string) => {
+          useExplorerStore.setState({
+            panes: {
+              [paneId]: {
+                loading: false,
+                showLoadingSkeleton: false,
+                needsLoad: false,
+                hasFolderEntries: false,
+                commandQuery: "",
+                commandQueryMode: "search",
+                error: null,
+                selectedIds: [],
+                selectedIdsByPath: {},
+                lastSelectedIndexByPath: {},
+                backHistory: [],
+                forwardHistory: [],
+                listing: {
+                  path,
+                  parentPath: "/home/user",
+                  entries: [
+                    {
+                      id: "/home/user/docs/other.txt",
+                      name: "other.txt",
+                      path: "/home/user/docs/other.txt",
+                      extension: "txt",
+                      mimeType: "text/plain",
+                      remoteModified: null,
+                      kind: "file",
+                      sizeBytes: 10,
+                      modifiedMs: null,
+                      createdMs: null,
+                      readonly: false,
+                      hidden: false,
+                      location: {
+                        kind: "local",
+                        providerType: null,
+                        remoteName: null,
+                        remotePath: null,
+                      },
                     },
-                  },
-                  {
-                    id: "/home/user/docs/report.pdf",
-                    name: "report.pdf",
-                    path: "/home/user/docs/report.pdf",
-                    extension: "pdf",
-                    mimeType: "application/pdf",
-                    remoteModified: null,
-                    kind: "file",
-                    sizeBytes: 1024,
-                    modifiedMs: null,
-                    createdMs: null,
-                    readonly: false,
-                    hidden: false,
-                    location: {
-                      kind: "local",
-                      providerType: null,
-                      remoteName: null,
-                      remotePath: null,
+                    {
+                      id: "/home/user/docs/report.pdf",
+                      name: "report.pdf",
+                      path: "/home/user/docs/report.pdf",
+                      extension: "pdf",
+                      mimeType: "application/pdf",
+                      remoteModified: null,
+                      kind: "file",
+                      sizeBytes: 1024,
+                      modifiedMs: null,
+                      createdMs: null,
+                      readonly: false,
+                      hidden: false,
+                      location: {
+                        kind: "local",
+                        providerType: null,
+                        remoteName: null,
+                        remotePath: null,
+                      },
                     },
+                  ],
+                  location: {
+                    kind: "local",
+                    providerType: null,
+                    remoteName: null,
+                    remotePath: null,
                   },
-                ],
-                location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
-                totalCount: 2,
-                hiddenCount: 0,
+                  totalCount: 2,
+                  hiddenCount: 0,
+                },
               },
             },
-          },
+          });
         });
-      });
 
-      const selectEntrySpy = vi.fn().mockImplementation((paneId: string, entryId: string) => {
-        useExplorerStore.setState((state) => ({
-          panes: {
-            ...state.panes,
-            [paneId]: {
-              ...(state.panes[paneId] as any),
-              selectedIds: [entryId],
+      const selectEntrySpy = vi
+        .fn()
+        .mockImplementation((paneId: string, entryId: string) => {
+          useExplorerStore.setState((state) => ({
+            panes: {
+              ...state.panes,
+              [paneId]: {
+                ...(state.panes[paneId] as any),
+                selectedIds: [entryId],
+              },
             },
-          },
-        }));
-      });
+          }));
+        });
 
       useExplorerStore.setState({
         navigatePane: navigatePaneSpy,
@@ -254,7 +290,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",
@@ -265,7 +306,10 @@ describe("searchNavigation", () => {
       await revealSearchResultInPane("pane-1", target);
 
       expect(navigatePaneSpy).toHaveBeenCalledWith("pane-1", "/home/user/docs");
-      expect(selectEntrySpy).toHaveBeenCalledWith("pane-1", "/home/user/docs/report.pdf");
+      expect(selectEntrySpy).toHaveBeenCalledWith(
+        "pane-1",
+        "/home/user/docs/report.pdf",
+      );
       expect(useExplorerStore.getState().operationError).toBeNull();
     });
   });
@@ -286,7 +330,12 @@ describe("searchNavigation", () => {
           createdMs: null,
           readonly: false,
           hidden: false,
-          location: { kind: "local", providerType: null, remoteName: null, remotePath: null },
+          location: {
+            kind: "local",
+            providerType: null,
+            remoteName: null,
+            remotePath: null,
+          },
         },
         score: 1,
         sourceKind: "local",

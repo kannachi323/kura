@@ -1,5 +1,10 @@
 import { IconButton } from "@/shared/ui";
-import { ArrowUp, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import type { ExplorerToolbarRuntime } from "./ExplorerToolbarRuntime";
 import { toolbarStyles } from "@/features/file-ui";
 
@@ -66,7 +71,12 @@ function NavigationButton(props: {
   );
   if (!props.path) return button;
   return (
-    <DropTarget id={props.id} path={props.path} springLoad onSpringLoad={props.onNavigate}>
+    <DropTarget
+      id={props.id}
+      path={props.path}
+      springLoad
+      onSpringLoad={props.onNavigate}
+    >
       {button}
     </DropTarget>
   );

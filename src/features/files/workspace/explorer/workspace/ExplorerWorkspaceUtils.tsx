@@ -7,7 +7,12 @@ import {
   normalizeExplorerPath,
 } from "@/shared/lib/pathNormalization";
 import { IconButton } from "@/shared/ui";
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 import type { ExplorerLocationResult } from "../components/ExplorerToolbar";
 import { explorerShellStyles } from "./ExplorerShellStyles";
 export function ExplorerBottomBar(props: {
@@ -89,7 +94,10 @@ export function buildExplorerLocationResults(
   }
   return results;
 }
-export function mountedDevicesEqual(left: MountedDevice[], right: MountedDevice[]): boolean {
+export function mountedDevicesEqual(
+  left: MountedDevice[],
+  right: MountedDevice[],
+): boolean {
   if (left === right) return true;
   if (left.length !== right.length) return false;
   return left.every((device, index) => {
@@ -108,7 +116,10 @@ export function mountedDevicesEqual(left: MountedDevice[], right: MountedDevice[
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
-export function resolveMountRoot(homePath: string, configuredPath: string): string {
+export function resolveMountRoot(
+  homePath: string,
+  configuredPath: string,
+): string {
   if (configuredPath.startsWith("/")) return configuredPath.replace(/\/+$/, "");
   return `${homePath.replace(/\/+$/, "")}/${configuredPath.replace(/^\/+|\/+$/g, "")}`;
 }
@@ -118,8 +129,10 @@ export function resolvePreferredWorkspaceRoot(
 ): string {
   const trimmed = preferredWorkspaceRoot.trim();
   if (!trimmed || trimmed === "~") return fallbackHomePath;
-  if (trimmed.startsWith("~/")) return joinPath(fallbackHomePath, trimmed.slice(2));
-  if (isAbsolutePath(trimmed)) return normalizedPath(trimmed) || fallbackHomePath;
+  if (trimmed.startsWith("~/"))
+    return joinPath(fallbackHomePath, trimmed.slice(2));
+  if (isAbsolutePath(trimmed))
+    return normalizedPath(trimmed) || fallbackHomePath;
   return joinPath(fallbackHomePath, trimmed);
 }
 function isAbsolutePath(path: string): boolean {
@@ -129,10 +142,10 @@ function normalizedPath(path: string): string {
   return normalizeExplorerPath(path);
 }
 function titleFromPath(path: string): string {
-  if (path === "misty://local") return "Local";
-  if (path === "misty://recent") return "Recent";
-  if (path === "misty://starred") return "Starred";
-  if (path === "misty://trash") return "Trash";
+  if (path === "kura://local") return "Local";
+  if (path === "kura://recent") return "Recent";
+  if (path === "kura://starred") return "Starred";
+  if (path === "kura://trash") return "Trash";
   return explorerPathName(path) || "Home";
 }
 function joinPath(...parts: string[]): string {

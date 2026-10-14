@@ -10,7 +10,16 @@ import {
   IconButton,
   SkeletonList,
 } from "@/shared/ui";
-import { HardDrive, Pencil, Plus, Search, Unplug } from "lucide-react";
+import {
+  ArrowRightLeft,
+  HardDrive,
+  Pencil,
+  Plus,
+  Search,
+  Unplug,
+} from "lucide-react";
+import { ClipboardSidebarSection } from "@/features/misty-clipboard/ClipboardSidebarSection";
+import { transfersPath } from "../../../transfers/transferModel";
 import { memo, useMemo, useState } from "react";
 import type { ExplorerSidebarProps } from "../model/interfaces/components/ExplorerSidebar";
 import type { ExplorerSidebarRuntime } from "./explorerSidebar/ExplorerSidebarRuntime";
@@ -43,7 +52,9 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
     setQuickAccessOrder,
     toggleSection,
   } = props.runtime.useSidebarPreferences();
-  const [deviceActionError, setDeviceActionError] = useState<string | null>(null);
+  const [deviceActionError, setDeviceActionError] = useState<string | null>(
+    null,
+  );
   const [localDevicesOpen, setLocalDevicesOpen] = useState(true);
   const {
     savedSearches,
@@ -105,10 +116,6 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                 error={smartFolderError}
                 scope="files:sidebar:collections"
                 title="File collection needs attention"
-                target={{
-                  kind: "workspace-tool",
-                  tool: "files",
-                }}
               />
             ) : null}
             {smartFoldersLoading && savedSearches.length === 0 ? (
@@ -126,9 +133,15 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
             {savedSearches.map((search) => {
               const query =
                 search.query.trim() ||
-                smartFolderQueryFromRules(search.rules, smartFolderMatchMode(search.rules));
+                smartFolderQueryFromRules(
+                  search.rules,
+                  smartFolderMatchMode(search.rules),
+                );
               return (
-                <div className={`${sidebarStyles.pinnedRow} group/pin`} key={search.id}>
+                <div
+                  className={`${sidebarStyles.pinnedRow} group/pin`}
+                  key={search.id}
+                >
                   <Button
                     type="button"
                     variant="ghost"
@@ -143,7 +156,8 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                         {search.name}
                       </span>
                       <small className={sidebarStyles.smartMeta}>
-                        {query || `${visibleSmartFolderRules(search.rules).length} rules`}
+                        {query ||
+                          `${visibleSmartFolderRules(search.rules).length} rules`}
                       </small>
                     </span>
                   </Button>
@@ -161,7 +175,10 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
         ) : null}
       </section>
 
-      <Collapsible className={sidebarStyles.section} open={!collapsedSections.devices}>
+      <Collapsible
+        className={sidebarStyles.section}
+        open={!collapsedSections.devices}
+      >
         <SidebarSectionHeader
           title="Devices"
           collapsed={collapsedSections.devices}
@@ -174,16 +191,29 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
             onOpenChange={setLocalDevicesOpen}
           >
             {deviceEntries.length === 0 && props.devicesLoading ? (
-              <SkeletonList label="Drives" rows={2} leading="icon" rowClassName="px-2" />
+              <SkeletonList
+                label="Drives"
+                rows={2}
+                leading="icon"
+                rowClassName="px-2"
+              />
             ) : deviceEntries.length === 0 ? (
-              <div className={sidebarStyles.deviceGroupEmpty}>No local devices</div>
+              <div className={sidebarStyles.deviceGroupEmpty}>
+                No local devices
+              </div>
             ) : (
               <div className={sidebarStyles.list}>
                 {deviceEntries.map((device) => {
-                  const usedBytes = Math.max(0, device.totalBytes - device.freeBytes);
+                  const usedBytes = Math.max(
+                    0,
+                    device.totalBytes - device.freeBytes,
+                  );
                   const usedRatio =
                     device.totalBytes > 0
-                      ? Math.min(100, Math.round((usedBytes / device.totalBytes) * 100))
+                      ? Math.min(
+                          100,
+                          Math.round((usedBytes / device.totalBytes) * 100),
+                        )
                       : 0;
                   return (
                     <ContextMenu key={device.id}>
@@ -194,7 +224,9 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                               id={`sidebar:device:${device.id}`}
                               path={device.mountPath}
                               springLoad
-                              onSpringLoad={() => props.onNavigate(device.mountPath)}
+                              onSpringLoad={() =>
+                                props.onNavigate(device.mountPath)
+                              }
                             >
                               <Button
                                 type="button"
@@ -202,12 +234,19 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                                 className={cn(
                                   sidebarStyles.treeSurface,
                                   sidebarStyles.deviceButton,
-                                  pathIsInside(props.activePath, device.mountPath) &&
-                                    sidebarStyles.itemSelected,
+                                  pathIsInside(
+                                    props.activePath,
+                                    device.mountPath,
+                                  ) && sidebarStyles.itemSelected,
                                 )}
-                                onClick={() => props.onNavigate(device.mountPath)}
+                                onClick={() =>
+                                  props.onNavigate(device.mountPath)
+                                }
                               >
-                                <span className={sidebarStyles.deviceIcon} aria-hidden="true">
+                                <span
+                                  className={sidebarStyles.deviceIcon}
+                                  aria-hidden="true"
+                                >
                                   <HardDrive size={24} strokeWidth={1.9} />
                                 </span>
                                 <span className={sidebarStyles.deviceCopy}>
@@ -222,9 +261,14 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                                     )}
                                   </small>
                                   {device.totalBytes > 0 ? (
-                                    <span className={sidebarStyles.deviceMeter} aria-hidden="true">
+                                    <span
+                                      className={sidebarStyles.deviceMeter}
+                                      aria-hidden="true"
+                                    >
                                       <i
-                                        className={sidebarStyles.deviceMeterFill}
+                                        className={
+                                          sidebarStyles.deviceMeterFill
+                                        }
                                         style={{
                                           width: `${usedRatio}%`,
                                         }}
@@ -249,7 +293,11 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                           }
                           disabled={!canUnmountMountedDevice(device)}
                           onSelect={() =>
-                            void unmountMountedDevice(device, setDeviceActionError, props.runtime)
+                            void unmountMountedDevice(
+                              device,
+                              setDeviceActionError,
+                              props.runtime,
+                            )
                           }
                         />
                       </ContextMenuContent>
@@ -263,20 +311,31 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
                 error={deviceActionError}
                 scope="files:sidebar:device"
                 title="Device action could not be completed"
-                target={{
-                  kind: "workspace-tool",
-                  tool: "files",
-                }}
               />
             ) : null}
           </SidebarDeviceGroup>
-
-          <props.runtime.ConnectedDevices
-            activePath={props.activePath}
-            onNavigate={props.onNavigate}
-          />
         </CollapsibleContent>
       </Collapsible>
+
+      <ClipboardSidebarSection
+        activePath={props.activePath}
+        onPasted={(directory) => props.onNavigate(directory)}
+      />
+
+      <section className={sidebarStyles.section}>
+        <Button
+          variant="ghost"
+          className={sidebarStyles.itemButton}
+          onClick={() => props.onOpenInNewTab?.(transfersPath, "Transfers")}
+        >
+          <ArrowRightLeft
+            size={18}
+            className={sidebarStyles.itemIcon}
+            aria-hidden="true"
+          />
+          <span className="min-w-0 truncate">Transfers</span>
+        </Button>
+      </section>
       {smartFolderDialog ? (
         <SmartFolderDialog
           state={smartFolderDialog}
@@ -293,7 +352,8 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
   );
 });
 export function canUnmountMountedDevice(device: SidebarDeviceEntry): boolean {
-  const macos = /mac/i.test(navigator.platform) || /mac os/i.test(navigator.userAgent);
+  const macos =
+    /mac/i.test(navigator.platform) || /mac os/i.test(navigator.userAgent);
   return (
     macos &&
     !device.custom &&

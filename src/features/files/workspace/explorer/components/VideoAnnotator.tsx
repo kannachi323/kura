@@ -1,4 +1,10 @@
-import { Button, ColorSwatch, IconButton, Slider, toolbarIconProps } from "@/shared/ui";
+import {
+  Button,
+  ColorSwatch,
+  IconButton,
+  Slider,
+  toolbarIconProps,
+} from "@/shared/ui";
 import type Konva from "konva";
 import { Pen, Redo2, Trash2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,8 +14,15 @@ import { Layer, Line, Stage } from "react-konva";
  *  so annotations stay aligned at any display size and survive persistence. */
 type Stroke = { points: number[]; color: string; width: number };
 
-const COLORS = ["#ff3b30", "#ffcc00", "#34c759", "#0a84ff", "#ffffff", "#111111"];
-const STORAGE_PREFIX = "misty:video-annotations:";
+const COLORS = [
+  "#ff3b30",
+  "#ffcc00",
+  "#34c759",
+  "#0a84ff",
+  "#ffffff",
+  "#111111",
+];
+const STORAGE_PREFIX = "kura:video-annotations:";
 
 function storageKeyFor(persistKey?: string): string {
   return persistKey ? `${STORAGE_PREFIX}${persistKey}` : "";
@@ -61,7 +74,8 @@ export default function VideoAnnotator({
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
-    const update = () => setSize({ width: element.clientWidth, height: element.clientHeight });
+    const update = () =>
+      setSize({ width: element.clientWidth, height: element.clientHeight });
     update();
     const observer = new ResizeObserver(update);
     observer.observe(element);
@@ -79,7 +93,8 @@ export default function VideoAnnotator({
   useEffect(() => {
     if (!storageKey) return;
     try {
-      if (strokes.length > 0) localStorage.setItem(storageKey, JSON.stringify(strokes));
+      if (strokes.length > 0)
+        localStorage.setItem(storageKey, JSON.stringify(strokes));
       else localStorage.removeItem(storageKey);
     } catch {
       // Ignore storage quota / privacy-mode failures; annotations stay in memory.
@@ -207,13 +222,25 @@ export default function VideoAnnotator({
                   onValueChange={([value]) => setBrush(value ?? brush)}
                 />
               </div>
-              <IconButton label="Undo" disabled={strokes.length === 0} onClick={undo}>
+              <IconButton
+                label="Undo"
+                disabled={strokes.length === 0}
+                onClick={undo}
+              >
                 <Undo2 {...toolbarIconProps} />
               </IconButton>
-              <IconButton label="Redo" disabled={redo.length === 0} onClick={redoStroke}>
+              <IconButton
+                label="Redo"
+                disabled={redo.length === 0}
+                onClick={redoStroke}
+              >
                 <Redo2 {...toolbarIconProps} />
               </IconButton>
-              <IconButton label="Clear drawing" disabled={strokes.length === 0} onClick={clear}>
+              <IconButton
+                label="Clear drawing"
+                disabled={strokes.length === 0}
+                onClick={clear}
+              >
                 <Trash2 {...toolbarIconProps} />
               </IconButton>
             </>

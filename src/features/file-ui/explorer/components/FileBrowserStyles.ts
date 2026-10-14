@@ -72,7 +72,8 @@ export const fileBrowserStyles = {
   tableNumericCell: "text-left tabular-nums",
   tableNumericHeader: "[&_button]:justify-start",
   directorySizeDots: "inline-flex h-5 w-8 items-center gap-1 align-middle",
-  directorySizeDot: "size-1.5 rounded-full bg-cream-muted opacity-85 motion-safe:animate-bounce",
+  directorySizeDot:
+    "size-1.5 rounded-full bg-cream-muted opacity-85 motion-safe:animate-bounce",
   tableFillerCell: "p-0 max-[720px]:hidden",
   tableNameCell: "cursor-default select-none overflow-hidden",
   tableNameCellEditing: "overflow-visible",
@@ -107,7 +108,8 @@ export const fileBrowserStyles = {
     "selected bg-charcoal-hover text-cream hover:bg-charcoal-hover hover:text-cream",
   gridItemDragging: "opacity-50",
   gridItemCut: "opacity-55",
-  gridItemDeleted: "deleted text-cream-muted [&>span:not(.inline-name-editor)]:opacity-[0.86]",
+  gridItemDeleted:
+    "deleted text-cream-muted [&>span:not(.inline-name-editor)]:opacity-[0.86]",
   gridItemInlineEdit: "relative z-[2]",
   gridThumb:
     "grid aspect-[5/3] w-full place-items-center overflow-hidden rounded-md border border-charcoal-border bg-charcoal-card",
@@ -115,7 +117,8 @@ export const fileBrowserStyles = {
   gridThumbIcon: "grid aspect-[5/3] w-full place-items-center",
   gridNameText:
     "line-clamp-2 min-h-[2.5rem] max-w-full overflow-hidden break-words text-center text-sm font-medium leading-snug text-cream/90",
-  inlineEditor: "inline-name-editor relative inline-flex min-w-0 max-w-full items-center",
+  inlineEditor:
+    "inline-name-editor relative inline-flex min-w-0 max-w-full items-center",
   inlineEditorGrid: "w-full justify-center",
   inlineEditorInvalid: "gap-[7px]",
   inlineFields:

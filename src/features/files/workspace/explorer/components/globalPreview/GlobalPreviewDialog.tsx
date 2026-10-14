@@ -4,5 +4,7 @@ import { useHostPreviewRuntime } from "./hostPreviewRuntime";
 export function GlobalPreviewDialog(
   props: Omit<ComponentProps<typeof GlobalPreviewDialogView>, "runtime">,
 ) {
-  return <GlobalPreviewDialogView {...props} runtime={useHostPreviewRuntime()} />;
+  return (
+    <GlobalPreviewDialogView {...props} runtime={useHostPreviewRuntime()} />
+  );
 }

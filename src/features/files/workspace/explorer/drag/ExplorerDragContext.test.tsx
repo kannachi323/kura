@@ -1,17 +1,23 @@
 import { act, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ExplorerDragItem, ExplorerDropZoneSpec } from "@/features/file-ui";
+import type {
+  ExplorerDragItem,
+  ExplorerDropZoneSpec,
+} from "@/features/file-ui";
 
 const mocks = vi.hoisted(() => ({
   cancelPreparation: vi.fn().mockResolvedValue(undefined),
   prepareItems: vi.fn().mockResolvedValue({ items: [], skipped: [] }),
   startDrag: vi
     .fn()
-    .mockImplementation(async (_options, callback) => callback({ result: "Dropped" })),
+    .mockImplementation(async (_options, callback) =>
+      callback({ result: "Dropped" }),
+    ),
   unlistenDrag: vi.fn(),
   unlistenScale: vi.fn(),
-  dragListener: null as null | ((event: { payload: Record<string, unknown> }) => void),
+  dragListener: null as
+    null | ((event: { payload: Record<string, unknown> }) => void),
 }));
 
 vi.mock("@/features/files/workspace/native", () => ({
@@ -22,7 +28,11 @@ vi.mock("@/shared/hooks/useAppZoom", () => ({ getAppliedAppZoom: () => 1 }));
 vi.mock("@/shared/platform/tauri", () => ({ hasTauriInternals: () => true }));
 vi.mock("../store", () => ({
   useExplorerStore: {
-    getState: () => ({ panes: {}, pushNotification: vi.fn(), refreshPane: vi.fn() }),
+    getState: () => ({
+      panes: {},
+      pushNotification: vi.fn(),
+      refreshPane: vi.fn(),
+    }),
   },
 }));
 vi.mock("@tauri-apps/api/webview", () => ({
@@ -39,9 +49,15 @@ vi.mock("@tauri-apps/api/window", () => ({
     onScaleChanged: async () => mocks.unlistenScale,
   }),
 }));
-vi.mock("@crabnebula/tauri-plugin-drag", () => ({ startDrag: mocks.startDrag }));
+vi.mock("@crabnebula/tauri-plugin-drag", () => ({
+  startDrag: mocks.startDrag,
+}));
 
-import { Droppable, ExplorerDragProvider, useExplorerDragSource } from "./ExplorerDragContext";
+import {
+  Droppable,
+  ExplorerDragProvider,
+  useExplorerDragSource,
+} from "./ExplorerDragContext";
 
 const item: ExplorerDragItem = {
   entryId: "entry",
@@ -77,7 +93,9 @@ describe("ExplorerDragProvider", () => {
       callback(0);
       return 1;
     });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(
+      () => undefined,
+    );
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   });
 
@@ -96,11 +114,17 @@ describe("ExplorerDragProvider", () => {
     await act(async () => source.dispatchEvent(pointer("pointerdown", 0, 0)));
     await act(async () => window.dispatchEvent(pointer("pointermove", 5, 0)));
     expect(container.textContent).not.toContain("photo.jpg");
-    expect(container.querySelector("[data-explorer-drag-interaction-shield]")).toBeNull();
+    expect(
+      container.querySelector("[data-explorer-drag-interaction-shield]"),
+    ).toBeNull();
     await act(async () => window.dispatchEvent(pointer("pointermove", 7, 0)));
-    expect(document.querySelector(".explorer-drag-chip-name")?.textContent).toBe("photo.jpg");
+    expect(
+      document.querySelector(".explorer-drag-chip-name")?.textContent,
+    ).toBe("photo.jpg");
     expect(source.dataset.reorderDragging).toBe("true");
-    expect(container.querySelector("[data-explorer-drag-interaction-shield]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-explorer-drag-interaction-shield]"),
+    ).not.toBeNull();
     await act(async () => {
       window.dispatchEvent(pointer("pointerup", 7, 0));
       await Promise.resolve();
@@ -110,7 +134,9 @@ describe("ExplorerDragProvider", () => {
       expect.objectContaining({ origin: "internal", items: [item] }),
       expect.any(Object),
     );
-    expect(container.querySelector("[data-explorer-drag-interaction-shield]")).toBeNull();
+    expect(
+      container.querySelector("[data-explorer-drag-interaction-shield]"),
+    ).toBeNull();
     expect(document.querySelector(".explorer-drag-chip")).toBeNull();
     expect(source.dataset.reorderDragging).toBeUndefined();
   });
@@ -124,7 +150,9 @@ describe("ExplorerDragProvider", () => {
     await act(async () => window.dispatchEvent(pointer("pointermove", 8, 0)));
     expect(document.documentElement.dataset.explorerDragging).toBe("true");
     await act(async () =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
     );
     await act(async () => window.dispatchEvent(pointer("pointerup", 8, 0)));
     expect(onDrop).not.toHaveBeenCalled();
@@ -132,17 +160,30 @@ describe("ExplorerDragProvider", () => {
   });
 
   it("counts every dragged item and leaves plain drop areas unlit", async () => {
-    const second = { ...item, entryId: "second", name: "second.jpg", path: "/Pictures/second.jpg" };
+    const second = {
+      ...item,
+      entryId: "second",
+      name: "second.jpg",
+      path: "/Pictures/second.jpg",
+    };
     await renderHarness(vi.fn(), [item, second]);
     const source = container.querySelector<HTMLElement>("[data-source]")!;
     elementAtPoint = container.querySelector<HTMLElement>("[data-zone]");
     await act(async () => source.dispatchEvent(pointer("pointerdown", 0, 0)));
     await act(async () => window.dispatchEvent(pointer("pointermove", 8, 0)));
-    expect(document.querySelector(".explorer-drag-count")?.textContent).toBe("2");
-    expect(elementAtPoint?.hasAttribute("data-explorer-drop-active")).toBe(false);
-    expect(elementAtPoint?.hasAttribute("data-explorer-drop-valid")).toBe(false);
+    expect(document.querySelector(".explorer-drag-count")?.textContent).toBe(
+      "2",
+    );
+    expect(elementAtPoint?.hasAttribute("data-explorer-drop-active")).toBe(
+      false,
+    );
+    expect(elementAtPoint?.hasAttribute("data-explorer-drop-valid")).toBe(
+      false,
+    );
     await act(async () =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
     );
   });
 
@@ -161,9 +202,9 @@ describe("ExplorerDragProvider", () => {
       elementAtPoint = container.querySelector<HTMLElement>("[data-zone]");
       await act(async () => source.dispatchEvent(pointer("pointerdown", 0, 0)));
       await act(async () => window.dispatchEvent(pointer("pointermove", 8, 0)));
-      expect(container.querySelector('[role="status"]')?.textContent).not.toContain(
-        "Cannot drop here",
-      );
+      expect(
+        container.querySelector('[role="status"]')?.textContent,
+      ).not.toContain("Cannot drop here");
       await act(async () => {
         await Promise.resolve();
         // The folder blinks before it opens.
@@ -171,8 +212,12 @@ describe("ExplorerDragProvider", () => {
       });
       expect(container.querySelector("[data-source]")).toBeNull();
 
-      await act(async () => window.dispatchEvent(pointer("lostpointercapture", 8, 0)));
-      expect(document.querySelector(".explorer-drag-chip-name")?.textContent).toBe("photo.jpg");
+      await act(async () =>
+        window.dispatchEvent(pointer("lostpointercapture", 8, 0)),
+      );
+      expect(
+        document.querySelector(".explorer-drag-chip-name")?.textContent,
+      ).toBe("photo.jpg");
       await act(async () => {
         window.dispatchEvent(pointer("pointerup", 8, 0));
         await Promise.resolve();
@@ -193,14 +238,26 @@ describe("ExplorerDragProvider", () => {
     await vi.waitFor(() => expect(mocks.dragListener).not.toBeNull());
     await act(async () =>
       mocks.dragListener?.({
-        payload: { type: "enter", paths: ["/tmp/in.txt"], position: { x: 400, y: 200 } },
+        payload: {
+          type: "enter",
+          paths: ["/tmp/in.txt"],
+          position: { x: 400, y: 200 },
+        },
       }),
     );
-    expect(container.querySelector<HTMLElement>('[role="status"]')?.style.left).toBe("214px");
-    expect(container.querySelector("[data-explorer-drag-interaction-shield]")).not.toBeNull();
+    expect(
+      container.querySelector<HTMLElement>('[role="status"]')?.style.left,
+    ).toBe("214px");
+    expect(
+      container.querySelector("[data-explorer-drag-interaction-shield]"),
+    ).not.toBeNull();
     await act(async () => {
       mocks.dragListener?.({
-        payload: { type: "drop", paths: ["/tmp/in.txt"], position: { x: 400, y: 200 } },
+        payload: {
+          type: "drop",
+          paths: ["/tmp/in.txt"],
+          position: { x: 400, y: 200 },
+        },
       });
       await Promise.resolve();
     });
@@ -208,7 +265,9 @@ describe("ExplorerDragProvider", () => {
       expect.objectContaining({ origin: "external" }),
       expect.any(Object),
     );
-    expect(container.querySelector("[data-explorer-drag-interaction-shield]")).toBeNull();
+    expect(
+      container.querySelector("[data-explorer-drag-interaction-shield]"),
+    ).toBeNull();
     await act(async () => root.unmount());
     expect(mocks.unlistenDrag).toHaveBeenCalledOnce();
     expect(mocks.unlistenScale).toHaveBeenCalledOnce();
@@ -218,8 +277,12 @@ describe("ExplorerDragProvider", () => {
   it("hands a held local drag to the native plugin on webview exit", async () => {
     await renderHarness(vi.fn());
     const source = container.querySelector<HTMLElement>("[data-source]")!;
-    await act(async () => source.dispatchEvent(pointer("pointerdown", 0, 0, { shiftKey: true })));
-    await act(async () => window.dispatchEvent(pointer("pointermove", 8, 0, { shiftKey: true })));
+    await act(async () =>
+      source.dispatchEvent(pointer("pointerdown", 0, 0, { shiftKey: true })),
+    );
+    await act(async () =>
+      window.dispatchEvent(pointer("pointermove", 8, 0, { shiftKey: true })),
+    );
     await act(async () => {
       window.dispatchEvent(pointer("pointerout", 9, 0, { shiftKey: true }));
       await Promise.resolve();
@@ -232,7 +295,10 @@ describe("ExplorerDragProvider", () => {
   });
 
   it("cancels remote preparation when the pointer is released before staging finishes", async () => {
-    let finishPreparation!: (value: { items: Array<{ localPath: string }>; skipped: [] }) => void;
+    let finishPreparation!: (value: {
+      items: Array<{ localPath: string }>;
+      skipped: [];
+    }) => void;
     mocks.prepareItems.mockReturnValueOnce(
       new Promise((resolve) => {
         finishPreparation = resolve;
@@ -256,14 +322,20 @@ describe("ExplorerDragProvider", () => {
     await act(async () => window.dispatchEvent(pointer("pointerout", 9, 0)));
     await act(async () => window.dispatchEvent(pointer("pointerup", 9, 0)));
     await act(async () => {
-      finishPreparation({ items: [{ localPath: "/tmp/photo.jpg" }], skipped: [] });
+      finishPreparation({
+        items: [{ localPath: "/tmp/photo.jpg" }],
+        skipped: [],
+      });
       await Promise.resolve();
     });
     expect(mocks.cancelPreparation).toHaveBeenCalledOnce();
     expect(mocks.startDrag).not.toHaveBeenCalled();
   });
 
-  async function renderHarness(onDrop: ExplorerDropZoneSpec["onDrop"], items = [item]) {
+  async function renderHarness(
+    onDrop: ExplorerDropZoneSpec["onDrop"],
+    items = [item],
+  ) {
     const zone: ExplorerDropZoneSpec = {
       id: "target",
       priority: 10,
@@ -280,7 +352,13 @@ describe("ExplorerDragProvider", () => {
   }
 });
 
-function Harness({ zone, items }: { zone: ExplorerDropZoneSpec; items: ExplorerDragItem[] }) {
+function Harness({
+  zone,
+  items,
+}: {
+  zone: ExplorerDropZoneSpec;
+  items: ExplorerDragItem[];
+}) {
   const source = useExplorerDragSource(items);
   return (
     <>
@@ -331,8 +409,22 @@ function NavigationHarness({
   );
 }
 
-function pointer(type: string, x: number, y: number, init: MouseEventInit = {}): Event {
-  const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y, ...init });
-  Object.defineProperties(event, { pointerId: { value: 1 }, isPrimary: { value: true } });
+function pointer(
+  type: string,
+  x: number,
+  y: number,
+  init: MouseEventInit = {},
+): Event {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    button: 0,
+    clientX: x,
+    clientY: y,
+    ...init,
+  });
+  Object.defineProperties(event, {
+    pointerId: { value: 1 },
+    isPrimary: { value: true },
+  });
   return event;
 }

@@ -6,11 +6,16 @@ import { parentDirectory, samePath } from "../store/helpers/listing";
 import { useExplorerStore } from "../store";
 export type { ExplorerSearchNavigationTarget } from "../model/interfaces/utils/searchNavigation";
 
-export function searchResultNavigationTarget(result: SearchResult): ExplorerSearchNavigationTarget {
+export function searchResultNavigationTarget(
+  result: SearchResult,
+): ExplorerSearchNavigationTarget {
   const entry = result.entry;
   return {
     result,
-    path: entry.kind === "folder" ? normalizeExplorerPath(entry.path) : parentDirectory(entry.path),
+    path:
+      entry.kind === "folder"
+        ? normalizeExplorerPath(entry.path)
+        : parentDirectory(entry.path),
     selectEntryId: entry.kind === "folder" ? null : entry.id,
   };
 }
@@ -19,16 +24,9 @@ export async function revealSearchResultInPane(
   paneId: string,
   target: ExplorerSearchNavigationTarget,
 ): Promise<void> {
-  if (
-    target.result.entry.location.providerType === "misty-space" &&
-    target.result.entry.location.remotePath
-  ) {
-    window.history.pushState({}, "", target.result.entry.location.remotePath);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-    return;
-  }
   await useExplorerStore.getState().navigatePane(paneId, target.path);
-  if (target.result.match?.mediaSegmentId) useMediaViewerStore.getState().open(target.result);
+  if (target.result.match?.mediaSegmentId)
+    useMediaViewerStore.getState().open(target.result);
   const pane = useExplorerStore.getState().panes[paneId];
   if (pane?.error) {
     const message = searchResultStaleMessage(target.result);
@@ -53,7 +51,9 @@ export async function revealSearchResultInPane(
     useExplorerStore.getState().selectEntry(paneId, resolvedEntry.id);
     return;
   }
-  useExplorerStore.setState({ operationError: searchResultStaleMessage(target.result) });
+  useExplorerStore.setState({
+    operationError: searchResultStaleMessage(target.result),
+  });
 }
 
 export function searchResultStaleMessage(result: SearchResult): string {

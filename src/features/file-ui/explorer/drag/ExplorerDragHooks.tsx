@@ -7,20 +7,26 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { ExplorerDragItem, ExplorerDropZoneSpec } from "../model/interfaces/drag/types";
+import type {
+  ExplorerDragItem,
+  ExplorerDropZoneSpec,
+} from "../model/interfaces/drag/types";
 import { ExplorerDragContext } from "./ExplorerDragState";
 export function useExplorerDragSource(items: ExplorerDragItem[]) {
   const context = useContext(ExplorerDragContext);
   const dragging = Boolean(
     context?.state.payload?.origin === "internal" &&
     items.some((item) =>
-      context.state.payload?.items.some((dragged) => dragged.entryId === item.entryId),
+      context.state.payload?.items.some(
+        (dragged) => dragged.entryId === item.entryId,
+      ),
     ),
   );
   return useMemo(
     () => ({
       onPointerDown: context
-        ? (event: ReactPointerEvent<HTMLElement>) => context.armSource(items, event)
+        ? (event: ReactPointerEvent<HTMLElement>) =>
+            context.armSource(items, event)
         : undefined,
       dragging,
     }),
@@ -37,11 +43,18 @@ export function useExplorerDropZone(spec: ExplorerDropZoneSpec) {
     [element, registerZone, spec],
   );
   const active = context?.state.activeZoneId === spec.id;
-  return { ref: setElement, active, valid: active && context?.state.acceptance?.valid === true };
+  return {
+    ref: setElement,
+    active,
+    valid: active && context?.state.acceptance?.valid === true,
+  };
 }
 
 export function Droppable(
-  props: HTMLAttributes<HTMLDivElement> & { zone: ExplorerDropZoneSpec; children: ReactNode },
+  props: HTMLAttributes<HTMLDivElement> & {
+    zone: ExplorerDropZoneSpec;
+    children: ReactNode;
+  },
 ) {
   const { zone, children, className, ...rest } = props;
   const drop = useExplorerDropZone(zone);

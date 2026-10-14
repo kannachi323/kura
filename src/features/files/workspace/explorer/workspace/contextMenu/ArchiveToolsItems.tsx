@@ -36,9 +36,14 @@ export interface ArchiveToolsContext {
   shortcutFor: (commandId: string) => string | undefined;
 }
 
-export function buildArchiveItems(context: ArchiveToolsContext): ContextMenuLeafItem[] {
-  const { hasRemoteSelection, hasSelection, paneId, run, targetEntry } = context;
-  const selectionDisabledReason = hasSelection ? undefined : "Select a file or folder first.";
+export function buildArchiveItems(
+  context: ArchiveToolsContext,
+): ContextMenuLeafItem[] {
+  const { hasRemoteSelection, hasSelection, paneId, run, targetEntry } =
+    context;
+  const selectionDisabledReason = hasSelection
+    ? undefined
+    : "Select a file or folder first.";
   return [
     {
       id: "archive-preview",
@@ -48,7 +53,8 @@ export function buildArchiveItems(context: ArchiveToolsContext): ContextMenuLeaf
       disabledReason: hasRemoteSelection
         ? "Archive preview is available for local files."
         : "Choose an archive file.",
-      onRun: () => run(() => targetEntry && void previewArchive(targetEntry.path)),
+      onRun: () =>
+        run(() => targetEntry && void previewArchive(targetEntry.path)),
     },
     {
       id: "compress",
@@ -68,7 +74,11 @@ export function buildArchiveItems(context: ArchiveToolsContext): ContextMenuLeaf
       disabledReason: hasRemoteSelection
         ? "Extract is available for local files."
         : "Choose an archive file.",
-      onRun: () => run(() => targetEntry && void extractArchiveHere(targetEntry.path, paneId)),
+      onRun: () =>
+        run(
+          () =>
+            targetEntry && void extractArchiveHere(targetEntry.path, paneId),
+        ),
     },
     {
       id: "extract-to",
@@ -78,21 +88,28 @@ export function buildArchiveItems(context: ArchiveToolsContext): ContextMenuLeaf
       disabledReason: hasRemoteSelection
         ? "Extract is available for local files."
         : "Choose an archive file.",
-      onRun: () => run(() => targetEntry && void extractArchiveTo(targetEntry.path, paneId)),
+      onRun: () =>
+        run(
+          () => targetEntry && void extractArchiveTo(targetEntry.path, paneId),
+        ),
     },
   ];
 }
 
-export function buildFileToolsItems(context: ArchiveToolsContext): ContextMenuLeafItem[] {
+export function buildFileToolsItems(
+  context: ArchiveToolsContext,
+): ContextMenuLeafItem[] {
   const { hasRemoteSelection, paneId, run, shortcutFor, targetEntry } = context;
   return [
     {
       id: "sha256",
       icon: <Hash size={17} />,
       label: "SHA-256 Checksum",
-      disabled: !targetEntry || targetEntry.kind !== "file" || hasRemoteSelection,
+      disabled:
+        !targetEntry || targetEntry.kind !== "file" || hasRemoteSelection,
       disabledReason: "Choose one local file.",
-      onRun: () => run(() => targetEntry && void copySha256Checksum(targetEntry.path)),
+      onRun: () =>
+        run(() => targetEntry && void copySha256Checksum(targetEntry.path)),
     },
     {
       id: "symlink",
@@ -100,15 +117,24 @@ export function buildFileToolsItems(context: ArchiveToolsContext): ContextMenuLe
       label: "Create Symlink...",
       disabled: !targetEntry || hasRemoteSelection,
       disabledReason: "Symlinks are available for local files and folders.",
-      onRun: () => run(() => targetEntry && void createSymlinkForEntry(targetEntry.path, paneId)),
+      onRun: () =>
+        run(
+          () =>
+            targetEntry && void createSymlinkForEntry(targetEntry.path, paneId),
+        ),
     },
     {
       id: "reveal-symlink-target",
       icon: <ExternalLink size={17} />,
       label: "Reveal Symlink Target",
-      disabled: !targetEntry || targetEntry.kind !== "symlink" || hasRemoteSelection,
+      disabled:
+        !targetEntry || targetEntry.kind !== "symlink" || hasRemoteSelection,
       disabledReason: "Choose one local symlink.",
-      onRun: () => run(() => targetEntry && void revealSymlinkTarget(targetEntry.path, paneId)),
+      onRun: () =>
+        run(
+          () =>
+            targetEntry && void revealSymlinkTarget(targetEntry.path, paneId),
+        ),
     },
     {
       id: "copy-path",
@@ -118,7 +144,11 @@ export function buildFileToolsItems(context: ArchiveToolsContext): ContextMenuLe
       disabled: !targetEntry,
       disabledReason: "Choose an item first.",
       onRun: () =>
-        run(() => targetEntry && void useExplorerStore.getState().copyPath(targetEntry.path)),
+        run(
+          () =>
+            targetEntry &&
+            void useExplorerStore.getState().copyPath(targetEntry.path),
+        ),
     },
     {
       id: "terminal-here",
@@ -130,7 +160,10 @@ export function buildFileToolsItems(context: ArchiveToolsContext): ContextMenuLe
         run(
           () =>
             targetEntry &&
-            void openTerminalForEntry(targetEntry.path, targetEntry.kind === "folder"),
+            void openTerminalForEntry(
+              targetEntry.path,
+              targetEntry.kind === "folder",
+            ),
         ),
     },
   ];

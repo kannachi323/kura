@@ -5,7 +5,10 @@ import type {
 import type { CompareTextDiffKind } from "../../model/types/workspace/ExplorerCompareDialog";
 import { compareStyles } from "../ExplorerDesktopDialogStyles";
 
-export function buildCompareTextDiff(leftText: string, rightText: string): CompareTextDiffState {
+export function buildCompareTextDiff(
+  leftText: string,
+  rightText: string,
+): CompareTextDiffState {
   const leftAll = splitCompareLines(leftText);
   const rightAll = splitCompareLines(rightText);
   const truncated = leftAll.length > 800 || rightAll.length > 800;
@@ -62,11 +65,29 @@ export function buildCompareTextDiff(leftText: string, rightText: string): Compa
         left += 1;
         right += 1;
       } else {
-        rows.push(compareTextRow(rows.length, left + 1, null, leftLines[left], "", "removed"));
+        rows.push(
+          compareTextRow(
+            rows.length,
+            left + 1,
+            null,
+            leftLines[left],
+            "",
+            "removed",
+          ),
+        );
         left += 1;
       }
     } else {
-      rows.push(compareTextRow(rows.length, null, right + 1, "", rightLines[right], "added"));
+      rows.push(
+        compareTextRow(
+          rows.length,
+          null,
+          right + 1,
+          "",
+          rightLines[right],
+          "added",
+        ),
+      );
       right += 1;
     }
   }

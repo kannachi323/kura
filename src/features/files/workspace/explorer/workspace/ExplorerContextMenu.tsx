@@ -7,10 +7,19 @@ export {
   extractArchiveHere,
   extractArchiveTo,
 } from "./contextMenu/fileActions";
-export { compareSeedForPane, openCompareWith } from "./contextMenu/remoteVerification";
-import { AddFilesToSpaceDialog } from "@/features/library/library";
-import { selectShortcutPreferences, useSettingsStore } from "@/features/settings";
-import { effectiveShortcut, formatShortcutLabel } from "@/features/shortcuts";
+export {
+  compareSeedForPane,
+  openCompareWith,
+} from "./contextMenu/remoteVerification";
+import {
+  selectShortcutPreferences,
+  useSettingsStore,
+} from "@/features/settings";
+import {
+  detectShortcutPlatform,
+  effectiveShortcut,
+  formatShortcutLabel,
+} from "@/features/shortcuts";
 import {
   AppWindow,
   Archive,
@@ -23,7 +32,6 @@ import {
   FolderPlus,
   Hash,
   MoreHorizontal,
-  PanelsTopLeft,
   Pencil,
   Pin,
   RefreshCcw,
@@ -31,28 +39,28 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { memo, useState } from "react";
+import { memo } from "react";
 import type {
   ContextMenuEntry,
   ContextMenuLeafItem,
 } from "../model/types/workspace/ExplorerContextMenu";
 import { useExplorerStore } from "../store";
-import { buildArchiveItems, buildFileToolsItems } from "./contextMenu/ArchiveToolsItems";
+import {
+  buildArchiveItems,
+  buildFileToolsItems,
+} from "./contextMenu/ArchiveToolsItems";
 import { openCompareWith } from "./contextMenu/remoteVerification";
 import { calculateSelectedFolderSizes } from "./contextMenu/selectionHelpers";
 import { useContextMenuState } from "./contextMenu/useContextMenuState";
-import { clearSelectionsAcrossPanes } from "./ExplorerAgentPanels";
+import { clearSelectionsAcrossPanes } from "./selectionAcrossPanes";
 import { ExplorerContextMenuView } from "./ExplorerContextMenuView";
 
 export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
-  const [addToSpacePaths, setAddToSpacePaths] = useState<string[]>([]);
   const shortcutHintsEnabled = useSettingsStore(
-    (state) => selectShortcutPreferences(state.settings?.document).shortcutHintsEnabled,
+    (state) =>
+      selectShortcutPreferences(state.settings?.document).shortcutHintsEnabled,
   );
-  const shortcutPlatform = useSettingsStore(
-    (state) => state.shortcuts?.detectedPlatform ?? "linux",
-  );
-  useSettingsStore((state) => state.shortcuts);
+  const shortcutPlatform = detectShortcutPlatform();
   const {
     canCalculateDirectorySizes,
     canCreateFile,
@@ -68,7 +76,6 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
     paneId,
     selectedAcrossPanesCount,
     selectedCount,
-    selectedLocalFilePaths,
     showHidden,
     targetCanOpenWith,
     targetEntry,
@@ -76,15 +83,19 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
     x,
     y,
   } = useContextMenuState();
-  if (!open && addToSpacePaths.length === 0) return null;
+  if (!open) return null;
 
-  const selectionDisabledReason = hasSelection ? undefined : "Select a file or folder first.";
-  const canAddCopiesToSpace =
-    selectedLocalFilePaths.length > 0 && selectedLocalFilePaths.length === selectedCount;
-  const createDisabledReason = "New items are only available in writable folders.";
+  const selectionDisabledReason = hasSelection
+    ? undefined
+    : "Select a file or folder first.";
+  const createDisabledReason =
+    "New items are only available in writable folders.";
   const shortcutFor = (commandId: string) =>
     shortcutHintsEnabled
-      ? formatShortcutLabel(effectiveShortcut(commandId).primary, shortcutPlatform) || undefined
+      ? formatShortcutLabel(
+          effectiveShortcut(commandId).primary,
+          shortcutPlatform,
+        ) || undefined
       : undefined;
 
   const run = (action: () => void) => {
@@ -100,7 +111,10 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       shortcut: shortcutFor("explorer.new_folder"),
       disabled: !canCreateFolder,
       disabledReason: createDisabledReason,
-      onRun: () => run(() => void useExplorerStore.getState().createItem(paneId, "folder")),
+      onRun: () =>
+        run(
+          () => void useExplorerStore.getState().createItem(paneId, "folder"),
+        ),
     },
     {
       id: "new-file",
@@ -108,7 +122,8 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       label: "New File",
       disabled: !canCreateFile,
       disabledReason: createDisabledReason,
-      onRun: () => run(() => void useExplorerStore.getState().createItem(paneId, "file")),
+      onRun: () =>
+        run(() => void useExplorerStore.getState().createItem(paneId, "file")),
     },
   ];
 
@@ -138,7 +153,8 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       shortcut: shortcutFor("explorer.paste"),
       disabled: !hasClipboard,
       disabledReason: hasClipboard ? undefined : "Copy or cut something first.",
-      onRun: () => run(() => void useExplorerStore.getState().pasteIntoPane(paneId)),
+      onRun: () =>
+        run(() => void useExplorerStore.getState().pasteIntoPane(paneId)),
     },
     {
       id: "deselect",
@@ -163,7 +179,12 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
               ? "Trash is only available for local files and folders."
               : selectionDisabledReason,
             onRun: () =>
-              run(() => void useExplorerStore.getState().deleteSelected(paneId, "trash")),
+              run(
+                () =>
+                  void useExplorerStore
+                    .getState()
+                    .deleteSelected(paneId, "trash"),
+              ),
           } satisfies ContextMenuLeafItem,
         ]
       : []),
@@ -172,8 +193,16 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       icon: <X size={17} />,
       label: "Delete Permanently",
       disabled: !hasPermanentDeleteSelection,
-      disabledReason: hasPermanentDeleteSelection ? undefined : selectionDisabledReason,
-      onRun: () => run(() => void useExplorerStore.getState().deleteSelected(paneId, "permanent")),
+      disabledReason: hasPermanentDeleteSelection
+        ? undefined
+        : selectionDisabledReason,
+      onRun: () =>
+        run(
+          () =>
+            void useExplorerStore
+              .getState()
+              .deleteSelected(paneId, "permanent"),
+        ),
     },
   ];
 
@@ -195,7 +224,8 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       shortcut: shortcutFor("explorer.rename"),
       disabled: !hasSelection,
       disabledReason: selectionDisabledReason,
-      onRun: () => run(() => void useExplorerStore.getState().renameSelected(paneId)),
+      onRun: () =>
+        run(() => void useExplorerStore.getState().renameSelected(paneId)),
     },
     {
       id: "batch-rename",
@@ -203,7 +233,8 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
       label: "Batch Rename...",
       disabled: !hasSelection,
       disabledReason: selectionDisabledReason,
-      onRun: () => run(() => useExplorerStore.getState().openBatchRenameDialog(paneId)),
+      onRun: () =>
+        run(() => useExplorerStore.getState().openBatchRenameDialog(paneId)),
     },
   ];
 
@@ -212,12 +243,19 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
         {
           id: "pin",
           icon: <Pin size={17} />,
-          label: targetPinned ? "Unpin from Quick access" : "Pin to Quick access",
-          disabled: !targetEntry || targetEntry.isDeleted || targetEntry.kind !== "folder",
+          label: targetPinned
+            ? "Unpin from Quick access"
+            : "Pin to Quick access",
+          disabled:
+            !targetEntry ||
+            targetEntry.isDeleted ||
+            targetEntry.kind !== "folder",
           disabledReason: "Only folders can be pinned.",
           onRun: () =>
             run(
-              () => targetEntry && useExplorerStore.getState().togglePinnedPath(targetEntry.path),
+              () =>
+                targetEntry &&
+                useExplorerStore.getState().togglePinnedPath(targetEntry.path),
             ),
         },
         {
@@ -235,26 +273,23 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
           icon: <Eye size={17} />,
           label: showHidden ? "Hide Hidden Files" : "Show Hidden Files",
           shortcut: shortcutFor("explorer.toggle_hidden"),
-          onRun: () => run(() => void useExplorerStore.getState().toggleHidden(paneId)),
+          onRun: () =>
+            run(() => void useExplorerStore.getState().toggleHidden(paneId)),
         },
       ];
 
   const menuEntries: ContextMenuEntry[] = [
-    { id: "new", icon: <FolderPlus size={17} />, label: "New", items: newItems },
-    { id: "clipboard", icon: <Clipboard size={17} />, label: "Clipboard", items: clipboardItems },
     {
-      id: "add-to-space",
-      icon: <PanelsTopLeft size={17} />,
-      label: "Add copy to Space...",
-      disabled: !canAddCopiesToSpace,
-      disabledReason: hasSelection
-        ? "Choose local files only. Folders and cloud items cannot be uploaded directly."
-        : "Select one or more local files first.",
-      onRun: () => {
-        const paths = [...selectedLocalFilePaths];
-        useExplorerStore.getState().closeContextMenu();
-        setAddToSpacePaths(paths);
-      },
+      id: "new",
+      icon: <FolderPlus size={17} />,
+      label: "New",
+      items: newItems,
+    },
+    {
+      id: "clipboard",
+      icon: <Clipboard size={17} />,
+      label: "Clipboard",
+      items: clipboardItems,
     },
     {
       id: "rename",
@@ -274,9 +309,24 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
         : selectionDisabledReason,
       onRun: () => run(() => openCompareWith(paneId)),
     },
-    { id: "delete", icon: <Trash2 size={17} />, label: "Delete", items: deleteItems },
-    { id: "archive", icon: <Archive size={17} />, label: "Archive", items: archiveItems },
-    { id: "file-tools", icon: <Hash size={17} />, label: "File Tools", items: fileToolsItems },
+    {
+      id: "delete",
+      icon: <Trash2 size={17} />,
+      label: "Delete",
+      items: deleteItems,
+    },
+    {
+      id: "archive",
+      icon: <Archive size={17} />,
+      label: "Archive",
+      items: archiveItems,
+    },
+    {
+      id: "file-tools",
+      icon: <Hash size={17} />,
+      label: "File Tools",
+      items: fileToolsItems,
+    },
     ...(entryId
       ? [
           {
@@ -285,17 +335,26 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
             label: "Open With...",
             disabled: !targetCanOpenWith,
             disabledReason: "Open With is available for files.",
-            onRun: () => run(() => void useExplorerStore.getState().openWithSelected(paneId)),
+            onRun: () =>
+              run(
+                () => void useExplorerStore.getState().openWithSelected(paneId),
+              ),
           } satisfies ContextMenuLeafItem,
         ]
       : []),
-    { id: "more", icon: <MoreHorizontal size={17} />, label: "More", items: moreItems },
+    {
+      id: "more",
+      icon: <MoreHorizontal size={17} />,
+      label: "More",
+      items: moreItems,
+    },
     {
       id: "refresh",
       icon: <RefreshCcw size={17} />,
       label: "Refresh",
       shortcut: shortcutFor("explorer.refresh"),
-      onRun: () => run(() => void useExplorerStore.getState().refreshPane(paneId)),
+      onRun: () =>
+        run(() => void useExplorerStore.getState().refreshPane(paneId)),
     },
   ];
 
@@ -307,13 +366,6 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
         y={y}
         menuEntries={menuEntries}
         onClose={() => useExplorerStore.getState().closeContextMenu()}
-      />
-      <AddFilesToSpaceDialog
-        open={addToSpacePaths.length > 0}
-        paths={addToSpacePaths}
-        onOpenChange={(next) => {
-          if (!next) setAddToSpacePaths([]);
-        }}
       />
     </>
   );

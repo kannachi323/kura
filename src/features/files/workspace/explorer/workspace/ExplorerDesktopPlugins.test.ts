@@ -1,12 +1,22 @@
 import { createMultiPanelStore } from "@/features/workspace";
 import { describe, expect, it } from "vitest";
-import { canCloseExplorerTab, parsePluginTabPath } from "./ExplorerDesktopPlugins";
+import {
+  canCloseExplorerTab,
+  parsePluginTabPath,
+} from "./ExplorerDesktopPlugins";
 
 describe("retired extension tabs", () => {
   it("recognizes saved plugin paths for recovery", () => {
     expect(
-      parsePluginTabPath("misty-plugin://panel?plugin=themes&panel=main&selected=%2Ftmp%2Fa.png"),
-    ).toEqual({ kind: "panel", pluginId: "themes", panelId: "main", selectedPath: "/tmp/a.png" });
+      parsePluginTabPath(
+        "kura-plugin://panel?plugin=themes&panel=main&selected=%2Ftmp%2Fa.png",
+      ),
+    ).toEqual({
+      kind: "panel",
+      pluginId: "themes",
+      panelId: "main",
+      selectedPath: "/tmp/a.png",
+    });
     expect(parsePluginTabPath("/Users/test")).toBeNull();
   });
 });

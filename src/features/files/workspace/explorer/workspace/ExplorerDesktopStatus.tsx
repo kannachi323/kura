@@ -2,8 +2,14 @@ import { Pressable } from "@/shared/ui";
 import type { ExplorerInlineEditState, ExplorerNotification } from "../store";
 import { cx } from "./ExplorerDesktopShared";
 
-export function ExplorerRenameStatus(props: { edit: ExplorerInlineEditState | null }) {
-  if (!props.edit || props.edit.error || props.edit.batchItems?.some((item) => item.error))
+export function ExplorerRenameStatus(props: {
+  edit: ExplorerInlineEditState | null;
+}) {
+  if (
+    !props.edit ||
+    props.edit.error ||
+    props.edit.batchItems?.some((item) => item.error)
+  )
     return null;
   const summary = renameStatusSummary(props.edit);
   return (
@@ -73,7 +79,11 @@ export function ExplorerNotifications(props: {
 }) {
   if (props.notifications.length === 0) return null;
   return (
-    <div className={notificationStyles.stack} aria-live="polite" aria-atomic="false">
+    <div
+      className={notificationStyles.stack}
+      aria-live="polite"
+      aria-atomic="false"
+    >
       {props.notifications.map((notification) => (
         <Pressable
           key={notification.id}

@@ -5,7 +5,11 @@ import type {
   FileEntry,
   SearchResult,
 } from "@/native/ipc";
-import type { FileKind, SearchQueryScope, SearchSourceKind } from "@/native/ipc/primitives";
+import type {
+  FileKind,
+  SearchQueryScope,
+  SearchSourceKind,
+} from "@/native/ipc/primitives";
 
 export function mergeLibrarySearchResults(
   backendResults: SearchResult[],
@@ -14,7 +18,9 @@ export function mergeLibrarySearchResults(
   options: LibrarySearchOptions = {},
 ): SearchResult[] {
   const merged = [...backendResults];
-  const seen = new Set(backendResults.map((result) => normalizePath(result.entry.path)));
+  const seen = new Set(
+    backendResults.map((result) => normalizePath(result.entry.path)),
+  );
   for (const result of librarySearchResults(library, query, options)) {
     const key = normalizePath(result.entry.path);
     if (seen.has(key)) continue;
@@ -23,7 +29,9 @@ export function mergeLibrarySearchResults(
   }
   return merged
     .sort(
-      (left, right) => right.score - left.score || left.entry.name.localeCompare(right.entry.name),
+      (left, right) =>
+        right.score - left.score ||
+        left.entry.name.localeCompare(right.entry.name),
     )
     .slice(0, options.limit ?? merged.length);
 }
@@ -35,7 +43,11 @@ export function librarySearchResults(
 ): SearchResult[] {
   if (!library) return [];
   const parsed = parseLibraryQuery(query);
-  if (parsed.terms.length === 0 && parsed.tags.length === 0 && parsed.comments.length === 0)
+  if (
+    parsed.terms.length === 0 &&
+    parsed.tags.length === 0 &&
+    parsed.comments.length === 0
+  )
     return [];
   const limit = options.limit ?? 100;
   const indexedAtMs = Date.now();
@@ -43,14 +55,17 @@ export function librarySearchResults(
     .map((item) => scoreLibraryItem(item, parsed, options, indexedAtMs))
     .filter((result): result is SearchResult => Boolean(result))
     .sort(
-      (left, right) => right.score - left.score || left.entry.name.localeCompare(right.entry.name),
+      (left, right) =>
+        right.score - left.score ||
+        left.entry.name.localeCompare(right.entry.name),
     )
     .slice(0, limit);
 }
 
 function parseLibraryQuery(query: string): ParsedLibraryQuery {
   const parsed: ParsedLibraryQuery = { terms: [], tags: [], comments: [] };
-  for (const token of query.match(/(?:tag|comment):"[^"]+"|"[^"]+"|\S+/gi) ?? []) {
+  for (const token of query.match(/(?:tag|comment):"[^"]+"|"[^"]+"|\S+/gi) ??
+    []) {
     const value = unquoteLibraryQueryToken(token).trim().toLowerCase();
     if (!value) continue;
     if (value.startsWith("tag:")) parsed.tags.push(value.slice(4));
@@ -83,22 +98,38 @@ function scoreLibraryItem(
   )
     return null;
 
-  const haystack = [item.name, item.path, item.mimeType, ...(item.tags ?? []), item.comments ?? ""]
+  const haystack = [
+    item.name,
+    item.path,
+    item.mimeType,
+    ...(item.tags ?? []),
+    item.comments ?? "",
+  ]
     .join(" ")
     .toLowerCase();
   if (!query.terms.every((term) => haystack.includes(term))) return null;
   if (
     !query.tags.every((tag) =>
-      (item.tags ?? []).some((candidate) => candidate.toLowerCase().includes(tag)),
+      (item.tags ?? []).some((candidate) =>
+        candidate.toLowerCase().includes(tag),
+      ),
     )
   )
     return null;
-  if (!query.comments.every((comment) => (item.comments ?? "").toLowerCase().includes(comment)))
+  if (
+    !query.comments.every((comment) =>
+      (item.comments ?? "").toLowerCase().includes(comment),
+    )
+  )
     return null;
 
   const tagBoost = query.tags.length > 0 ? 0.25 : 0;
   const commentBoost = query.comments.length > 0 ? 0.15 : 0;
-  const nameBoost = query.terms.some((term) => item.name.toLowerCase().includes(term)) ? 0.2 : 0;
+  const nameBoost = query.terms.some((term) =>
+    item.name.toLowerCase().includes(term),
+  )
+    ? 0.2
+    : 0;
   return {
     entry: fileEntryFromLibraryItem(item, sourceKind),
     score: 0.72 + tagBoost + commentBoost + nameBoost,
@@ -127,11 +158,23 @@ function fileEntryFromLibraryItem(
   sourceKind: SearchSourceKind,
 ): FileEntry {
   const kind: FileKind = item.isDir ? "folder" : "file";
-  const extension = item.name.includes(".") ? item.name.slice(item.name.lastIndexOf(".")) : "";
+  const extension = item.name.includes(".")
+    ? item.name.slice(item.name.lastIndexOf("."))
+    : "";
   const location: ExplorerLocation =
     sourceKind === "remote"
-      ? { kind: "remote", providerType: null, remoteName: null, remotePath: item.path }
-      : { kind: "local", providerType: null, remoteName: null, remotePath: null };
+      ? {
+          kind: "remote",
+          providerType: null,
+          remoteName: null,
+          remotePath: item.path,
+        }
+      : {
+          kind: "local",
+          providerType: null,
+          remoteName: null,
+          remotePath: null,
+        };
   return {
     id: item.id || item.path,
     name: item.name || item.path.split("/").filter(Boolean).pop() || item.path,

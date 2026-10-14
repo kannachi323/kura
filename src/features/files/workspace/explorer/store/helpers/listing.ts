@@ -11,20 +11,27 @@ import type {
   FileEntry,
   TransferRecord,
 } from "@/native/ipc";
-import { explorerPathKey, normalizeExplorerPath } from "@/shared/lib/pathNormalization";
+import {
+  explorerPathKey,
+  normalizeExplorerPath,
+} from "@/shared/lib/pathNormalization";
 
 import type { PaneExplorerState } from "../../model/interfaces/store/types";
 import { explorerRuntime, getExplorerStore } from "../runtime";
 import * as H from "./index";
 
-export function shouldShowLoadingSkeleton(pane: PaneExplorerState, path: string): boolean {
+export function shouldShowLoadingSkeleton(
+  pane: PaneExplorerState,
+  path: string,
+): boolean {
   const knownLocation = pane.needsLoad
     ? undefined
     : H.samePath(pane.listing?.path ?? "", path)
       ? pane.listing?.location
-      : pane.listing?.entries.find((entry) => H.samePath(entry.path, path))?.location;
+      : pane.listing?.entries.find((entry) => H.samePath(entry.path, path))
+          ?.location;
   if (knownLocation) return knownLocation.kind !== "local";
-  if (path.startsWith("misty://")) return false;
+  if (path.startsWith("kura://")) return false;
 
   const environment = useAppStore.getState().app?.environment;
   if (!environment) return false;
@@ -51,7 +58,10 @@ export function shouldShowLoadingSkeleton(pane: PaneExplorerState, path: string)
 
 export { applyNavigationResult } from "../../utils/paneNavigation";
 
-export function directoryListingsEqual(left: DirectoryListing, right: DirectoryListing): boolean {
+export function directoryListingsEqual(
+  left: DirectoryListing,
+  right: DirectoryListing,
+): boolean {
   if (left === right) return true;
   if (
     left.path !== right.path ||
@@ -73,7 +83,9 @@ export function directoryListingsEqual(left: DirectoryListing, right: DirectoryL
       return false;
     }
   }
-  return left.entries.every((entry, index) => H.fileEntriesEqual(entry, right.entries[index]));
+  return left.entries.every((entry, index) =>
+    H.fileEntriesEqual(entry, right.entries[index]),
+  );
 }
 
 export function fileEntriesEqual(left: FileEntry, right: FileEntry): boolean {
@@ -103,11 +115,15 @@ export function normalizedPath(path: string): string {
   return normalizeExplorerPath(path) || "/";
 }
 
-export function normalizeDirectoryListingPaths(listing: DirectoryListing): DirectoryListing {
+export function normalizeDirectoryListingPaths(
+  listing: DirectoryListing,
+): DirectoryListing {
   return {
     ...listing,
     path: normalizeExplorerPath(listing.path),
-    parentPath: listing.parentPath ? normalizeExplorerPath(listing.parentPath) : null,
+    parentPath: listing.parentPath
+      ? normalizeExplorerPath(listing.parentPath)
+      : null,
     entries: listing.entries.map((entry) => ({
       ...entry,
       path: normalizeExplorerPath(entry.path),
@@ -123,7 +139,8 @@ export function libraryItemFromEntry(entry: FileEntry): ExplorerLibraryItem {
     isDir: entry.kind === "folder",
     size: entry.sizeBytes ?? 0,
     lastModified:
-      entry.remoteModified ?? (entry.modifiedMs ? new Date(entry.modifiedMs).toISOString() : ""),
+      entry.remoteModified ??
+      (entry.modifiedMs ? new Date(entry.modifiedMs).toISOString() : ""),
     mimeType: entry.mimeType ?? "",
     type: entry.location.kind === "remote" ? 1 : 0,
   };
@@ -131,11 +148,18 @@ export function libraryItemFromEntry(entry: FileEntry): ExplorerLibraryItem {
 
 export function loadPinnedPaths(): string[] {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem("misty.explorer.pinnedPaths") ?? "[]");
+    const parsed = JSON.parse(
+      window.localStorage.getItem("misty.explorer.pinnedPaths") ?? "[]",
+    );
     const pinnedPaths = Array.isArray(parsed)
-      ? H.normalizePinnedPaths(parsed.filter((value): value is string => typeof value === "string"))
+      ? H.normalizePinnedPaths(
+          parsed.filter((value): value is string => typeof value === "string"),
+        )
       : [];
-    window.localStorage.setItem("misty.explorer.pinnedPaths", JSON.stringify(pinnedPaths));
+    window.localStorage.setItem(
+      "misty.explorer.pinnedPaths",
+      JSON.stringify(pinnedPaths),
+    );
     return pinnedPaths;
   } catch {
     return [];
@@ -146,7 +170,11 @@ export function normalizePinnedPaths(paths: string[]): string[] {
   const normalized: string[] = [];
   for (const path of paths) {
     const candidate = H.normalizedPath(path.trim());
-    if (!candidate || normalized.some((existing) => H.samePath(existing, candidate))) continue;
+    if (
+      !candidate ||
+      normalized.some((existing) => H.samePath(existing, candidate))
+    )
+      continue;
     normalized.push(candidate);
   }
   return normalized;
@@ -174,7 +202,11 @@ export function queuePaneRefresh(
 
   const clearIfIdle = () => {
     const current = explorerRuntime.pendingPaneRefreshes.get(key);
-    if (current && current.firstTimer === null && current.followupTimer === null) {
+    if (
+      current &&
+      current.firstTimer === null &&
+      current.followupTimer === null
+    ) {
       explorerRuntime.pendingPaneRefreshes.delete(key);
     }
   };
@@ -210,8 +242,16 @@ export function transferTouchesDirectory(
   const remote = H.remoteBrowseTargetForPath(directoryPath, mountRoot);
   if (remote) {
     return (
-      H.remoteTransferMatchesDirectory(remote, row.remoteSourceName, row.remoteSourcePath) ||
-      H.remoteTransferMatchesDirectory(remote, row.remoteDestName, row.remoteDestPath)
+      H.remoteTransferMatchesDirectory(
+        remote,
+        row.remoteSourceName,
+        row.remoteSourcePath,
+      ) ||
+      H.remoteTransferMatchesDirectory(
+        remote,
+        row.remoteDestName,
+        row.remoteDestPath,
+      )
     );
   }
   return (
@@ -233,8 +273,11 @@ export function remoteTransferMatchesDirectory(
   remoteName: string,
   remotePath: string,
 ): boolean {
-  if (!remoteName || current.remoteName !== remoteName || !remotePath) return false;
-  return H.normalizedPath(current.remotePath) === H.remoteParentDirectory(remotePath);
+  if (!remoteName || current.remoteName !== remoteName || !remotePath)
+    return false;
+  return (
+    H.normalizedPath(current.remotePath) === H.remoteParentDirectory(remotePath)
+  );
 }
 
 export function remoteBrowseTargetForPath(
@@ -243,7 +286,8 @@ export function remoteBrowseTargetForPath(
 ): { remoteName: string; remotePath: string } | null {
   const cleanPath = H.normalizedPath(path);
   const cleanMount = H.normalizedPath(mountRoot);
-  if (cleanPath !== cleanMount && !cleanPath.startsWith(`${cleanMount}/`)) return null;
+  if (cleanPath !== cleanMount && !cleanPath.startsWith(`${cleanMount}/`))
+    return null;
   const parts = cleanPath.slice(cleanMount.length).split("/").filter(Boolean);
   if (parts.length < 1) return null;
   return {
@@ -257,7 +301,8 @@ export function parentDirectory(path: string): string {
   if (/^[A-Za-z]:\/?$/.test(normalized))
     return normalized.endsWith("/") ? normalized : `${normalized}/`;
   const slash = normalized.lastIndexOf("/");
-  if (slash === 2 && /^[A-Za-z]:\//.test(normalized)) return normalized.slice(0, 3);
+  if (slash === 2 && /^[A-Za-z]:\//.test(normalized))
+    return normalized.slice(0, 3);
   if (slash <= 0) return "/";
   return normalized.slice(0, slash);
 }
@@ -269,6 +314,8 @@ export function remoteParentDirectory(path: string): string {
 
 export function setPreviewVisibleForPane(paneId: string): void {
   const multi = multiPanelStoreForPane(paneId).getState();
-  const tab = multi.tabs.find((candidate) => candidate.panes.some((pane) => pane.id === paneId));
+  const tab = multi.tabs.find((candidate) =>
+    candidate.panes.some((pane) => pane.id === paneId),
+  );
   if (tab) multi.setTabPanelVisibility(tab.id, { previewVisible: true });
 }

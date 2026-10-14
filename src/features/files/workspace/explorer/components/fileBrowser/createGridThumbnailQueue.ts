@@ -24,7 +24,10 @@ export function createGridThumbnailQueue(
   let backgroundGridThumbnailTimer: number | null = null;
 
   /** Keyed on everything that would change the pixels, so edits invalidate it. */
-  function gridThumbnailCacheKey(entry: FileEntry, maxDimension: number): string {
+  function gridThumbnailCacheKey(
+    entry: FileEntry,
+    maxDimension: number,
+  ): string {
     return [
       entry.path,
       entry.sizeBytes ?? "",
@@ -82,7 +85,8 @@ export function createGridThumbnailQueue(
   ): GridThumbnailJob | null {
     if (closed) return null;
     const key = gridThumbnailCacheKey(entry, maxDimension);
-    if (gridThumbnailUrlCache.has(key) || failedGridThumbnails.has(key)) return null;
+    if (gridThumbnailUrlCache.has(key) || failedGridThumbnails.has(key))
+      return null;
 
     const existing = gridThumbnailJobs.get(key);
     if (existing) {
@@ -124,10 +128,16 @@ export function createGridThumbnailQueue(
   }
 
   function processNextGridThumbnail(): void {
-    while (!closed && activeGridThumbnailJobs < MAX_CONCURRENT_GRID_THUMBNAILS) {
+    while (
+      !closed &&
+      activeGridThumbnailJobs < MAX_CONCURRENT_GRID_THUMBNAILS
+    ) {
       const job = gridThumbnailQueue.shift();
       if (!job) return;
-      if (gridThumbnailUrlCache.has(job.key) || failedGridThumbnails.has(job.key)) {
+      if (
+        gridThumbnailUrlCache.has(job.key) ||
+        failedGridThumbnails.has(job.key)
+      ) {
         gridThumbnailJobs.delete(job.key);
         continue;
       }
@@ -151,7 +161,8 @@ export function createGridThumbnailQueue(
         .finally(() => {
           job.processing = false;
           activeGridThumbnailJobs -= 1;
-          if (gridThumbnailJobs.get(job.key) === job) gridThumbnailJobs.delete(job.key);
+          if (gridThumbnailJobs.get(job.key) === job)
+            gridThumbnailJobs.delete(job.key);
           processNextGridThumbnail();
         });
     }
@@ -164,7 +175,8 @@ export function createGridThumbnailQueue(
 
   function clear() {
     currentGeneration++;
-    if (backgroundGridThumbnailTimer !== null) window.clearTimeout(backgroundGridThumbnailTimer);
+    if (backgroundGridThumbnailTimer !== null)
+      window.clearTimeout(backgroundGridThumbnailTimer);
     backgroundGridThumbnailTimer = null;
     for (const url of gridThumbnailUrlCache.values()) releaseUrl(url);
     gridThumbnailUrlCache.clear();

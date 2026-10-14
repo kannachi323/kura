@@ -16,7 +16,12 @@ import { buildQuickAccessItems } from "./quickAccessItems";
 
 /** One Quick access row: a platform folder or a user pin, in display order. */
 export type QuickAccessRow =
-  | { kind: "builtIn"; path: string; label: string; icon: QuickAccessItem["icon"] }
+  | {
+      kind: "builtIn";
+      path: string;
+      label: string;
+      icon: QuickAccessItem["icon"];
+    }
   | { kind: "pinned"; path: string; label: string };
 
 /**
@@ -51,22 +56,37 @@ export function useSidebarQuickAccess(options: {
   const visiblePinnedPaths = useMemo(
     () =>
       dedupePinnedPathsForQuickAccess(
-        sidebar.pinnedPaths.filter((path) => !isRetiredCloudLocation(path, sidebar.mountRoot)),
+        sidebar.pinnedPaths.filter(
+          (path) => !isRetiredCloudLocation(path, sidebar.mountRoot),
+        ),
         quickAccess
-          .filter((item) => !quickAccessPathHidden(item.path, hiddenQuickAccessPaths))
+          .filter(
+            (item) => !quickAccessPathHidden(item.path, hiddenQuickAccessPaths),
+          )
           .map((item) => item.path),
       ),
-    [hiddenQuickAccessPaths, sidebar.pinnedPaths, sidebar.mountRoot, quickAccess],
+    [
+      hiddenQuickAccessPaths,
+      sidebar.pinnedPaths,
+      sidebar.mountRoot,
+      quickAccess,
+    ],
   );
   const visibleQuickAccess = useMemo(
-    () => quickAccess.filter((item) => !quickAccessPathHidden(item.path, hiddenQuickAccessPaths)),
+    () =>
+      quickAccess.filter(
+        (item) => !quickAccessPathHidden(item.path, hiddenQuickAccessPaths),
+      ),
     [hiddenQuickAccessPaths, quickAccess],
   );
   const rows = useMemo<QuickAccessRow[]>(
     () =>
       orderQuickAccessRows(
         [
-          ...visibleQuickAccess.map((item) => ({ kind: "builtIn" as const, ...item })),
+          ...visibleQuickAccess.map((item) => ({
+            kind: "builtIn" as const,
+            ...item,
+          })),
           ...visiblePinnedPaths.map((path) => ({
             kind: "pinned" as const,
             path,
@@ -89,7 +109,9 @@ export function useSidebarQuickAccess(options: {
     );
   const removeQuickAccessItem = (item: QuickAccessMenuItem) => {
     if (item.kind === "builtIn") {
-      setHiddenQuickAccessPaths((paths) => addHiddenQuickAccessPath(paths, item.path));
+      setHiddenQuickAccessPaths((paths) =>
+        addHiddenQuickAccessPath(paths, item.path),
+      );
     } else {
       sidebar.onUnpinPinnedPath(item.path);
     }
@@ -101,7 +123,8 @@ export function useSidebarQuickAccess(options: {
     setHiddenQuickAccessPaths((paths) =>
       quickAccessPathHidden(path, paths)
         ? paths.filter(
-            (candidate) => normalizeSidebarPath(candidate) !== normalizeSidebarPath(path),
+            (candidate) =>
+              normalizeSidebarPath(candidate) !== normalizeSidebarPath(path),
           )
         : addHiddenQuickAccessPath(paths, path),
     );

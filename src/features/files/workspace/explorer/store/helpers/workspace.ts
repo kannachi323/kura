@@ -1,3 +1,5 @@
 export function isExplorerInternalTabPath(path: string): boolean {
-  return path.startsWith("misty-transfers://") || path.startsWith("misty-plugin://");
+  return (
+    path.startsWith("kura-transfers://") || path.startsWith("kura-plugin://")
+  );
 }

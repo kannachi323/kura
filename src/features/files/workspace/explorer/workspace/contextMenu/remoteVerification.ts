@@ -4,7 +4,9 @@ import { explorerCompareWithEvent } from "../ExplorerWorkspaceConstants";
 
 export function openCompareWith(paneId: string): void {
   window.dispatchEvent(
-    new CustomEvent(explorerCompareWithEvent, { detail: compareSeedForPane(paneId) }),
+    new CustomEvent(explorerCompareWithEvent, {
+      detail: compareSeedForPane(paneId),
+    }),
   );
 }
 
