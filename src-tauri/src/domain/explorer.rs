@@ -310,9 +310,12 @@ pub fn list_directory(
         if hidden && !show_hidden {
             continue;
         }
-        if let Some(entry) = file_entry(item.path(), file_name) {
-            entries.push(entry);
-        }
+        // The directory read already carries this metadata (it does not follow
+        // symlinks), so there is no second stat call per entry.
+        let Ok(metadata) = item.metadata() else {
+            continue;
+        };
+        entries.push(file_entry(item.path(), file_name, metadata));
     }
 
     entries.sort_by(|left, right| {
@@ -431,8 +434,7 @@ fn validate_file_name(name: &str) -> ApiResult<&str> {
     }
 }
 
-fn file_entry(path: PathBuf, name: String) -> Option<FileEntry> {
-    let metadata = fs::symlink_metadata(&path).ok()?;
+fn file_entry(path: PathBuf, name: String, metadata: fs::Metadata) -> FileEntry {
     let file_type = metadata.file_type();
     let kind = if file_type.is_symlink() {
         FileKind::Symlink
@@ -443,7 +445,7 @@ fn file_entry(path: PathBuf, name: String) -> Option<FileEntry> {
     } else {
         FileKind::Other
     };
-    Some(FileEntry {
+    FileEntry {
         id: display_path(&path),
         extension: path
             .extension()
@@ -470,7 +472,7 @@ fn file_entry(path: PathBuf, name: String) -> Option<FileEntry> {
         readonly: metadata.permissions().readonly(),
         is_deleted: false,
         location: ExplorerLocation::local(),
-    })
+    }
 }
 
 fn copy_path(source: &Path, destination: &Path) -> ApiResult<()> {

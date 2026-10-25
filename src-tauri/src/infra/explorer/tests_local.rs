@@ -237,3 +237,28 @@ async fn lists_local_files_and_rejects_retired_cloud_locations() {
     }
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[tokio::test]
+async fn listing_reports_kind_size_and_sorts_folders_first() {
+    let root = unique_test_dir("listing-metadata");
+    std::fs::create_dir_all(root.join("Zeta")).unwrap();
+    std::fs::write(root.join("alpha.txt"), b"12345").unwrap();
+    std::fs::write(root.join("Beta.txt"), b"").unwrap();
+    let service = test_explorer_service_for_home(root.clone());
+    let listing = service
+        .list_directory(ListDirectoryRequest {
+            path: Some(display_path(&root)),
+            show_hidden: Some(false),
+            force_remote_refresh: None,
+        })
+        .await
+        .unwrap();
+    let names: Vec<&str> = listing.entries.iter().map(|e| e.name.as_str()).collect();
+    assert_eq!(names, ["Zeta", "alpha.txt", "Beta.txt"]);
+    assert!(matches!(listing.entries[0].kind, FileKind::Folder));
+    assert_eq!(listing.entries[0].size_bytes, None);
+    assert_eq!(listing.entries[1].size_bytes, Some(5));
+    assert_eq!(listing.entries[2].size_bytes, Some(0));
+    assert!(listing.entries.iter().all(|e| e.modified_ms.is_some()));
+    let _ = std::fs::remove_dir_all(&root);
+}
