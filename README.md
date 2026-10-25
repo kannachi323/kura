@@ -11,6 +11,21 @@ Kura is a free, open-source file manager for macOS, Windows and Linux. It works 
 
 If the [Misty](https://mistysys.com) app is running on the same computer, Kura can show the clipboard you share across your Misty devices. Kura itself never signs in or talks to Misty's servers. Misty asks before it lets Kura connect.
 
+## Performance
+
+Listing a folder of 100,000 entries takes about 0.2 seconds, 19x faster than the first
+version. Each entry's metadata now comes from the directory read itself instead of a second
+stat call per file.
+
+| Entries in folder | Before | After |
+| ---: | ---: | ---: |
+| 1,000 | 40.8 ms | 2.6 ms |
+| 10,000 | 414 ms | 21.9 ms |
+| 100,000 | 4,150 ms | 212 ms |
+
+Median of 15 runs, release build, Ryzen 5 5600X, SSD, Windows 11. The benchmark is part of the
+test suite, so you can rerun it on your machine. See [docs/benchmarks.md](docs/benchmarks.md).
+
 ## Develop
 
 Kura uses Tauri 2, React and Rust (the toolchain is pinned in `rust-toolchain.toml`).
