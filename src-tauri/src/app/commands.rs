@@ -650,10 +650,10 @@ fn open_terminal_default(path: &str, preferred: &str) -> ApiResult<()> {
                 Err(err) => errors.push(format!("{candidate}: {err}")),
             }
         }
-        return Err(ApiError::Message(format!(
+        Err(ApiError::Message(format!(
             "Failed to open a terminal for {trimmed}. Tried: {}",
             errors.join("; ")
-        )));
+        )))
     }
 }
 

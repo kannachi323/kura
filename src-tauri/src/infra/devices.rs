@@ -394,7 +394,7 @@ fn should_show_mount(mount_path: &str, fs_name: &str) -> bool {
         {
             return !linux_skip_fs(fs_name);
         }
-        return false;
+        false
     }
 
     #[cfg(target_os = "windows")]
@@ -463,7 +463,7 @@ fn is_removable_mount(mount_path: &str) -> bool {
     }
     #[cfg(target_os = "linux")]
     {
-        return mount_path.starts_with("/media/") || mount_path.starts_with("/run/media/");
+        mount_path.starts_with("/media/") || mount_path.starts_with("/run/media/")
     }
     #[cfg(target_os = "windows")]
     {
