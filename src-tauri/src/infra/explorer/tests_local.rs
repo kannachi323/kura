@@ -260,5 +260,15 @@ async fn listing_reports_kind_size_and_sorts_folders_first() {
     assert_eq!(listing.entries[1].size_bytes, Some(5));
     assert_eq!(listing.entries[2].size_bytes, Some(0));
     assert!(listing.entries.iter().all(|e| e.modified_ms.is_some()));
+    // Entry paths are the canonical folder joined with the name, which is how
+    // they were built before the join was replaced by string concatenation.
+    let canonical = root.canonicalize().unwrap();
+    for entry in &listing.entries {
+        assert_eq!(
+            entry.path,
+            canonical.join(&entry.name).display().to_string()
+        );
+        assert_eq!(entry.id, entry.path);
+    }
     let _ = std::fs::remove_dir_all(&root);
 }

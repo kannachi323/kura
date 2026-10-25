@@ -293,6 +293,13 @@ pub fn list_directory(
         ))
     })?;
 
+    // Entry paths are this folder's path plus the name, as `Path::join` would
+    // build them. Joining onto the canonical form is slow on Windows, where
+    // it is a verbatim `\?\` path, so the string is built directly.
+    let mut path_prefix = display_path(&path);
+    if !path_prefix.ends_with(std::path::is_separator) {
+        path_prefix.push(std::path::MAIN_SEPARATOR);
+    }
     let mut entries = Vec::new();
     let mut total_count = 0usize;
     let mut hidden_count = 0usize;
@@ -315,7 +322,10 @@ pub fn list_directory(
         let Ok(metadata) = item.metadata() else {
             continue;
         };
-        entries.push(file_entry(item.path(), file_name, metadata));
+        let mut entry_path = String::with_capacity(path_prefix.len() + file_name.len());
+        entry_path.push_str(&path_prefix);
+        entry_path.push_str(&file_name);
+        entries.push(file_entry(entry_path, file_name, metadata));
     }
 
     entries.sort_by(|left, right| {
@@ -434,7 +444,7 @@ fn validate_file_name(name: &str) -> ApiResult<&str> {
     }
 }
 
-fn file_entry(path: PathBuf, name: String, metadata: fs::Metadata) -> FileEntry {
+fn file_entry(path: String, name: String, metadata: fs::Metadata) -> FileEntry {
     let file_type = metadata.file_type();
     let kind = if file_type.is_symlink() {
         FileKind::Symlink
@@ -445,22 +455,20 @@ fn file_entry(path: PathBuf, name: String, metadata: fs::Metadata) -> FileEntry 
     } else {
         FileKind::Other
     };
+    let extension = Path::new(&name)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_owned();
+    let hidden = name.starts_with('.');
     FileEntry {
-        id: display_path(&path),
-        extension: path
-            .extension()
-            .and_then(|value| value.to_str())
-            .unwrap_or_default()
-            .to_owned(),
+        id: path.clone(),
+        extension,
         mime_type: None,
         remote_modified: None,
         name,
-        hidden: path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .map(|value| value.starts_with('.'))
-            .unwrap_or(false),
-        path: display_path(&path),
+        hidden,
+        path,
         kind,
         size_bytes: if metadata.is_file() {
             Some(metadata.len())
