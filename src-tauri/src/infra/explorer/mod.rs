@@ -114,6 +114,8 @@ mod test_support;
 #[cfg(test)]
 mod tests_local;
 #[cfg(test)]
+mod tests_perf;
+#[cfg(test)]
 mod tests_preview;
 mod transfer_progress;
 
