@@ -1,0 +1,16 @@
+# Store and check out text as LF on every platform. Prettier, rustfmt and the
+# shell scripts all expect it, and a Windows checkout would otherwise be CRLF.
+* text=auto eol=lf
+
+# Binary files git must not touch.
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
