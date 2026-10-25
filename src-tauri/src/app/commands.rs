@@ -540,8 +540,8 @@ fn open_path_default(file_path: &str) -> ApiResult<()> {
     // as a command line, and file names may contain & | ^ that cmd runs.
     #[cfg(target_os = "windows")]
     {
-        return tauri_plugin_opener::open_path(file_path, None::<&str>)
-            .map_err(|err| ApiError::Message(format!("Failed to open file: {err}")));
+        tauri_plugin_opener::open_path(file_path, None::<&str>)
+            .map_err(|err| ApiError::Message(format!("Failed to open file: {err}")))
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -603,20 +603,18 @@ fn open_terminal_default(path: &str, preferred: &str) -> ApiResult<()> {
             .current_dir(folder)
             .spawn()
         {
-            Ok(_) => return Ok(()),
-            Err(wt_err) => {
-                return Command::new("cmd")
-                    .arg("/K")
-                    .current_dir(folder)
-                    .creation_flags(CREATE_NEW_CONSOLE)
-                    .spawn()
-                    .map(|_| ())
-                    .map_err(|cmd_err| {
-                        ApiError::Message(format!(
-                            "Failed to open Windows Terminal ({wt_err}) or Command Prompt ({cmd_err})."
-                        ))
-                    });
-            }
+            Ok(_) => Ok(()),
+            Err(wt_err) => Command::new("cmd")
+                .arg("/K")
+                .current_dir(folder)
+                .creation_flags(CREATE_NEW_CONSOLE)
+                .spawn()
+                .map(|_| ())
+                .map_err(|cmd_err| {
+                    ApiError::Message(format!(
+                        "Failed to open Windows Terminal ({wt_err}) or Command Prompt ({cmd_err})."
+                    ))
+                }),
         }
     }
 
