@@ -218,7 +218,7 @@ pub(super) fn psd_pixels_to_rgba8(
     use zune_psd::zune_core::colorspace::ColorSpace;
 
     let channels = color_space.num_components();
-    if channels == 0 || pixels.len() % channels != 0 {
+    if channels == 0 || !pixels.len().is_multiple_of(channels) {
         return None;
     }
     let mut rgba = Vec::with_capacity((pixels.len() / channels) * 4);

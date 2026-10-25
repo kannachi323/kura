@@ -879,7 +879,7 @@ impl SearchService {
     }
 
     fn set_current_path_throttled(&self, path: &Path, count: u64) {
-        if count % 250 != 0 {
+        if !count.is_multiple_of(250) {
             return;
         }
         if let Ok(mut state) = self.inner.state.write() {
@@ -973,7 +973,7 @@ impl Default for ScanPacer {
 impl ScanPacer {
     fn pace(&mut self) {
         self.entries = self.entries.wrapping_add(1);
-        if self.entries % 256 != 0 || self.burst_started.elapsed() < SCAN_BURST {
+        if !self.entries.is_multiple_of(256) || self.burst_started.elapsed() < SCAN_BURST {
             return;
         }
         std::thread::sleep(SCAN_PAUSE);
