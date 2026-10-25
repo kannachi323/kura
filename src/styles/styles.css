@@ -747,10 +747,9 @@
   }
 
   .coding-workspace {
-    grid-template-rows: calc(var(--code-control-height) + 2px) minmax(
-        0,
-        1fr
-      ) var(--code-status-height);
+    grid-template-rows:
+      calc(var(--code-control-height) + 2px) minmax(0, 1fr)
+      var(--code-status-height);
     background: var(--code-workspace-bg);
     color: var(--code-fg);
     font-size: var(--code-interface-font-size);
