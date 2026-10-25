@@ -2381,7 +2381,10 @@ mod incremental_tests {
 
     #[test]
     fn caches_and_app_data_are_skipped_but_documents_and_chosen_roots_are_not() {
-        let home = Path::new("/Users/example");
+        // A temp-dir home is absolute on every platform; "/Users/example" has
+        // no drive letter on Windows, so ignored paths under it read as names.
+        let home_dir = std::env::temp_dir().join("kura-example-home");
+        let home = home_dir.as_path();
         let privacy = crate::infra::macos_privacy::BackgroundScanExclusions::new(home);
         let mount = home.join(".kura/mnt");
         let filter = ScanFilter::new(home, home, &mount, &[], &privacy);
@@ -2414,9 +2417,10 @@ mod incremental_tests {
 
     #[test]
     fn key_ranges_cover_exactly_the_entries_below_a_root() {
-        let (lower, upper) = local_key_range("/Users/a");
-        let inside = format!("local\u{0}/Users/a/b");
-        let sibling = format!("local\u{0}/Users/ab");
+        let separator = std::path::MAIN_SEPARATOR;
+        let (lower, upper) = local_key_range(&format!("{separator}Users{separator}a"));
+        let inside = format!("local\u{0}{separator}Users{separator}a{separator}b");
+        let sibling = format!("local\u{0}{separator}Users{separator}ab");
         assert!(inside > lower && inside < upper);
         assert!(!(sibling > lower && sibling < upper));
     }
