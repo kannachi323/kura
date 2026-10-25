@@ -1,5 +1,7 @@
 # Kura
 
+[![CI](https://github.com/kannachi323/kura/actions/workflows/ci.yml/badge.svg)](https://github.com/kannachi323/kura/actions/workflows/ci.yml)
+
 Kura is a free, open-source file manager for macOS, Windows and Linux. It works entirely on your device: no account, no sign-in and no cloud service.
 
 - Tabs, split panes, list and grid views, and a preview panel for images, video, audio, PDFs, documents and archives.
