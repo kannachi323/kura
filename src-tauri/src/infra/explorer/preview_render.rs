@@ -246,4 +246,3 @@ pub(super) fn pdf_preview_path(path: &Path, metadata: &std::fs::Metadata) -> Pat
     let digest = hasher.finalize();
     std::env::temp_dir().join(format!("kura-preview-{}.png", hex::encode(&digest[..16])))
 }
-

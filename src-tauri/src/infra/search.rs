@@ -342,17 +342,17 @@ impl SearchService {
     }
 
     fn open_index(&self, path: &Path) -> ApiResult<(Index, IndexReader, SearchIndexFields)> {
-                {
+        {
             open_or_create_index(path)
         }
     }
     fn fresh_index(&self, path: &Path) -> ApiResult<(Index, SearchIndexFields)> {
-                {
+        {
             create_fresh_index(path)
         }
     }
     fn access_cancelled(&self) -> bool {
-                {
+        {
             false
         }
     }
@@ -2433,4 +2433,3 @@ fn delete_doc(writer: &IndexWriter, fields: &SearchIndexFields, path: &str) -> A
 #[path = "search_local_query.rs"]
 mod local_query;
 use local_query::query_documents;
-

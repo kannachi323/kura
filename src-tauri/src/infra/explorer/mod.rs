@@ -74,7 +74,6 @@ pub struct ExplorerService {
 }
 
 impl ExplorerService {
-
     pub fn new(
         environment: AppEnvironmentService,
         transfers: TransferService,

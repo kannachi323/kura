@@ -32,7 +32,6 @@ use crate::infra::{
     transfers::{TransferQueuePatch, TransferService},
 };
 
-
 #[derive(Clone)]
 pub struct OperationQueueService {
     queue: OperationQueue,
@@ -74,7 +73,6 @@ impl OperationQueueService {
             pumping: Arc::new(AtomicBool::new(false)),
         }
     }
-
 
     /// Like `ExplorerService::item_is_directory`, for local and connected-device paths.
     async fn is_directory_at(&self, path: &str) -> ApiResult<Option<bool>> {

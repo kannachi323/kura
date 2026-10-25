@@ -95,12 +95,6 @@ pub async fn app_snapshot(state: State<'_, KuraRuntime>) -> ApiResult<AppSnapsho
     })
 }
 
-
-
-
-
-
-
 #[tauri::command]
 pub async fn file_metadata_snapshot(
     path: String,
@@ -124,10 +118,6 @@ pub fn clipboard_set_local(
 ) -> ClipboardPayload {
     state.clipboard.set_local_misty_payload(payload)
 }
-
-
-
-
 
 #[tauri::command]
 pub fn clipboard_native_file_refs() -> ApiResult<Vec<PasteItem>> {
@@ -214,7 +204,6 @@ pub async fn explorer_list_directory(
     app: AppHandle,
     state: State<'_, KuraRuntime>,
 ) -> ApiResult<DirectoryListing> {
-
     state.explorer.list_directory(request).await
 }
 
@@ -233,11 +222,6 @@ pub async fn explorer_calculate_directory_sizes(
 ) -> ApiResult<Vec<DirectorySizeRecord>> {
     state.directory_size.calculate(request).await
 }
-
-
-
-
-
 
 #[tauri::command]
 pub async fn search_init(state: State<'_, KuraRuntime>) -> ApiResult<SearchStatus> {
@@ -270,8 +254,6 @@ pub async fn search_query(
     state.search.query(request).await
 }
 
-
-
 #[tauri::command]
 pub async fn explorer_prepare_open_item(
     request: PrepareOpenItemRequest,
@@ -297,7 +279,6 @@ pub async fn explorer_cancel_drag_preparation(
     Ok(())
 }
 
-
 #[tauri::command]
 pub async fn explorer_preview_item(
     path: String,
@@ -313,7 +294,6 @@ pub async fn explorer_save_preview_item(
 ) -> ApiResult<ExplorerOperationResult> {
     state.explorer.save_preview_item(request).await
 }
-
 
 #[tauri::command]
 pub async fn explorer_generate_image_thumbnail(
@@ -376,29 +356,6 @@ pub async fn explorer_library_record_last_opened(
     state.explorer_library.record_last_opened(request).await
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[tauri::command]
 pub async fn explorer_open_with(application_path: String, file_path: String) -> ApiResult<()> {
     tokio::task::spawn_blocking(move || open_with_application(&application_path, &file_path))
@@ -439,14 +396,12 @@ pub async fn explorer_open_association(
         .await
 }
 
-
 #[tauri::command]
 pub async fn settings_open_with_associations(
     state: State<'_, KuraRuntime>,
 ) -> ApiResult<Vec<OpenWithAssociation>> {
     state.settings.open_with_associations().await
 }
-
 
 #[tauri::command]
 pub async fn explorer_queue_paste_items(
@@ -514,8 +469,6 @@ pub async fn explorer_queue_delete_items(
     state.operation_queue.enqueue_delete_items(request).await
 }
 
-
-
 #[tauri::command]
 pub async fn settings_snapshot(state: State<'_, KuraRuntime>) -> ApiResult<SettingsSnapshot> {
     state.settings.snapshot().await
@@ -528,11 +481,6 @@ pub async fn settings_save(
 ) -> ApiResult<SettingsSnapshot> {
     state.settings.save(request).await
 }
-
-
-
-
-
 
 #[tauri::command]
 pub async fn devices_snapshot(state: State<'_, KuraRuntime>) -> ApiResult<DeviceSnapshot> {
@@ -553,17 +501,6 @@ pub async fn devices_unmount(
         .map_err(|err| ApiError::Message(format!("Device unmount failed: {err}")))?
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #[tauri::command]
 pub async fn transfers_snapshot(
     filter: Option<TransferFilter>,
@@ -571,8 +508,6 @@ pub async fn transfers_snapshot(
 ) -> ApiResult<TransferPage> {
     state.transfers.snapshot(filter.unwrap_or_default()).await
 }
-
-
 
 fn open_with_application(application_path: &str, file_path: &str) -> ApiResult<()> {
     if application_path.trim().is_empty() || file_path.trim().is_empty() {
@@ -739,8 +674,6 @@ pub async fn operation_queue_cancel(
     state.operation_queue.cancel(operation_id).await
 }
 
-
-
 #[tauri::command]
 pub async fn operation_queue_retry_transfer(
     transfer_id: u64,
@@ -765,8 +698,6 @@ pub async fn operation_queue_resume(
     state.operation_queue.resume(operation_id).await
 }
 
-
-
 #[tauri::command]
 pub async fn operation_queue_pause_all(
     state: State<'_, KuraRuntime>,
@@ -780,8 +711,6 @@ pub async fn operation_queue_resume_all(
 ) -> ApiResult<OperationQueueSnapshot> {
     Ok(state.operation_queue.resume_all().await)
 }
-
-
 
 #[tauri::command]
 pub async fn operation_queue_undo(
@@ -810,7 +739,6 @@ pub async fn operation_queue_resolve_conflict(
         .resolve_conflict(operation_id, policy, apply_to_batch)
         .await
 }
-
 
 #[tauri::command]
 pub async fn file_sync_pairs_snapshot(
@@ -944,8 +872,6 @@ pub async fn file_tools_checksum(
     state.power_pack.file_tools_checksum(request).await
 }
 
-
-
 #[tauri::command]
 pub async fn file_tools_create_symlink(
     request: FileToolsSymlinkRequest,
@@ -990,5 +916,3 @@ pub async fn navigation_names_update(
     }
     state.navigation_names.update(account, key, name).await
 }
-
-

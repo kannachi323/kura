@@ -27,7 +27,11 @@ mod socket {
 
     /// Misty listens here (see its `clipboard_bridge.rs`).
     fn socket_path() -> Option<PathBuf> {
-        dirs::data_dir().map(|dir| dir.join("com.misty.desktop").join("bridge").join("clipboard.sock"))
+        dirs::data_dir().map(|dir| {
+            dir.join("com.misty.desktop")
+                .join("bridge")
+                .join("clipboard.sock")
+        })
     }
 
     fn token_path() -> Option<PathBuf> {
@@ -60,15 +64,18 @@ mod socket {
 
     /// One request: say hello (Misty may ask the person once), then call.
     pub async fn request(method: &str, params: Value) -> Outcome {
-        let Some(path) = socket_path() else { return Outcome::Unavailable };
+        let Some(path) = socket_path() else {
+            return Outcome::Unavailable;
+        };
         let Ok(stream) = UnixStream::connect(&path).await else {
             return Outcome::Unavailable;
         };
         let (reader, mut writer) = stream.into_split();
         let mut lines = BufReader::new(reader).lines();
         let send = |id: u64, method: &str, params: Value| {
-            let mut line = serde_json::to_vec(&json!({ "id": id, "method": method, "params": params }))
-                .unwrap_or_default();
+            let mut line =
+                serde_json::to_vec(&json!({ "id": id, "method": method, "params": params }))
+                    .unwrap_or_default();
             line.push(b'\n');
             line
         };
@@ -80,7 +87,9 @@ mod socket {
         let Ok(Ok(Some(line))) = timeout(Duration::from_secs(180), lines.next_line()).await else {
             return Outcome::Unavailable;
         };
-        let Ok(reply) = serde_json::from_str::<Value>(&line) else { return Outcome::Unavailable };
+        let Ok(reply) = serde_json::from_str::<Value>(&line) else {
+            return Outcome::Unavailable;
+        };
         match reply["result"]["status"].as_str() {
             Some("approved") => {
                 if let Some(token) = reply["result"]["token"].as_str() {
@@ -96,11 +105,18 @@ mod socket {
         let Ok(Ok(Some(line))) = timeout(Duration::from_secs(120), lines.next_line()).await else {
             return Outcome::Unavailable;
         };
-        let Ok(reply) = serde_json::from_str::<Value>(&line) else { return Outcome::Unavailable };
+        let Ok(reply) = serde_json::from_str::<Value>(&line) else {
+            return Outcome::Unavailable;
+        };
         if reply["ok"].as_bool() == Some(true) {
             Outcome::Ready(reply["result"].clone())
         } else {
-            Outcome::Failed(reply["error"].as_str().unwrap_or("Misty couldn't do that.").to_owned())
+            Outcome::Failed(
+                reply["error"]
+                    .as_str()
+                    .unwrap_or("Misty couldn't do that.")
+                    .to_owned(),
+            )
         }
     }
 }
@@ -127,9 +143,18 @@ use socket::{request, Outcome};
 #[tauri::command]
 pub async fn misty_clipboard_view() -> MistyClipboard {
     match request("list", json!({})).await {
-        Outcome::Ready(view) => MistyClipboard { state: "ready", view: Some(view) },
-        Outcome::Denied => MistyClipboard { state: "denied", view: None },
-        Outcome::Unavailable | Outcome::Failed(_) => MistyClipboard { state: "unavailable", view: None },
+        Outcome::Ready(view) => MistyClipboard {
+            state: "ready",
+            view: Some(view),
+        },
+        Outcome::Denied => MistyClipboard {
+            state: "denied",
+            view: None,
+        },
+        Outcome::Unavailable | Outcome::Failed(_) => MistyClipboard {
+            state: "unavailable",
+            view: None,
+        },
     }
 }
 
@@ -146,11 +171,24 @@ pub async fn misty_clipboard_copy(clip_id: String) -> Result<(), String> {
 
 /// Writes a clip into `directory`: its files, or its text as a text file.
 #[tauri::command]
-pub async fn misty_clipboard_paste(clip_id: String, directory: String) -> Result<Vec<String>, String> {
-    match request("materialize", json!({ "clipId": clip_id, "directory": directory })).await {
+pub async fn misty_clipboard_paste(
+    clip_id: String,
+    directory: String,
+) -> Result<Vec<String>, String> {
+    match request(
+        "materialize",
+        json!({ "clipId": clip_id, "directory": directory }),
+    )
+    .await
+    {
         Outcome::Ready(result) => Ok(result["paths"]
             .as_array()
-            .map(|paths| paths.iter().filter_map(|path| path.as_str().map(str::to_owned)).collect())
+            .map(|paths| {
+                paths
+                    .iter()
+                    .filter_map(|path| path.as_str().map(str::to_owned))
+                    .collect()
+            })
             .unwrap_or_default()),
         Outcome::Failed(error) => Err(error),
         Outcome::Denied => Err("Allow Kura in Misty to use your shared clipboard.".into()),
