@@ -133,9 +133,7 @@ fn load_document(path: &Path) -> ApiResult<Value> {
             // A damaged file falls back to defaults; the next save replaces it.
             _ => Ok(Value::Object(Map::new())),
         },
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            Ok(Value::Object(Map::new()))
-        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Value::Object(Map::new())),
         Err(error) => Err(ApiError::Message(format!(
             "Could not read settings at {}: {error}",
             path.display()

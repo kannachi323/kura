@@ -342,17 +342,17 @@ impl SearchService {
     }
 
     fn open_index(&self, path: &Path) -> ApiResult<(Index, IndexReader, SearchIndexFields)> {
-                {
+        {
             open_or_create_index(path)
         }
     }
     fn fresh_index(&self, path: &Path) -> ApiResult<(Index, SearchIndexFields)> {
-                {
+        {
             create_fresh_index(path)
         }
     }
     fn access_cancelled(&self) -> bool {
-                {
+        {
             false
         }
     }
@@ -879,7 +879,7 @@ impl SearchService {
     }
 
     fn set_current_path_throttled(&self, path: &Path, count: u64) {
-        if count % 250 != 0 {
+        if !count.is_multiple_of(250) {
             return;
         }
         if let Ok(mut state) = self.inner.state.write() {
@@ -973,7 +973,7 @@ impl Default for ScanPacer {
 impl ScanPacer {
     fn pace(&mut self) {
         self.entries = self.entries.wrapping_add(1);
-        if self.entries % 256 != 0 || self.burst_started.elapsed() < SCAN_BURST {
+        if !self.entries.is_multiple_of(256) || self.burst_started.elapsed() < SCAN_BURST {
             return;
         }
         std::thread::sleep(SCAN_PAUSE);
@@ -2381,7 +2381,10 @@ mod incremental_tests {
 
     #[test]
     fn caches_and_app_data_are_skipped_but_documents_and_chosen_roots_are_not() {
-        let home = Path::new("/Users/example");
+        // A temp-dir home is absolute on every platform; "/Users/example" has
+        // no drive letter on Windows, so ignored paths under it read as names.
+        let home_dir = std::env::temp_dir().join("kura-example-home");
+        let home = home_dir.as_path();
         let privacy = crate::infra::macos_privacy::BackgroundScanExclusions::new(home);
         let mount = home.join(".kura/mnt");
         let filter = ScanFilter::new(home, home, &mount, &[], &privacy);
@@ -2414,9 +2417,10 @@ mod incremental_tests {
 
     #[test]
     fn key_ranges_cover_exactly_the_entries_below_a_root() {
-        let (lower, upper) = local_key_range("/Users/a");
-        let inside = format!("local\u{0}/Users/a/b");
-        let sibling = format!("local\u{0}/Users/ab");
+        let separator = std::path::MAIN_SEPARATOR;
+        let (lower, upper) = local_key_range(&format!("{separator}Users{separator}a"));
+        let inside = format!("local\u{0}{separator}Users{separator}a{separator}b");
+        let sibling = format!("local\u{0}{separator}Users{separator}ab");
         assert!(inside > lower && inside < upper);
         assert!(!(sibling > lower && sibling < upper));
     }
@@ -2429,4 +2433,3 @@ fn delete_doc(writer: &IndexWriter, fields: &SearchIndexFields, path: &str) -> A
 #[path = "search_local_query.rs"]
 mod local_query;
 use local_query::query_documents;
-
