@@ -205,6 +205,15 @@ pub async fn explorer_list_directory(
     state.explorer.list_directory(request).await
 }
 
+/// Watches exactly these folders (the ones open in panes) for changes.
+#[tauri::command]
+pub fn explorer_watch_directories(
+    paths: Vec<String>,
+    state: State<'_, KuraRuntime>,
+) -> ApiResult<()> {
+    state.directory_watch.set_directories(paths)
+}
+
 #[tauri::command]
 pub async fn explorer_directory_size_snapshot(
     paths: Vec<String>,

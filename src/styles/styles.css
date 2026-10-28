@@ -26,9 +26,79 @@
   --kura-theme-danger: #c94747;
   --kura-theme-sage: #a3bfab;
   --kura-theme-sage-bg: #28312b;
+  --kura-theme-accent: #4f86e8;
+  --kura-theme-selection: color-mix(
+    in srgb,
+    var(--kura-theme-accent) 30%,
+    var(--kura-theme-bg)
+  );
   --kura-extension-artwork-background: var(--kura-theme-card);
   --kura-extension-artwork-border: var(--kura-theme-border);
   --kura-extension-artwork-foreground: var(--kura-theme-text-bright);
+  color-scheme: dark;
+}
+
+/* Light palette: follows the system unless Settings → Appearance pins a
+   theme (data-theme on <html>). Keep the two blocks identical. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --kura-theme-workspace: #e4e4e7;
+    --workspace-tab-surface-top: #ffffff;
+    --workspace-tab-surface: #f7f7f8;
+    --workspace-tab-text: #2a2a2e;
+    --workspace-tab-muted: #6b6b70;
+    --kura-theme-bg: #ffffff;
+    --kura-theme-sidebar: #f5f5f6;
+    --kura-theme-card: #f2f2f4;
+    --kura-theme-border: #e2e2e5;
+    --kura-theme-hover: #e9e9ec;
+    --kura-theme-active: #c9c9cf;
+    --kura-theme-text: #1f1f22;
+    --kura-theme-text-bright: #0b0b0d;
+    --kura-theme-text-muted: #6b6b72;
+    --kura-theme-danger: #c23b3b;
+    --kura-theme-sage: #3d7a50;
+    --kura-theme-sage-bg: #e2efe5;
+    --kura-theme-accent: #2f6fdf;
+    --kura-theme-selection: color-mix(
+      in srgb,
+      var(--kura-theme-accent) 18%,
+      var(--kura-theme-bg)
+    );
+    --kura-marker: #1f1f22;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --kura-theme-workspace: #e4e4e7;
+  --workspace-tab-surface-top: #ffffff;
+  --workspace-tab-surface: #f7f7f8;
+  --workspace-tab-text: #2a2a2e;
+  --workspace-tab-muted: #6b6b70;
+  --kura-theme-bg: #ffffff;
+  --kura-theme-sidebar: #f5f5f6;
+  --kura-theme-card: #f2f2f4;
+  --kura-theme-border: #e2e2e5;
+  --kura-theme-hover: #e9e9ec;
+  --kura-theme-active: #c9c9cf;
+  --kura-theme-text: #1f1f22;
+  --kura-theme-text-bright: #0b0b0d;
+  --kura-theme-text-muted: #6b6b72;
+  --kura-theme-danger: #c23b3b;
+  --kura-theme-sage: #3d7a50;
+  --kura-theme-sage-bg: #e2efe5;
+  --kura-theme-accent: #2f6fdf;
+  --kura-theme-selection: color-mix(
+    in srgb,
+    var(--kura-theme-accent) 18%,
+    var(--kura-theme-bg)
+  );
+  --kura-marker: #1f1f22;
+  color-scheme: light;
+}
+
+body {
+  background: var(--kura-theme-workspace);
 }
 
 /* Popup chrome is shared by the host and every app, including portaled menus.
@@ -94,6 +164,8 @@
     transparent
   );
   --color-notification-red: var(--kura-theme-danger);
+  --color-accent-blue: var(--kura-theme-accent);
+  --color-selection: var(--kura-theme-selection);
 
   --color-sage-fg: var(--kura-theme-sage);
   --color-sage-bg: var(--kura-theme-sage-bg);

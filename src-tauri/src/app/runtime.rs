@@ -6,11 +6,12 @@ use crate::domain::clipboard::NativeClipboard;
 use crate::domain::file_sync::FileSyncPairStore;
 use crate::infra::{
     devices::DeviceService, directory_size::DirectorySizeService,
-    environment::AppEnvironmentService, explorer::ExplorerService,
-    explorer_library::ExplorerLibraryService, file_sync::FileSyncService,
-    metadata::MetadataService, navigation_names::NavigationNamesService,
-    operation_queue::OperationQueueService, power_pack::PowerPackService, search::SearchService,
-    settings::SettingsService, transfers::TransferService,
+    directory_watch::DirectoryWatchService, environment::AppEnvironmentService,
+    explorer::ExplorerService, explorer_library::ExplorerLibraryService,
+    file_sync::FileSyncService, metadata::MetadataService,
+    navigation_names::NavigationNamesService, operation_queue::OperationQueueService,
+    power_pack::PowerPackService, search::SearchService, settings::SettingsService,
+    transfers::TransferService,
 };
 
 /// Every native service Kura's window uses. Nothing here talks to a network.
@@ -24,6 +25,7 @@ pub struct KuraRuntime {
     pub settings: SettingsService,
     pub devices: DeviceService,
     pub directory_size: DirectorySizeService,
+    pub directory_watch: DirectoryWatchService,
     pub metadata: MetadataService,
     pub power_pack: PowerPackService,
     pub search: SearchService,
@@ -87,6 +89,7 @@ impl KuraRuntime {
             settings,
             devices,
             directory_size,
+            directory_watch: DirectoryWatchService::new(),
             metadata,
             power_pack,
             search,

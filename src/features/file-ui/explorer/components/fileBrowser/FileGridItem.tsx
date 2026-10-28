@@ -83,6 +83,7 @@ export const FileGridItem = memo(function FileGridItem(props: {
       style={props.style}
       aria-disabled={entry.isDeleted || undefined}
       aria-pressed={props.selected}
+      data-entry-id={entry.id}
       role="button"
       tabIndex={entry.isDeleted ? -1 : 0}
       onPointerDown={source.onPointerDown}
@@ -91,7 +92,9 @@ export const FileGridItem = memo(function FileGridItem(props: {
         if (!entry.isDeleted) props.onOpen(entry);
       }}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && !entry.isDeleted) props.onOpen(entry);
+        // In the Explorer the pane handles Enter (rename on macOS); pickers open.
+        if (event.key === "Enter" && props.selectionOnly && !entry.isDeleted)
+          props.onOpen(entry);
       }}
       onContextMenu={
         props.selectionOnly

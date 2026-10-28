@@ -110,7 +110,7 @@ function GeneralSection() {
       <Section title="Safety">
         <Row
           label="Confirm before deleting"
-          description="Ask before moving items to the Trash or deleting them."
+          description="Ask before deleting items permanently. Moving to the Trash can be undone."
         >
           <Switch
             aria-label="Confirm before deleting"
@@ -129,29 +129,46 @@ function AppearanceSection() {
   const { document, update } = useSettingsDocument();
   const appearance = selectAppearancePreferences(document);
   return (
-    <Section title="Lists and grids">
-      <Row label="Compact rows" description="Fit more items on screen.">
-        <Switch
-          aria-label="Compact rows"
-          checked={appearance.compactModeEnabled}
-          onCheckedChange={(checked) =>
-            void update("appearance", "compact_mode_enabled", checked)
-          }
-        />
-      </Row>
-      <Row
-        label="Thumbnails"
-        description="Show image previews in lists and grids."
-      >
-        <Switch
-          aria-label="Thumbnails"
-          checked={appearance.thumbnailPreviewsEnabled}
-          onCheckedChange={(checked) =>
-            void update("appearance", "thumbnail_previews_enabled", checked)
-          }
-        />
-      </Row>
-    </Section>
+    <>
+      <Section title="Theme">
+        <Row label="Appearance" description="Follow the system or pick one.">
+          <OptionSelect
+            className="w-40"
+            aria-label="Appearance"
+            value={appearance.theme}
+            options={[
+              { value: "system", label: "System" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+            onValueChange={(value) => void update("appearance", "theme", value)}
+          />
+        </Row>
+      </Section>
+      <Section title="Lists and grids">
+        <Row label="Compact rows" description="Fit more items on screen.">
+          <Switch
+            aria-label="Compact rows"
+            checked={appearance.compactModeEnabled}
+            onCheckedChange={(checked) =>
+              void update("appearance", "compact_mode_enabled", checked)
+            }
+          />
+        </Row>
+        <Row
+          label="Thumbnails"
+          description="Show image previews in lists and grids."
+        >
+          <Switch
+            aria-label="Thumbnails"
+            checked={appearance.thumbnailPreviewsEnabled}
+            onCheckedChange={(checked) =>
+              void update("appearance", "thumbnail_previews_enabled", checked)
+            }
+          />
+        </Row>
+      </Section>
+    </>
   );
 }
 
@@ -384,7 +401,7 @@ export const settingsPages: readonly SettingsPage[] = [
     id: "appearance",
     label: "Appearance",
     icon: Palette,
-    rows: ["Compact rows", "Thumbnails"],
+    rows: ["Appearance", "Theme", "Compact rows", "Thumbnails"],
     Component: AppearanceSection,
   },
   {

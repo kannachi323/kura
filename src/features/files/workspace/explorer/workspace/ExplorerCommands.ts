@@ -118,7 +118,7 @@ function openDuplicateFinder(paneId: string): void {
 function openDeepSearch(paneId: string): void {
   const currentPath =
     useExplorerStore.getState().panes[paneId]?.listing?.path ?? "";
-  void useSearchStore.getState().openSearch(currentPath);
+  void useSearchStore.getState().openSearch(currentPath, paneId);
 }
 
 export async function undoLatestTransferOperation(): Promise<void> {

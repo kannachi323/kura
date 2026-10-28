@@ -49,6 +49,16 @@ pub fn run() {
                 let _ = app.deep_link().register_all();
             }
             app.manage(KuraRuntime::new());
+            {
+                use tauri::Emitter;
+                let handle = app.handle().clone();
+                let runtime = app.state::<KuraRuntime>();
+                if let Err(error) = runtime.directory_watch.start(move |paths| {
+                    let _ = handle.emit(infra::directory_watch::DIRECTORY_CHANGED_EVENT, paths);
+                }) {
+                    eprintln!("kura: open folders won't refresh on their own: {error}");
+                }
+            }
             app::cloud_commands::start(app.handle());
             #[cfg(target_os = "macos")]
             infra::devices::start_device_change_listener(app.handle().clone());
@@ -88,6 +98,7 @@ pub fn run() {
             app::commands::explorer_library_record_recent,
             app::commands::explorer_library_snapshot,
             app::commands::explorer_list_directory,
+            app::commands::explorer_watch_directories,
             app::commands::explorer_open_association,
             app::commands::explorer_open_path,
             app::commands::explorer_open_with,

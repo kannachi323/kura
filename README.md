@@ -45,6 +45,8 @@ Then `.githooks/checks.sh` runs formatting, type checks, frontend tests and `car
 
 Settings, the search index and transfer history live in `~/.kura`.
 
+`scripts/bench.sh [file-count]` builds a 100,000-file folder in a temp dir and times the listing, its IPC JSON and search.
+
 ## Release
 
 Releases build and sign on a Mac with `scripts/release.sh X.Y.Z`. The script lists what it needs: the updater signing key (`npx tauri signer generate`, with its public half in `src-tauri/tauri.conf.json`), an Apple Developer ID and notarization key, and `gh`.

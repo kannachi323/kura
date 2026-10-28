@@ -1,4 +1,5 @@
 import { useFileBrowserRuntime } from "./FileBrowserRuntime";
+import { useRevealEntry } from "./revealEntry";
 import type { DirectoryListing, FileEntry } from "@/native/ipc";
 import type { CSSProperties, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -196,6 +197,17 @@ export function FileGrid(
     rowStride,
   ]);
 
+  useRevealEntry({
+    paneId: props.paneId,
+    entryIds: () => props.listing.entries.map((entry) => entry.id),
+    scrollRef,
+    bounds: (index) => {
+      const top =
+        gridPadding + Math.floor((index + createOffset) / columns) * rowStride;
+      return { top, bottom: top + gridItemHeight };
+    },
+  });
+
   const handleScroll = useCallback(() => {
     if (scrollFrameRef.current !== null) return;
     scrollFrameRef.current = window.requestAnimationFrame(() => {
@@ -227,6 +239,7 @@ export function FileGrid(
       >
         <div
           className={fileBrowserStyles.grid}
+          data-grid-columns={columns}
           style={{
             gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
             left: gridPadding,

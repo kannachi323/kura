@@ -16,6 +16,7 @@ import type {
 } from "../../model/interfaces/store/types";
 import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
+import { explorerRuntime } from "../runtime";
 
 export function createMutationsActions(
   set: ExplorerSet,
@@ -352,6 +353,18 @@ export function createMutationsActions(
         set({ inlineEdit: { ...validated, error: operationError } });
       } else if (get().inlineEdit === edit) {
         set({ inlineEdit: null });
+      }
+      const directory = pane?.listing?.path;
+      if (!operationError && directory) {
+        // Like Finder, the new or renamed item ends up selected.
+        const separator =
+          directory.includes("\\") && !directory.includes("/") ? "\\" : "/";
+        explorerRuntime.pendingSelections.set(validated.paneId, {
+          path: directory.endsWith(separator)
+            ? `${directory}${effectiveName}`
+            : `${directory}${separator}${effectiveName}`,
+          expiresAtMs: Date.now() + 10_000,
+        });
       }
     },
 

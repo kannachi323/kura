@@ -57,7 +57,7 @@ export const fileBrowserStyles = {
   tableResizeHandleActive: "after:!bg-charcoal-active",
   tableRow: cn(
     "group/file-row cursor-default select-none border-b-0 outline-none",
-    "hover:bg-charcoal-card data-[state=selected]:bg-charcoal-hover",
+    "hover:bg-charcoal-card data-[state=selected]:bg-selection",
     "data-[state=selected]:text-cream focus-visible:relative",
     "focus-visible:z-[2] focus-visible:ring-2 focus-visible:ring-inset",
     "focus-visible:ring-charcoal-active/50",
@@ -98,6 +98,7 @@ export const fileBrowserStyles = {
     "cursor-default justify-items-center gap-3 rounded-md border",
     "border-transparent bg-transparent px-1.5 py-4 text-cream-muted",
     "outline-none hover:bg-charcoal-card hover:text-cream",
+    "aria-pressed:bg-selection aria-pressed:text-cream",
     "focus-visible:border-charcoal-active focus-visible:ring-1",
     "focus-visible:ring-charcoal-active",
     "[[data-compact-mode=true]_&]:min-h-[132px]",
@@ -105,7 +106,7 @@ export const fileBrowserStyles = {
     "[[data-compact-mode=true]_&]:py-3",
   ),
   gridItemSelected:
-    "selected bg-charcoal-hover text-cream hover:bg-charcoal-hover hover:text-cream",
+    "selected bg-selection text-cream hover:bg-selection hover:text-cream",
   gridItemDragging: "opacity-50",
   gridItemCut: "opacity-55",
   gridItemDeleted:

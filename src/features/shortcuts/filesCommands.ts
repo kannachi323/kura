@@ -13,8 +13,10 @@ export const filesShortcutCommands = [
     description: "Search the focused Files location.",
     category: "Files",
     scope: "tool:files",
-    mac: "Cmd+Shift+F",
-    windows: "Ctrl+Shift+F",
+    mac: "Cmd+F",
+    macAlternate: "Cmd+Shift+F",
+    windows: "Ctrl+F",
+    windowsAlternate: "Ctrl+Shift+F",
     allowInEditable: true,
   }),
   command("explorer.rename", "Rename file", {
@@ -32,7 +34,11 @@ export const filesShortcutCommands = [
     description: "Move the selected file or folder to Trash.",
     category: "Files",
     scope: "tool:files",
-    mac: "Delete",
+    // Finder's Move to Trash. The Mac delete key reports Backspace.
+    mac: "Cmd+Backspace",
+    macAlternate: "Delete",
+    windows: "Delete",
+    windowsAlternate: null,
   }),
   command("explorer.download", "Download file", {
     description: "Download the selected remote files or folders.",

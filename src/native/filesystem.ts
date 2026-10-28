@@ -65,6 +65,10 @@ export function explorerListDirectory(
     request,
   });
 }
+/** Replaces the set of folders watched for outside changes. */
+export function explorerWatchDirectories(paths: string[]): Promise<void> {
+  return invoke("explorer_watch_directories", { paths });
+}
 export function explorerDirectorySizeSnapshot(
   paths: string[],
 ): Promise<DirectorySizeRecord[]> {

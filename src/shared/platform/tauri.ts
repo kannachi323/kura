@@ -22,3 +22,11 @@ export type TauriInternals = {
   convertFileSrc?: (filePath: string, protocol?: string) => string;
   invoke?: unknown;
 };
+
+/** True on macOS, where Finder's key conventions apply. */
+export function isMacPlatform(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    /mac/i.test(navigator.platform || navigator.userAgent)
+  );
+}

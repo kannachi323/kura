@@ -5,6 +5,7 @@ pub mod data_home;
 pub mod devices;
 pub mod directory_size;
 mod directory_size_local;
+pub mod directory_watch;
 pub mod environment;
 pub mod explorer;
 pub mod explorer_library;

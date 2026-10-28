@@ -37,6 +37,8 @@ import {
   minimumColumnWidths,
   normalizeItemScale,
 } from "./fileTableConfig";
+import { useFileBrowserRuntime } from "./FileBrowserRuntime";
+import { useRevealEntry } from "./revealEntry";
 import { FileTableRow } from "./FileTableRow";
 import { SortableHeader } from "./SortableHeader";
 
@@ -78,8 +80,10 @@ export function FileTable(
   );
   const activeInlineEdit =
     props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
+  const { compactModeEnabled } = useFileBrowserRuntime();
   const itemScale = normalizeItemScale(props.itemScale);
-  const rowHeight = 42 + itemScale * 8;
+  // 40px rows by default (Finder-like density), 32px with Compact rows.
+  const rowHeight = (compactModeEnabled ? 24 : 32) + itemScale * 8;
   const tableIconSize = 20;
   const rowCount = props.listing.entries.length;
   const tableWidth = columnOrder.reduce(
@@ -167,6 +171,16 @@ export function FileTable(
       element.scrollTo({ top: rowBottom - element.clientHeight });
     }
   }, [props.inlineEdit, props.listing.entries, rowHeight]);
+
+  useRevealEntry({
+    paneId: props.paneId,
+    entryIds: () => visibleEntryIds,
+    scrollRef,
+    bounds: (index) => ({
+      top: index * rowHeight,
+      bottom: (index + 1) * rowHeight,
+    }),
+  });
 
   const handleScroll = useCallback(() => {
     if (scrollFrameRef.current !== null) return;

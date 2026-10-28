@@ -12,7 +12,8 @@ import {
 import type * as PreviewHooks from "./FileInspectorPreview";
 import { IconButton } from "@/shared/ui";
 import { FileSearch, Maximize2 } from "lucide-react";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { quickLookEvent } from "./fileListKeyboard";
 import {
   ArchiveContentsPreview,
   AudioPreview,
@@ -53,6 +54,16 @@ export function FileInspectorView(
       ? props.directorySizes[displayEntry.path]
       : undefined;
   const [previewOpen, setPreviewOpen] = useState(false);
+  const displayPath = displayEntry?.path;
+  useEffect(() => {
+    // Space in the list toggles the large preview, like Quick Look.
+    const toggle = (event: Event) => {
+      const path = (event as CustomEvent<{ path: string }>).detail.path;
+      if (path === displayPath) setPreviewOpen((open) => !open);
+    };
+    window.addEventListener(quickLookEvent, toggle);
+    return () => window.removeEventListener(quickLookEvent, toggle);
+  }, [displayPath]);
 
   const showPreviewTransition =
     previewLoading && displayEntry?.kind !== "folder" && !multiple;
@@ -151,7 +162,9 @@ export function FileInspectorView(
         ) : !showPreviewTransition &&
           (displayEntry?.kind !== "folder" || multiple) ? (
           <span className={inspectorStyles.previewStatus}>
-            Open the full reader
+            {multiple
+              ? `${props.selectedCount} items selected`
+              : "No preview for this file"}
           </span>
         ) : null}
         {canOpenPreview ? (

@@ -89,6 +89,7 @@ export const FileTableRow = memo(function FileTableRow(props: {
       style={{ height: props.rowHeight }}
       aria-disabled={entry.isDeleted || undefined}
       aria-selected={props.selected}
+      data-entry-id={entry.id}
       data-state={props.selected ? "selected" : undefined}
       tabIndex={entry.isDeleted ? -1 : 0}
       onPointerDown={source.onPointerDown}
@@ -97,7 +98,9 @@ export const FileTableRow = memo(function FileTableRow(props: {
         if (!entry.isDeleted) props.onOpen(entry);
       }}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && !entry.isDeleted) props.onOpen(entry);
+        // In the Explorer the pane handles Enter (rename on macOS); pickers open.
+        if (event.key === "Enter" && props.selectionOnly && !entry.isDeleted)
+          props.onOpen(entry);
       }}
       onContextMenu={
         props.selectionOnly

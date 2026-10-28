@@ -8,6 +8,7 @@ import {
 } from "@/features/file-ui";
 import { useExplorerStore } from "../store";
 import { FileBrowser } from "./FileBrowser";
+import { handleFileListKey } from "./fileListKeyboard";
 
 const paneStyles = {
   shell:
@@ -136,6 +137,7 @@ export const ExplorerPane = memo(function ExplorerPane(
     <div
       className={`${paneStyles.shell} ${props.isActive === false ? paneStyles.shellInactive : ""}`}
       data-explorer-pane-id={props.paneId}
+      onKeyDown={(event) => handleFileListKey(event, props.paneId)}
     >
       <FileBrowser
         paneId={props.paneId}

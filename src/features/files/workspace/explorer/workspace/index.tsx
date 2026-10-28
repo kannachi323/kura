@@ -61,6 +61,9 @@ import {
   resolveMountRoot,
   resolvePreferredWorkspaceRoot,
 } from "./ExplorerWorkspaceUtils";
+import { SearchPalette } from "./SearchPalette";
+import { useDirectoryWatch } from "./useDirectoryWatch";
+import { useSearchAutoIndex } from "./useSearchAutoIndex";
 import { useExplorerDevices } from "./useExplorerDevices";
 export type { ResizeTarget } from "../model/types/workspace/index";
 export const ExplorerWorkspace = memo(function ExplorerWorkspace(
@@ -161,6 +164,8 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   const homePath = storageHomePath;
   const { devicesLoading, mountedDevices, refreshDevices } =
     useExplorerDevices();
+  useDirectoryWatch();
+  useSearchAutoIndex(homePath);
   const mountRoot = resolveMountRoot(
     storageHomePath,
     settingsMountPath || app?.environment.mountPath || "",
@@ -382,6 +387,9 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
           />
         </main>
         {workspaceFocused ? <FileOperationConflictDialog /> : null}
+        {workspaceFocused ? (
+          <SearchPalette fallbackPaneId={activePaneId} />
+        ) : null}
         {inlineEdit && ownsPane(inlineEdit.paneId) ? (
           <ExplorerRenameStatus edit={inlineEdit} />
         ) : null}

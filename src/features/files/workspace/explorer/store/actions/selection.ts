@@ -64,7 +64,8 @@ export function createSelectionActions(
         }
         const previousAnchor = pane.lastSelectedIndexByPath[path];
         const nextLastSelectedIndexByPath =
-          entryIndex >= 0 && previousAnchor !== entryIndex
+          // Shift-extends keep the anchor where it was, as Finder does.
+          entryIndex >= 0 && previousAnchor !== entryIndex && !options.range
             ? {
                 ...pane.lastSelectedIndexByPath,
                 [path]: entryIndex,

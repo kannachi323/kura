@@ -1,5 +1,8 @@
 import { useAppStore } from "@/features/app-shell";
-import { useSettingsStore } from "@/features/settings";
+import {
+  selectAppearancePreferences,
+  useSettingsStore,
+} from "@/features/settings";
 import { ShortcutRuntime } from "@/features/shortcuts";
 import { hasTauriInternals } from "@/shared/platform/tauri";
 import { installOverflowFade } from "@/shared/ui";
@@ -23,6 +26,14 @@ export function App() {
     }
   }, []);
   useDeepLinks();
+  const theme = useSettingsStore(
+    (state) => selectAppearancePreferences(state.settings?.document).theme,
+  );
+  useLayoutEffect(() => {
+    // "system" leaves the attribute off so the CSS media query decides.
+    if (theme === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   return (
     <div className="app-pages-root h-full min-h-0 bg-charcoal-bg text-cream">
