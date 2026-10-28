@@ -55,7 +55,6 @@ pub struct AppSnapshot {
 #[derive(Debug, Serialize)]
 pub struct ClipboardSnapshot {
     pub local: ClipboardPayload,
-    pub shared: ClipboardPayload,
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,7 +106,6 @@ pub async fn file_metadata_snapshot(
 pub fn clipboard_snapshot(state: State<'_, KuraRuntime>) -> ClipboardSnapshot {
     ClipboardSnapshot {
         local: state.clipboard.current_local(),
-        shared: state.clipboard.latest_shared(),
     }
 }
 
@@ -116,7 +114,7 @@ pub fn clipboard_set_local(
     payload: ClipboardPayload,
     state: State<'_, KuraRuntime>,
 ) -> ClipboardPayload {
-    state.clipboard.set_local_misty_payload(payload)
+    state.clipboard.set_local_kura_payload(payload)
 }
 
 #[tauri::command]

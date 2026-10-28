@@ -1,4 +1,4 @@
-/* Force the filerobot image editor to match Misty's dark chrome.
+/* Force the filerobot image editor to match Kura's dark chrome.
    Filerobot's palette tokens are computed at runtime and only partially cover
    its surfaces, so we pin the rest to its stable FIE_* class hooks. Everything
    here is scoped under .FIE_root, which only exists inside the editor. */

@@ -1,10 +1,10 @@
 import { TransfersPage } from "../../../transfers/TransfersPage";
 import { transfersPath } from "../../../transfers/transferModel";
 import { useAppStore } from "@/features/app-shell";
-import { useMultiPanelStore } from "@/features/workspace";
 import {
   selectAdvancedPreferences,
   selectFilePreferences,
+  requestOpenSettings,
   selectGeneralPreferences,
   useSettingsStore,
 } from "@/features/settings";
@@ -18,16 +18,16 @@ import { ExplorerDragProvider } from "../drag/ExplorerDragContext";
 import { useExplorerStore } from "../store";
 import { FileOperationConflictDialog } from "./FileOperationConflictDialog";
 import { ExplorerDialog } from "./ExplorerBatchRenameDialog";
-import {
-  executableShortcutCommands,
-  kuraOpenSettingsEvent,
-} from "./ExplorerCommands";
+import { executableShortcutCommands } from "./ExplorerCommands";
+import { filesMultiPanelStore } from "./explorerWorkspace/filesDockStores";
+import { useFilesDockWorkspace } from "./explorerWorkspace/useFilesDockWorkspace";
 import { CompareDialog } from "./ExplorerCompareDialog";
 import { ExplorerContextMenu } from "./ExplorerContextMenu";
 import {
   canCloseExplorerTab,
   canOpenTerminalPath,
   ExplorerTray,
+  TransfersButton,
 } from "./ExplorerDesktopPlugins";
 import { cx } from "./ExplorerDesktopShared";
 import {
@@ -53,6 +53,7 @@ import {
   useScopedExplorerWorkspace,
   type ExplorerWorkspaceProps,
 } from "./explorerWorkspace/useScopedExplorerWorkspace";
+import { useCloudEvents } from "./explorerWorkspace/useCloudEvents";
 import { useTransferRefreshPolling } from "./explorerWorkspace/useTransferRefreshPolling";
 import { resolveExplorerBottomBarRenderer } from "./ExplorerWorkspaceChrome";
 import {
@@ -65,7 +66,10 @@ export type { ResizeTarget } from "../model/types/workspace/index";
 export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   props: ExplorerWorkspaceProps,
 ) {
-  const multiPanelStore = useMultiPanelStore;
+  const multiPanelStore = useMemo(
+    () => filesMultiPanelStore(props.workspaceId),
+    [props.workspaceId],
+  );
   const workspaceFocused = props.active !== false;
   const app = useAppStore((state) => state.app);
   const {
@@ -167,17 +171,21 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
       : (state.panes[activePaneId]?.listing?.path ?? homePath),
   );
   const explorerInitialized = useExplorerStore((state) => state.initialized);
+  const embeddedOpenInNewTab = useFilesDockWorkspace({
+    workspaceId: props.workspaceId,
+    activePath,
+    initialized: explorerInitialized,
+    homePath,
+    multiPanelStore,
+  });
   const openSidebarPathInNewTab = useCallback(
     (path: string, title?: string) => {
-      multiPanelStore.getState().addTab(path, title || sidebarTabTitle(path));
+      if (props.embedded) embeddedOpenInNewTab(path, title);
+      else
+        multiPanelStore.getState().addTab(path, title || sidebarTabTitle(path));
     },
-    [multiPanelStore],
+    [embeddedOpenInNewTab, multiPanelStore, props.embedded],
   );
-  useEffect(() => {
-    if (!explorerInitialized || !homePath) return;
-    const multi = multiPanelStore.getState();
-    if (multi.tabs.length === 0) multi.initialize(homePath, "Files");
-  }, [explorerInitialized, homePath, multiPanelStore]);
 
   // Restore retired extension tabs to the built-in file browser.
   useLegacyPluginTabMigration({
@@ -204,6 +212,7 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     setCompareDialog,
   } = useExplorerDialogEvents(activePaneIdRef, ownsPane);
   useTransferRefreshPolling(mountRoot);
+  useCloudEvents();
   const {
     resizeTarget,
     resizeSidebarBy,
@@ -259,10 +268,19 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
           paneId={paneId}
           fallbackPath={path}
           locationResults={locationResults}
+          searchActions={props.embedded ? <TransfersButton /> : null}
+          extraActions={
+            props.embedded ? (
+              <ExplorerTray
+                terminalEnabled={canOpenTerminalPath(path)}
+                terminalPath={path}
+              />
+            ) : null
+          }
         />
       );
     },
-    [locationResults],
+    [locationResults, props.embedded],
   );
   const renderPane = useCallback(
     (paneId: string, path: string) => {
@@ -314,9 +332,7 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   const renderTabActions = useCallback(
     () => (
       <ExplorerTray
-        onOpenSettings={() =>
-          window.dispatchEvent(new CustomEvent(kuraOpenSettingsEvent))
-        }
+        onOpenSettings={requestOpenSettings}
         terminalEnabled={
           canOpenTerminalPath(activeTabPath) && canOpenTerminalPath(activePath)
         }
@@ -329,7 +345,8 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     () => createExplorerAddTabControl(homePath),
     [homePath],
   );
-  if (!explorerInitialized || !hasExplorerTabs) return <ExplorerLoadingShell />;
+  if (!explorerInitialized || !hasExplorerTabs)
+    return <ExplorerLoadingShell embedded={props.embedded} />;
   return (
     <ExplorerDragProvider>
       <section

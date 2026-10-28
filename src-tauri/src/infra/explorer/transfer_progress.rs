@@ -87,9 +87,16 @@ impl ExplorerService {
             ));
         }
         let path = Path::new(path);
-        if path == self.mount_root || path.starts_with(&self.mount_root) {
+        if path == self.mount_root {
             return Err(ApiError::Message(format!(
-                "Cloud file locations are no longer supported. Choose a local folder or LAN device to {operation}."
+                "Open a cloud account's folder to {operation} there."
+            )));
+        }
+        // Cloud items are ordinary paths under their account's folder; anything
+        // else under the providers folder is Kuragine's own.
+        if path.starts_with(&self.mount_root) && self.cloud.resolve(path).is_none() {
+            return Err(ApiError::Message(format!(
+                "That cloud account isn't connected. Add it in Settings to {operation} its files."
             )));
         }
         Ok(())

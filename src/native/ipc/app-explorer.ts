@@ -18,13 +18,13 @@ export interface AppSnapshot {
 }
 export interface AppEnvironmentSnapshot {
   homeDir: string;
-  mistyDir: string;
+  kuraDir: string;
   configDir: string;
   dbDir: string;
   cacheDir: string;
   tmpDir: string;
   settingsPath: string;
-  mistyConfigPath: string;
+  kuraConfigPath: string;
   workspacesPath: string;
   commandsPath: string;
   mountPath: string;
@@ -50,8 +50,6 @@ export interface ClipboardPayload {
   kind: ClipboardPayloadKind;
   origin: ClipboardOrigin;
   payload_id: string;
-  source_device_id: string;
-  source_device_name: string;
   revision: number;
   created_unix_ms: number;
   text: string;
@@ -61,7 +59,6 @@ export interface ClipboardPayload {
 }
 export interface ClipboardSnapshot {
   local: ClipboardPayload;
-  shared: ClipboardPayload;
 }
 export interface MountedDevice {
   id: string;
@@ -102,14 +99,18 @@ export interface PeerRoot {
 }
 export interface ExplorerLocation {
   kind: ExplorerLocationKind;
-  providerType: string | null;
-  remoteName: string | null;
-  remotePath: string | null;
+  providerType?: string | null;
+  remoteName?: string | null;
+  remotePath?: string | null;
   peerDeviceId?: string | null;
   peerRootId?: string | null;
   /** For a connected device: whether it lets this device change its files. */
   peerWritable?: boolean;
+  /** For a cloud file: whether it's downloaded, changed locally or conflicting. */
+  cloudState?: CloudCopyState;
 }
+
+export type CloudCopyState = "online" | "downloaded" | "modified" | "conflict";
 export interface FileEntry {
   id: string;
   name: string;

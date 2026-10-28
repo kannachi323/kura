@@ -23,7 +23,7 @@ describe("ExplorerPaneToolbarActions", () => {
     act(() => {
       root.render(
         <ExplorerPaneToolbarActions
-          path="/Users/misty/Documents"
+          path="/Users/me/Documents"
           viewMode="grid"
           itemScale={2}
           sort={{ column: "name", direction: "asc" }}
@@ -69,7 +69,7 @@ describe("ExplorerPaneToolbarActions", () => {
     act(() => {
       root.render(
         <ExplorerPaneToolbarActions
-          path="/Users/misty/Documents"
+          path="/Users/me/Documents"
           viewMode="list"
           itemScale={2}
           sort={{ column: "modified", direction: "desc" }}
@@ -110,6 +110,6 @@ describe("ExplorerPaneToolbarActions", () => {
     expect(copyPathItem).toBeTruthy();
 
     act(() => copyPathItem?.click());
-    expect(onCopyPath).toHaveBeenCalledWith("/Users/misty/Documents");
+    expect(onCopyPath).toHaveBeenCalledWith("/Users/me/Documents");
   });
 });

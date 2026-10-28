@@ -2,6 +2,8 @@
 #![allow(dead_code, unused_imports, unused_variables)]
 
 mod app;
+#[doc(hidden)]
+pub mod bench;
 mod domain;
 mod error;
 mod infra;
@@ -47,14 +49,21 @@ pub fn run() {
                 let _ = app.deep_link().register_all();
             }
             app.manage(KuraRuntime::new());
+            app::cloud_commands::start(app.handle());
             #[cfg(target_os = "macos")]
             infra::devices::start_device_change_listener(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            infra::misty_bridge::misty_clipboard_view,
-            infra::misty_bridge::misty_clipboard_copy,
-            infra::misty_bridge::misty_clipboard_paste,
+            app::cloud_commands::cloud_add_remote,
+            app::cloud_commands::cloud_cancel_sign_in,
+            app::cloud_commands::cloud_conflicts,
+            app::cloud_commands::cloud_quota,
+            app::cloud_commands::cloud_remotes,
+            app::cloud_commands::cloud_remove_remote,
+            app::cloud_commands::cloud_resolve_conflict,
+            app::cloud_commands::cloud_set_credentials,
+            app::cloud_commands::cloud_sign_in,
             app::commands::app_snapshot,
             app::commands::archive_create,
             app::commands::archive_extract,

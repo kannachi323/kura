@@ -5,3 +5,4 @@ export {
   useMultiPanelStore,
 } from "./useMultiPanelStore";
 export type { MultiPanelStoreHook } from "./useMultiPanelStore";
+export * from "./dock";

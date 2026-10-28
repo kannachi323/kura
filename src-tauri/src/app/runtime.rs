@@ -39,14 +39,14 @@ impl KuraRuntime {
 
     pub fn new_with_data_root(data_root: Option<PathBuf>) -> Self {
         let environment = AppEnvironmentService::new_with_data_root(data_root);
+        crate::infra::data_home::prepare(&environment);
         #[cfg(desktop)]
         let native_clipboard: Arc<dyn NativeClipboard> =
             crate::infra::native_clipboard::SystemClipboardAdapter::new();
         #[cfg(desktop)]
-        let clipboard = ClipboardService::new(Some(native_clipboard), None);
+        let clipboard = ClipboardService::new(Some(native_clipboard));
         #[cfg(not(desktop))]
-        let clipboard = ClipboardService::new(None, None);
-        clipboard.set_device_identity("local".to_owned(), "This device".to_owned());
+        let clipboard = ClipboardService::new(None);
         #[cfg(desktop)]
         let _ = clipboard.start();
         let transfers = TransferService::new(environment.clone());

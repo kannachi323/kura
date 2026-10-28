@@ -31,7 +31,11 @@ impl ExplorerService {
         existing_transfer_id: Option<u64>,
     ) -> ApiResult<ExplorerOperationResult> {
         ensure_not_canceled_if(cancellation)?;
-
+        if let Some(directory) = self.cloud_path(&request.directory) {
+            return self
+                .cloud_create(directory, request, cancellation, existing_transfer_id)
+                .await;
+        }
         self.reject_virtual_mount_container(&request.directory, "create")?;
         let mut record = FileTransferRecord::new(
             FileTransferType::Create,
@@ -80,7 +84,11 @@ impl ExplorerService {
         existing_transfer_id: Option<u64>,
     ) -> ApiResult<ExplorerOperationResult> {
         ensure_not_canceled_if(cancellation)?;
-
+        if let Some(cloud) = self.cloud_path(&request.path) {
+            return self
+                .cloud_rename(cloud, &request, existing_transfer_id)
+                .await;
+        }
         self.reject_virtual_mount_container(&request.path, "rename")?;
         let destination = Path::new(&request.path)
             .parent()
@@ -145,10 +153,18 @@ impl ExplorerService {
         let mut parent_path = None;
         for path in request.paths {
             ensure_not_canceled_if(cancellation)?;
-            {
-                self.reject_virtual_mount_container(&path, "delete")?;
-                local_paths.push(path);
+            if let Some(cloud) = self.cloud_path(&path) {
+                let result = self
+                    .cloud_delete(&path, cloud, existing_transfer_id)
+                    .await?;
+                if parent_path.is_none() {
+                    parent_path = result.parent_path;
+                }
+                affected_paths.extend(result.affected_paths);
+                continue;
             }
+            self.reject_virtual_mount_container(&path, "delete")?;
+            local_paths.push(path);
         }
         for local_path in local_paths {
             ensure_not_canceled_if(cancellation)?;
@@ -182,9 +198,24 @@ impl ExplorerService {
             let local_result = if permanent {
                 delete_local_path_cancellable(Path::new(&local_path), cancellation).await
             } else {
-                trash_local_path_cancellable(Path::new(&local_path), &self.trash_dir, cancellation)
-                    .await
-                    .map(|_| ())
+                match trash_local_path_cancellable(
+                    Path::new(&local_path),
+                    &self.trash_dir,
+                    cancellation,
+                )
+                .await
+                {
+                    Ok(destination) => {
+                        if let Some(transfer_id) = transfer_id {
+                            let _ = self
+                                .transfers
+                                .set_local_dest_path(transfer_id, display_path(&destination))
+                                .await;
+                        }
+                        Ok(())
+                    }
+                    Err(error) => Err(error),
+                }
             }
             .map(|()| ExplorerOperationResult {
                 affected_paths: vec![local_path.clone()],

@@ -20,7 +20,7 @@ export function createShellActions(
         : H.normalizePinnedPaths([...current, normalized]);
       if (H.arraysEqual(current, pinnedPaths)) return;
       window.localStorage.setItem(
-        "misty.explorer.pinnedPaths",
+        "kura.explorer.pinnedPaths",
         JSON.stringify(pinnedPaths),
       );
       set({ pinnedPaths });

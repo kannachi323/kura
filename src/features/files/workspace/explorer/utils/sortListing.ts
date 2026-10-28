@@ -61,11 +61,15 @@ export function compareNullableNumber(
   return left === right ? 0 : left < right ? -1 : 1;
 }
 
+// localeCompare with options builds a collator per call, which made sorting
+// a 100k-file folder take seconds. One shared collator does the same work.
+const nameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
 export function compareText(left: string | null, right: string | null): number {
-  return (left ?? "").localeCompare(right ?? "", undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
+  return nameCollator.compare(left ?? "", right ?? "");
 }
 
 export function typeLabel(entry: FileEntry): string {

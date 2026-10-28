@@ -152,7 +152,7 @@ export function Renameable({
         rect &&
         renderEditor(
           <div
-            data-misty-window-drag-block="true"
+            data-kura-window-drag-block="true"
             data-navigation-name-editor="true"
             className={
               portalEditor

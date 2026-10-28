@@ -1,8 +1,9 @@
-/** Local paths and paired LAN devices are the only external Files locations. */
-export function isRetiredCloudLocation(
-  path: string,
-  legacyMountRoot?: string,
-): boolean {
+/**
+ * Locations that no longer exist: remote URLs and the cloud mounts early Kura
+ * used. Cloud accounts now live in ordinary folders under
+ * `~/.kura/providers`, which are not retired.
+ */
+export function isRetiredCloudLocation(path: string): boolean {
   const normalized = path.trim().replace(/\\/g, "/").replace(/\/+$/, "");
   if (normalized.startsWith("kura://device/")) return false;
   if (normalized.startsWith("kura-remotes://")) return true;
@@ -18,10 +19,5 @@ export function isRetiredCloudLocation(
     ].includes(normalized)
   )
     return true;
-  const mount = legacyMountRoot?.replace(/\\/g, "/").replace(/\/+$/, "");
-  return (
-    Boolean(
-      mount && (normalized === mount || normalized.startsWith(`${mount}/`)),
-    ) || /(?:^|\/)\.misty\/mnt(?:\/|$)/.test(normalized)
-  );
+  return /(?:^|\/)\.kura\/mnt(?:\/|$)/.test(normalized);
 }

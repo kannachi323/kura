@@ -45,8 +45,10 @@ export function rtfToText(value: string): string {
     .trim();
 }
 
+const pathCollator = new Intl.Collator(undefined, { numeric: true });
+
 export function naturalPathSort(left: string, right: string): number {
-  return left.localeCompare(right, undefined, { numeric: true });
+  return pathCollator.compare(left, right);
 }
 
 export function imageOutputMimeType(extension: string): string {

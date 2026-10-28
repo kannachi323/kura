@@ -45,6 +45,11 @@ export type CollectionColumn = {
   sortValue: (item: CollectionItem) => string | number | undefined;
 };
 
+const valueCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
 export function compareCollectionValues(
   a: string | number | undefined,
   b: string | number | undefined,
@@ -60,9 +65,6 @@ export function compareCollectionValues(
   const comparison =
     typeof a === "number" && typeof b === "number"
       ? a - b
-      : String(a).localeCompare(String(b), undefined, {
-          numeric: true,
-          sensitivity: "base",
-        });
+      : valueCollator.compare(String(a), String(b));
   return descending ? -comparison : comparison;
 }

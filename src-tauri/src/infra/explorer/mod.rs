@@ -63,6 +63,7 @@ static TEMPORARY_THUMBNAIL_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub struct ExplorerService {
     home_dir: PathBuf,
     mount_root: PathBuf,
+    cloud: kuragine::Kuragine,
     transfers: TransferService,
     explorer_library: ExplorerLibraryService,
     listing_cache: ListingCache,
@@ -84,6 +85,7 @@ impl ExplorerService {
         Self {
             home_dir: environment.home_dir(),
             mount_root,
+            cloud: crate::infra::cloud::engine(&environment),
             transfers,
             explorer_library,
             listing_cache: ListingCache::new(cache_dir.join("remotes"), cache_dir.join("listings")),
@@ -99,6 +101,7 @@ impl ExplorerService {
 mod cancellation;
 mod clipboard;
 mod clipboard_staging;
+mod cloud;
 mod listing;
 mod local_mutations;
 mod local_use;
@@ -119,6 +122,7 @@ mod tests_preview;
 mod transfer_progress;
 
 use cancellation::*;
+pub use cloud::CloudUploadResult;
 use local_mutations::*;
 use misc::*;
 use path_helpers::*;

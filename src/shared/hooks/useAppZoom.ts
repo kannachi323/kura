@@ -1,7 +1,7 @@
 import { hasTauriInternals } from "@/shared/platform/tauri";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const APP_ZOOM_STORAGE_KEY = "misty.app.zoom";
+const APP_ZOOM_STORAGE_KEY = "kura.app.zoom";
 export const appZoomDefault = 1;
 /** 100% maps one CSS pixel to whole device pixels (2 on Retina). Fractional
  * baselines such as 1.1 put lines and icon edges between device pixels. */

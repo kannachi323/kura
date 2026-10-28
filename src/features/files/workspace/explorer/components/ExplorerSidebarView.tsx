@@ -10,20 +10,13 @@ import {
   IconButton,
   SkeletonList,
 } from "@/shared/ui";
-import {
-  ArrowRightLeft,
-  HardDrive,
-  Pencil,
-  Plus,
-  Search,
-  Unplug,
-} from "lucide-react";
-import { ClipboardSidebarSection } from "@/features/misty-clipboard/ClipboardSidebarSection";
-import { transfersPath } from "../../../transfers/transferModel";
+import { HardDrive, Pencil, Plus, Search, Unplug } from "lucide-react";
+import { CloudSidebarSection } from "@/features/cloud/CloudSidebarSection";
 import { memo, useMemo, useState } from "react";
 import type { ExplorerSidebarProps } from "../model/interfaces/components/ExplorerSidebar";
 import type { ExplorerSidebarRuntime } from "./explorerSidebar/ExplorerSidebarRuntime";
 import { SidebarQuickAccessSectionView } from "./explorerSidebar/SidebarQuickAccessSectionView";
+import { SidebarWorkspaceSwitcher } from "./explorerSidebar/SidebarWorkspaceSwitcher";
 import {
   SmartFolderDialog,
   type SidebarDeviceEntry,
@@ -81,6 +74,8 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
   );
   return (
     <aside className={sidebarStyles.root} data-explorer-scroll-container>
+      <SidebarWorkspaceSwitcher />
+
       <SidebarQuickAccessSectionView
         DropTarget={props.runtime.DropTarget}
         sidebar={props}
@@ -317,25 +312,12 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
         </CollapsibleContent>
       </Collapsible>
 
-      <ClipboardSidebarSection
+      <CloudSidebarSection
         activePath={props.activePath}
-        onPasted={(directory) => props.onNavigate(directory)}
+        onNavigate={props.onNavigate}
+        DropTarget={props.runtime.DropTarget}
       />
 
-      <section className={sidebarStyles.section}>
-        <Button
-          variant="ghost"
-          className={sidebarStyles.itemButton}
-          onClick={() => props.onOpenInNewTab?.(transfersPath, "Transfers")}
-        >
-          <ArrowRightLeft
-            size={18}
-            className={sidebarStyles.itemIcon}
-            aria-hidden="true"
-          />
-          <span className="min-w-0 truncate">Transfers</span>
-        </Button>
-      </section>
       {smartFolderDialog ? (
         <SmartFolderDialog
           state={smartFolderDialog}

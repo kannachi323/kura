@@ -10,7 +10,7 @@ export const fileBrowserStyles = {
     "grid grid-cols-[minmax(240px,1fr)_220px_128px_128px] items-center gap-4 px-3.5",
   tableSkeletonHeader: "h-10 bg-charcoal-card",
   tableSkeletonRow: "h-12 [[data-compact-mode=true]_&]:h-10",
-  skeletonCell: "misty-skeleton rounded-md bg-charcoal-card",
+  skeletonCell: "kura-skeleton rounded-md bg-charcoal-card",
   tableSkeletonHeaderCell: "h-[13px]",
   tableSkeletonCell: "h-3 first:h-4",
   gridSkeleton: cn(
@@ -25,7 +25,7 @@ export const fileBrowserStyles = {
   tableHeaderWrap: "min-w-0 overflow-hidden",
   tableResetButton: "absolute right-2 top-1.5 z-[4] max-[720px]:hidden",
   tableScroll:
-    "misty-transient-scrollbar misty-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
+    "kura-transient-scrollbar kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
   table: cn(
     "w-full min-w-[720px] table-fixed border-collapse max-[720px]:min-w-0",
     "max-[720px]:[&_td:first-child]:w-[64%]",
@@ -85,7 +85,7 @@ export const fileBrowserStyles = {
   entryIconMuted:
     "text-cream-muted group-data-[state=selected]/file-row:text-cream group-aria-pressed/file-row:text-cream group-hover/file-row:text-cream",
   gridScroll:
-    "misty-transient-scrollbar misty-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
+    "kura-transient-scrollbar kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
   gridSizer: "relative min-w-0",
   grid: cn(
     "absolute left-[3px] right-[3px] grid content-start gap-[18px]",

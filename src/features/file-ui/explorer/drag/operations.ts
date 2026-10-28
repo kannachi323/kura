@@ -10,7 +10,7 @@ export function storageIdForPath(
 ): string {
   if (remoteName) return `remote:${remoteName}`;
   // Each connected device is its own storage, so drags to or from it copy by default.
-  const peer = path.match(/^misty:\/\/device\/([^/]+)/);
+  const peer = path.match(/^kura:\/\/device\/([^/]+)/);
   if (peer) return `peer:${peer[1]}`;
   const match = [...devices]
     .filter((device) => pathContainsPath(device.mountPath, path))

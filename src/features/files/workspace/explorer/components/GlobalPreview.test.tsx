@@ -54,7 +54,7 @@ describe("globalPreviewKindForSource", () => {
   );
   it("reserves the generic fallback for unknown custom formats", () => {
     expect(
-      globalPreviewKindForSource("mistycustom", "application/x-misty-custom"),
+      globalPreviewKindForSource("customformat", "application/x-custom"),
     ).toBe("generic");
   });
 });

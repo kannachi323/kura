@@ -453,7 +453,7 @@ mod tests {
     #[test]
     fn directory_size_sqlite_store_round_trips_record() {
         let root = std::env::temp_dir().join(format!("kura-directory-size-db-{}", Uuid::new_v4()));
-        let db_path = root.join("misty.db");
+        let db_path = root.join("data.db");
         let record = StoredDirectorySizeRecord {
             path: "/tmp/example".to_string(),
             size_bytes: Some(123),

@@ -1,7 +1,7 @@
 import { useOperationQueueStore } from "../store/useOperationQueueStore";
 import { useMultiPanelStore } from "@/features/workspace";
 import type { FileEntry } from "@/native/ipc";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, type ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { ExplorerLocationResult } from "../components/ExplorerToolbar";
 import {
@@ -29,6 +29,10 @@ export const ConnectedExplorerToolbar = memo(
     paneId: string;
     fallbackPath: string;
     locationResults: ExplorerLocationResult[];
+    /** Extra controls after the pane actions, such as the terminal. */
+    extraActions?: ReactNode;
+    /** Controls beside the search field. */
+    searchActions?: ReactNode;
   }) {
     const state = useExplorerStore(
       useShallow((explorer) => {
@@ -204,8 +208,12 @@ export const ConnectedExplorerToolbar = memo(
         {...state}
         paneId={props.paneId}
         locationResults={props.locationResults}
+        searchActions={props.searchActions}
         trailingActions={
-          <ConnectedExplorerToolbarActions paneId={props.paneId} />
+          <>
+            <ConnectedExplorerToolbarActions paneId={props.paneId} />
+            {props.extraActions}
+          </>
         }
         onNavigate={onNavigate}
         onNavigateLocation={onNavigateLocation}

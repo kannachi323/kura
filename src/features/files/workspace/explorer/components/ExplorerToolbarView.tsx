@@ -108,7 +108,7 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
             toolbarStyles.pathBar,
             pathEditing && toolbarStyles.pathBarEditing,
           )}
-          data-misty-window-drag-block="true"
+          data-kura-window-drag-block="true"
           title={pathEditing ? undefined : "Click empty space to edit path"}
           onClick={(event) => {
             if (event.target === event.currentTarget) beginPathEdit();
@@ -179,6 +179,7 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
             onNavigateSearchResult={props.onNavigateSearchResult}
             onRunCommand={props.onRunCommand}
           />
+          {props.searchActions}
         </div>
       </div>
 

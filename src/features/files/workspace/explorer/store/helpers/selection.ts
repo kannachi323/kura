@@ -288,7 +288,9 @@ export function canCreateItemInPane(
   if (pane.listing.location.kind === "peer_device")
     return pane.listing.location.peerWritable === true;
   if (pane.listing.path.startsWith("kura://")) return false;
-  if (pane.listing.location.kind === "remote_provider") return false;
+  // Cloud folders take new items; the list of accounts above them doesn't.
+  if (pane.listing.location.kind === "remote_provider")
+    return Boolean(pane.listing.location.remoteName);
   return true;
 }
 
@@ -319,10 +321,12 @@ export function selectedDeletePathsForPane(
       if (!selected.has(entry.id)) return false;
       if (entry.readonly) return false;
       if (inTrash) return permanent && entry.isDeleted;
-      // Trash listings come from Kura's own Trash folder.
+      // Trash listings come from Kura's own Trash folder; cloud items go to
+      // their provider's trash.
       const hasTrash =
         entry.location.kind === "local" ||
-        entry.location.kind === "peer_device";
+        entry.location.kind === "peer_device" ||
+        entry.location.kind === "remote_provider";
       return permanent ? !entry.isDeleted : !entry.isDeleted && hasTrash;
     })
     .map((entry) => entry.path);

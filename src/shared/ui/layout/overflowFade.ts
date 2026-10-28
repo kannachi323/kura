@@ -1,7 +1,7 @@
 // Keep utility-based labels (including portaled menus) in sync with their real
 // available width. One observer is shared by the whole app, not one per row.
 const candidates =
-  '[class*="truncate"], [class*="text-ellipsis"], [class*="line-clamp-1"], .pointer-pane-title, .misty-input-agent';
+  '[class*="truncate"], [class*="text-ellipsis"], [class*="line-clamp-1"], .pointer-pane-title, .kura-input-agent';
 const marker = "data-overflow-fade";
 
 export function installOverflowFade(root: HTMLElement = document.body) {
@@ -16,7 +16,7 @@ export function installOverflowFade(root: HTMLElement = document.body) {
     const updates = [...pending].map((element) => {
       const style = getComputedStyle(element);
       const enabled =
-        style.getPropertyValue("--misty-overflow-fade").trim() === "1";
+        style.getPropertyValue("--kura-overflow-fade").trim() === "1";
       const overflowing =
         enabled &&
         element.clientWidth > 0 &&
@@ -58,7 +58,7 @@ export function installOverflowFade(root: HTMLElement = document.body) {
     if (!(element instanceof HTMLElement)) return;
     if (
       getComputedStyle(element)
-        .getPropertyValue("--misty-overflow-fade")
+        .getPropertyValue("--kura-overflow-fade")
         .trim() !== "1"
     )
       return;

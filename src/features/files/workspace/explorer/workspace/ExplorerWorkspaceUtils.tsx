@@ -60,7 +60,7 @@ export function buildExplorerLocationResults(
   const results: ExplorerLocationResult[] = [];
   const seen = new Set<string>();
   const add = (label: string, path: string, badge: string) => {
-    if (!path || isRetiredCloudLocation(path, mountRoot)) return;
+    if (!path || isRetiredCloudLocation(path)) return;
     const normalized = normalizedPath(path) || "/";
     const key = explorerPathKey(normalized);
     if (seen.has(key)) return;

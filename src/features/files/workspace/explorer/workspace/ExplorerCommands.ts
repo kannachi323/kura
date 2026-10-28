@@ -20,7 +20,6 @@ import {
 } from "./explorerCommands/transferLabels";
 
 const explorerDuplicateFinderEvent = "kura:explorer-duplicate-finder";
-export const kuraOpenSettingsEvent = "kura:open-settings";
 
 export const executableShortcutCommands = [
   "explorer.new_folder",
@@ -42,49 +41,17 @@ export const executableShortcutCommands = [
   "explorer.toggle_hidden",
   "explorer.preview.toggle",
   "explorer.sidebar.toggle",
-  "explorer.new_tab",
-  "explorer.close_tab",
-  "explorer.restore_tab",
-  "explorer.next_workspace",
-  "explorer.tab_1",
-  "explorer.tab_2",
-  "explorer.tab_3",
-  "explorer.tab_4",
-  "explorer.tab_5",
-  "explorer.tab_6",
-  "explorer.tab_7",
-  "explorer.tab_8",
-  "explorer.tab_9",
-  "app.open_settings",
 ] as const;
 
 export function runExplorerCommand(commandId: string, paneId: string): void {
   const explorer = useExplorerStore.getState();
   const multiPanelStore = multiPanelStoreForPane(paneId);
-  const multi = multiPanelStore.getState();
-  const activeTab =
-    multi.tabs.find((tab) => tab.id === multi.activeTabId) ?? multi.tabs[0];
   switch (commandId) {
-    case "app.open_settings":
-      window.dispatchEvent(new CustomEvent(kuraOpenSettingsEvent));
-      break;
     case "explorer.new_folder":
       void explorer.createItem(paneId, "folder");
       break;
     case "explorer.search":
       openDeepSearch(paneId);
-      break;
-    case "explorer.new_tab": {
-      const path =
-        activeTab?.path ?? explorer.panes[paneId]?.listing?.path ?? "/";
-      multi.addTab(path, activeTab?.title || "Files");
-      break;
-    }
-    case "explorer.close_tab":
-      if (activeTab && multi.tabs.length > 1) multi.closeTab(activeTab.id);
-      break;
-    case "explorer.restore_tab":
-      multi.restoreTab();
       break;
     case "explorer.refresh":
       void explorer.refreshPane(paneId);
@@ -139,30 +106,6 @@ export function runExplorerCommand(commandId: string, paneId: string): void {
     case "explorer.sidebar.toggle":
       toggleActiveTabPanelVisibility("sidebar", multiPanelStore);
       break;
-    case "explorer.next_workspace": {
-      if (multi.tabs.length <= 1) break;
-      const activeIndex = Math.max(
-        0,
-        multi.tabs.findIndex((tab) => tab.id === multi.activeTabId),
-      );
-      const nextTab = multi.tabs[(activeIndex + 1) % multi.tabs.length];
-      if (nextTab) multi.selectTab(nextTab.id);
-      break;
-    }
-    case "explorer.tab_1":
-    case "explorer.tab_2":
-    case "explorer.tab_3":
-    case "explorer.tab_4":
-    case "explorer.tab_5":
-    case "explorer.tab_6":
-    case "explorer.tab_7":
-    case "explorer.tab_8":
-    case "explorer.tab_9": {
-      const index = Number(commandId.slice("explorer.tab_".length)) - 1;
-      const tab = multi.tabs[index];
-      if (tab) multi.selectTab(tab.id);
-      break;
-    }
   }
 }
 
@@ -184,11 +127,7 @@ export async function undoLatestTransferOperation(): Promise<void> {
     const rows = (await transfersSnapshot({ limit: 500 })).rows;
     const latest = newestUndoableTransfer(rows);
     if (!latest) {
-      explorer.pushNotification(
-        "No completed rename or move is available to undo.",
-        "info",
-        3500,
-      );
+      explorer.pushNotification("Nothing to undo.", "info", 3500);
       return;
     }
 

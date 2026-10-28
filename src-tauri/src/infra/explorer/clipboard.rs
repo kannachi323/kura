@@ -15,6 +15,11 @@ impl ExplorerService {
         existing_transfer_id: Option<u64>,
     ) -> ApiResult<ExplorerOperationResult> {
         ensure_not_canceled_if(cancellation)?;
+        if self.paste_touches_cloud(&request) {
+            return self
+                .cloud_paste(request, cancellation, existing_transfer_id)
+                .await;
+        }
         self.validate_paste_paths(&request)?;
         let mut transfer_ids = Vec::with_capacity(request.sources.len());
         for item in &request.sources {
@@ -62,7 +67,11 @@ impl ExplorerService {
         cancellation: Arc<AtomicBool>,
     ) -> ApiResult<ExplorerOperationResult> {
         ensure_not_canceled(cancellation.as_ref())?;
-
+        if self.paste_touches_cloud(&request) {
+            return self
+                .cloud_paste(request, Some(cancellation.as_ref()), None)
+                .await;
+        }
         self.paste_local_items_with_cancellation(request, cancellation.as_ref(), None)
             .await
     }
@@ -75,6 +84,11 @@ impl ExplorerService {
     ) -> ApiResult<ExplorerOperationResult> {
         ensure_not_canceled(cancellation.as_ref())?;
         let existing_transfer_id = nonzero_transfer_id(transfer_id);
+        if self.paste_touches_cloud(&request) {
+            return self
+                .cloud_paste(request, Some(cancellation.as_ref()), existing_transfer_id)
+                .await;
+        }
 
         self.paste_local_items_with_cancellation(
             request,

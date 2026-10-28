@@ -1,5 +1,5 @@
 export const inspectorStyles = {
-  root: "misty-transient-scrollbar h-full min-w-0 overflow-auto bg-charcoal-sidebar px-3 py-3 text-cream-muted",
+  root: "kura-transient-scrollbar h-full min-w-0 overflow-auto bg-charcoal-sidebar px-3 py-3 text-cream-muted",
   emptyState:
     "grid h-full min-h-0 content-center justify-items-center gap-3 px-6 text-center text-cream-muted",
   emptyStateIcon:
@@ -21,7 +21,7 @@ export const inspectorStyles = {
     "m-0 h-full w-full overflow-auto whitespace-pre-wrap break-words p-3 text-left font-mono text-[11px] leading-[1.45] text-cream-muted",
   previewStatus: "px-4 text-center text-sm text-cream-muted",
   folderPreview:
-    "misty-transient-scrollbar h-full w-full overflow-y-auto overflow-x-hidden p-2",
+    "kura-transient-scrollbar h-full w-full overflow-y-auto overflow-x-hidden p-2",
   folderPreviewList: "grid min-w-0 content-start",
   folderPreviewItem:
     "grid h-auto min-h-9 min-w-0 grid-cols-[28px_minmax(0,1fr)_auto] justify-start gap-2 rounded-md px-2 py-1.5 text-left text-cream-muted shadow-none",

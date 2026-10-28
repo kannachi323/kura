@@ -55,7 +55,7 @@ export async function loadGlobalPreview(
     const archive = await archiveList({ path: preparedPath });
     return {
       kind: "archive",
-      mimeType: "application/vnd.misty.archive-list",
+      mimeType: "application/vnd.kura.archive-list",
       archiveEntries: archive.entries.slice(0, 500),
       archiveFormat: archive.format,
     };

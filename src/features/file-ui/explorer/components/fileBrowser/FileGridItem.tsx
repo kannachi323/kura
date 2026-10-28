@@ -1,4 +1,5 @@
 import type { FileEntry } from "@/native/ipc";
+import { CloudStateIcon } from "../CloudStateIcon";
 import type { CSSProperties, MouseEvent } from "react";
 import { memo, useMemo } from "react";
 import {
@@ -114,7 +115,10 @@ export const FileGridItem = memo(function FileGridItem(props: {
       ) : props.passiveRename ? (
         <PassiveRenameDraftView draft={props.passiveRename} />
       ) : (
-        <span className={fileBrowserStyles.gridNameText}>{entry.name}</span>
+        <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1">
+          <span className={fileBrowserStyles.gridNameText}>{entry.name}</span>
+          <CloudStateIcon state={entry.location.cloudState} />
+        </span>
       )}
     </div>
   );

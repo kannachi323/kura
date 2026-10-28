@@ -56,21 +56,14 @@ export function useSidebarQuickAccess(options: {
   const visiblePinnedPaths = useMemo(
     () =>
       dedupePinnedPathsForQuickAccess(
-        sidebar.pinnedPaths.filter(
-          (path) => !isRetiredCloudLocation(path, sidebar.mountRoot),
-        ),
+        sidebar.pinnedPaths.filter((path) => !isRetiredCloudLocation(path)),
         quickAccess
           .filter(
             (item) => !quickAccessPathHidden(item.path, hiddenQuickAccessPaths),
           )
           .map((item) => item.path),
       ),
-    [
-      hiddenQuickAccessPaths,
-      sidebar.pinnedPaths,
-      sidebar.mountRoot,
-      quickAccess,
-    ],
+    [hiddenQuickAccessPaths, sidebar.pinnedPaths, quickAccess],
   );
   const visibleQuickAccess = useMemo(
     () =>

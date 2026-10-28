@@ -136,7 +136,7 @@ export async function loadArchivePreview(
     kind: "archive",
     text: null,
     url: "",
-    mimeType: "application/vnd.misty.archive-list",
+    mimeType: "application/vnd.kura.archive-list",
     archiveEntries: result.entries.slice(0, FOLDER_PREVIEW_LIMIT),
     archiveFormat: result.format,
     archiveTotalCount: result.entries.length,

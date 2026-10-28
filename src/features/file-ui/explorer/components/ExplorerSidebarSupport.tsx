@@ -44,7 +44,7 @@ export type {
 
 export const sidebarStyles = {
   root: cn(
-    "misty-transient-scrollbar h-full min-h-0 min-w-0 overflow-x-hidden",
+    "kura-transient-scrollbar h-full min-h-0 min-w-0 overflow-x-hidden",
     "overflow-y-auto bg-charcoal-sidebar px-3 py-3 text-cream-muted",
     "[overscroll-behavior:contain]",
   ),
@@ -52,13 +52,13 @@ export const sidebarStyles = {
   sectionTitle:
     "group/section-title flex h-9 min-w-0 items-center gap-1 px-2.5",
   sectionToggle:
-    "misty-navigator-row-target flex h-9 min-w-0 flex-1 items-center gap-1 rounded-md px-0 text-[13px] font-semibold text-cream-bright",
+    "kura-navigator-row-target flex h-9 min-w-0 flex-1 items-center gap-1 rounded-md px-0 text-[13px] font-semibold text-cream-bright",
   sectionToggleLabel: navigationDisclosureLabelClass,
   sectionChevron: navigationDisclosureChevronClass,
   sectionActions: "ml-auto flex flex-none items-center gap-0",
   sectionActionsReveal:
     "opacity-0 transition-opacity group-hover/section-title:opacity-100 group-focus-within/section-title:opacity-100",
-  sectionActionButton: "misty-sidebar-icon-target [&_svg]:!size-3.5",
+  sectionActionButton: "kura-sidebar-icon-target [&_svg]:!size-3.5",
   spinning: "[&>svg]:animate-spin",
   treeRow: `${navigationTreeRowClass} mr-0 h-auto min-h-[var(--navigation-row-height,32px)]`,
   treeSurface: `${navigationTreeSurfaceClass} h-auto min-h-[var(--navigation-row-height,32px)] gap-0 pl-0 pr-0 group-hover/tree-row:bg-charcoal-card`,
@@ -126,7 +126,7 @@ export const sidebarStyles = {
     navigationTreeContentInsetClass,
   ),
   deviceGroupLabel: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
-  deviceGroupAction: "misty-sidebar-icon-target [&_svg]:!size-3.5",
+  deviceGroupAction: "kura-sidebar-icon-target [&_svg]:!size-3.5",
   deviceGroupEmpty: "ml-3 mr-2 px-2.5 py-1 text-[11px] text-cream-muted",
   errorText: "m-0 text-sm text-cream-bright",
   smartMeta:

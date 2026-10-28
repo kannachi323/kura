@@ -306,6 +306,12 @@ impl TransferService {
         .map_err(|err| ApiError::Message(format!("Transfer worker failed: {err}")))?
     }
 
+    /// Records where an item ended up (Trash uses this so it can be undone).
+    pub async fn set_local_dest_path(&self, id: u64, path: String) -> ApiResult<()> {
+        self.mutate(id, move |record| record.local_dest_path = path)
+            .await
+    }
+
     pub async fn clear_undo(&self, id: u64) -> ApiResult<()> {
         self.mutate(id, |record| {
             record.undoable = false;
@@ -358,6 +364,12 @@ fn maybe_mark_undoable(record: &mut TransferRecord) {
                     && !record.remote_source_path.is_empty()
                     && !record.remote_dest_name.is_empty()
                     && !record.remote_dest_path.is_empty())
+        }
+        // Only Trash records a destination; permanent deletes cannot be undone.
+        TransferType::Delete => {
+            record.item_type == TransferItemType::Local
+                && !record.local_source_path.is_empty()
+                && !record.local_dest_path.is_empty()
         }
         _ => false,
     };
@@ -1164,7 +1176,7 @@ mod tests {
             std::process::id(),
             now_epoch_ms()
         ));
-        let db_path = root.join("misty.db");
+        let db_path = root.join("data.db");
         (
             TransferService {
                 db_path,
@@ -1689,7 +1701,7 @@ mod tests {
         cache_record.remote_source_name = "drive".to_string();
         cache_record.remote_source_path = "/thumb.png".to_string();
         cache_record.local_dest_path =
-            "/Users/example/.misty/.cache/remote-files/v1/staging/thumb.png".to_string();
+            "/Users/example/.kura/.cache/remote-files/v1/staging/thumb.png".to_string();
         let cache_id = service
             .start_transfer(cache_record)
             .await

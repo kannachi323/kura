@@ -1,7 +1,7 @@
 export type ClipboardPayloadKind =
   "empty" | "text" | "html" | "image" | "file_refs";
 
-export type ClipboardOrigin = "local_system" | "local_misty" | "remote_shared";
+export type ClipboardOrigin = "local_system" | "local_kura";
 
 export type FileKind = "folder" | "file" | "symlink" | "other";
 

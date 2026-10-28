@@ -35,10 +35,10 @@ export function Notification({
 
   useEffect(() => {
     if (!visible) return;
-    let viewport = document.getElementById("misty-notification-viewport");
+    let viewport = document.getElementById("kura-notification-viewport");
     if (!viewport) {
       viewport = document.createElement("div");
-      viewport.id = "misty-notification-viewport";
+      viewport.id = "kura-notification-viewport";
       viewport.setAttribute("aria-label", "Notifications");
       viewport.className = cn(
         "pointer-events-none fixed bottom-4 right-4 layer-notification flex",
@@ -73,8 +73,8 @@ export function Notification({
     <aside
       role={tone === "error" ? "alert" : "status"}
       aria-atomic="true"
-      data-misty-notification="true"
-      data-misty-window-drag-block="true"
+      data-kura-notification="true"
+      data-kura-window-drag-block="true"
       className={cn(
         "pointer-events-auto relative flex shrink-0 items-start gap-2.5",
         "rounded-lg border border-charcoal-border bg-charcoal-card p-3 text-sm",

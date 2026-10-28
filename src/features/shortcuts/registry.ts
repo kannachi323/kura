@@ -66,7 +66,7 @@ const appCommands: ShortcutCommandDefinition[] = [
 
 const tabCommands: ShortcutCommandDefinition[] = [
   command("explorer.new_tab", "New tab", {
-    description: "Open the current folder in a new tab.",
+    description: "Open a new tab.",
     category: "Tabs",
     mac: "Cmd+T",
     windows: "Ctrl+T",
@@ -95,6 +95,57 @@ const tabCommands: ShortcutCommandDefinition[] = [
     mac: "Ctrl+Tab",
     windows: "Ctrl+Tab",
     allowInEditable: true,
+    repeatable: true,
+  }),
+  command("workspace.previous_tab", "Previous tab", {
+    description: "Switch to the previous tab.",
+    category: "Tabs",
+    mac: "Ctrl+Shift+Tab",
+    windows: "Ctrl+Shift+Tab",
+    allowInEditable: true,
+    repeatable: true,
+  }),
+  command("workspace.split_right", "Split pane right", {
+    description: "Open a new pane beside the focused one.",
+    category: "Panes",
+    mac: "Cmd+Backslash",
+    windows: "Ctrl+Backslash",
+    allowInEditable: true,
+  }),
+  command("workspace.split_down", "Split pane below", {
+    description: "Open a new pane below the focused one.",
+    category: "Panes",
+    mac: "Cmd+Shift+Backslash",
+    windows: "Ctrl+Shift+Backslash",
+    allowInEditable: true,
+  }),
+  command("workspace.close_pane", "Close focused pane", {
+    description: "Close the focused pane and keep the others.",
+    category: "Panes",
+  }),
+  command("workspace.focus_pane_left", "Focus pane left", {
+    description: "Move focus to the pane on the left.",
+    category: "Panes",
+    mac: "Option+H",
+    windows: "Alt+H",
+  }),
+  command("workspace.focus_pane_right", "Focus pane right", {
+    description: "Move focus to the pane on the right.",
+    category: "Panes",
+    mac: "Option+L",
+    windows: "Alt+L",
+  }),
+  command("workspace.focus_pane_up", "Focus pane above", {
+    description: "Move focus to the pane above.",
+    category: "Panes",
+    mac: "Option+K",
+    windows: "Alt+K",
+  }),
+  command("workspace.focus_pane_down", "Focus pane below", {
+    description: "Move focus to the pane below.",
+    category: "Panes",
+    mac: "Option+J",
+    windows: "Alt+J",
   }),
   ...Array.from({ length: 9 }, (_, index) =>
     command(`explorer.tab_${index + 1}`, `Go to tab ${index + 1}`, {

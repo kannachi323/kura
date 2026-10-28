@@ -29,11 +29,7 @@ export function createNavigationActions(
   return {
     loadPane: (paneId, path, mode = "push", options) => {
       const environment = useAppStore.getState().app?.environment;
-      const legacyMount = environment
-        ? H.resolveMountRoot(environment.homeDir, environment.mountPath)
-        : undefined;
-      if (isRetiredCloudLocation(path, legacyMount))
-        path = environment?.homeDir || "/";
+      if (isRetiredCloudLocation(path)) path = environment?.homeDir || "/";
       path = H.normalizedPath(path);
       if (path === "kura-transfers://history") {
         navigationVersions.set(

@@ -7,28 +7,28 @@
 /* Semantic charcoal/cream palette. Utilities resolve through these variables
    so the Themes extension can preview and persist one coherent app palette. */
 :root {
-  --misty-theme-workspace: #0f0f0f;
+  --kura-theme-workspace: #0f0f0f;
   /* Active tab and browser toolbar. Darker than the Polar reference so the
      chrome sits closer to the black tab strip. */
   --workspace-tab-surface-top: #222222;
   --workspace-tab-surface: #1c1c1c;
   --workspace-tab-text: #c5c5c5;
   --workspace-tab-muted: #ababab;
-  --misty-theme-bg: #131313;
-  --misty-theme-sidebar: #161616;
-  --misty-theme-card: #191919;
-  --misty-theme-border: #262626;
-  --misty-theme-hover: #2b2b2b;
-  --misty-theme-active: #3e3e3e;
-  --misty-theme-text: #e0e0e0;
-  --misty-theme-text-bright: #f1f1f1;
-  --misty-theme-text-muted: #8c8c8c;
-  --misty-theme-danger: #c94747;
-  --misty-theme-sage: #a3bfab;
-  --misty-theme-sage-bg: #28312b;
-  --misty-extension-artwork-background: var(--misty-theme-card);
-  --misty-extension-artwork-border: var(--misty-theme-border);
-  --misty-extension-artwork-foreground: var(--misty-theme-text-bright);
+  --kura-theme-bg: #131313;
+  --kura-theme-sidebar: #161616;
+  --kura-theme-card: #191919;
+  --kura-theme-border: #262626;
+  --kura-theme-hover: #2b2b2b;
+  --kura-theme-active: #3e3e3e;
+  --kura-theme-text: #e0e0e0;
+  --kura-theme-text-bright: #f1f1f1;
+  --kura-theme-text-muted: #8c8c8c;
+  --kura-theme-danger: #c94747;
+  --kura-theme-sage: #a3bfab;
+  --kura-theme-sage-bg: #28312b;
+  --kura-extension-artwork-background: var(--kura-theme-card);
+  --kura-extension-artwork-border: var(--kura-theme-border);
+  --kura-extension-artwork-foreground: var(--kura-theme-text-bright);
 }
 
 /* Popup chrome is shared by the host and every app, including portaled menus.
@@ -44,10 +44,10 @@
     [data-slot="select-content"],
     [data-slot="workspace-overlay-panel"],
     [role="menu"],
-    .misty-popup-surface,
+    .kura-popup-surface,
     [data-popup-surface],
     [id="browser-omnibox-suggestions"],
-    .misty-tiptap-suggestion
+    .kura-tiptap-suggestion
   ) {
   border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
   --tw-ring-shadow: 0 0 #0000;
@@ -66,50 +66,50 @@
 }
 
 @theme inline {
-  --color-charcoal-workspace: var(--misty-theme-workspace);
-  --color-charcoal-bg: var(--misty-theme-bg);
-  --color-charcoal-sidebar: var(--misty-theme-sidebar);
-  --color-charcoal-card: var(--misty-theme-card);
-  --color-charcoal-border: var(--misty-theme-border);
-  --color-charcoal-hover: var(--misty-theme-hover);
-  --color-charcoal-active: var(--misty-theme-active);
+  --color-charcoal-workspace: var(--kura-theme-workspace);
+  --color-charcoal-bg: var(--kura-theme-bg);
+  --color-charcoal-sidebar: var(--kura-theme-sidebar);
+  --color-charcoal-card: var(--kura-theme-card);
+  --color-charcoal-border: var(--kura-theme-border);
+  --color-charcoal-hover: var(--kura-theme-hover);
+  --color-charcoal-active: var(--kura-theme-active);
 
-  --color-cream: var(--misty-theme-text);
-  --color-cream-bright: var(--misty-theme-text-bright);
+  --color-cream: var(--kura-theme-text);
+  --color-cream-bright: var(--kura-theme-text-bright);
   --color-cream-action-hover: color-mix(
     in srgb,
-    var(--misty-theme-text-bright) 85%,
-    var(--misty-theme-bg)
+    var(--kura-theme-text-bright) 85%,
+    var(--kura-theme-bg)
   );
-  --color-cream-muted: var(--misty-theme-text-muted);
+  --color-cream-muted: var(--kura-theme-text-muted);
   /* Shared interaction fills stay visible on both dark and light themes. */
   --color-control-hover: color-mix(
     in srgb,
-    var(--misty-theme-text) 10%,
+    var(--kura-theme-text) 10%,
     transparent
   );
   --color-control-active: color-mix(
     in srgb,
-    var(--misty-theme-text) 16%,
+    var(--kura-theme-text) 16%,
     transparent
   );
-  --color-notification-red: var(--misty-theme-danger);
+  --color-notification-red: var(--kura-theme-danger);
 
-  --color-sage-fg: var(--misty-theme-sage);
-  --color-sage-bg: var(--misty-theme-sage-bg);
-  --color-status-green: var(--misty-theme-sage);
+  --color-sage-fg: var(--kura-theme-sage);
+  --color-sage-bg: var(--kura-theme-sage-bg);
+  --color-status-green: var(--kura-theme-sage);
 
   /* Item-type glyph tones (see src/shared/ui/icons/itemTones.ts). Mixed toward
      the theme text so they soften on dark themes and deepen on light ones. */
-  --color-tone-blue: color-mix(in srgb, #4f86e8 72%, var(--misty-theme-text));
-  --color-tone-red: color-mix(in srgb, #e5533d 72%, var(--misty-theme-text));
-  --color-tone-green: color-mix(in srgb, #3fa463 72%, var(--misty-theme-text));
-  --color-tone-orange: color-mix(in srgb, #e8833a 72%, var(--misty-theme-text));
-  --color-tone-violet: color-mix(in srgb, #8b5cf6 72%, var(--misty-theme-text));
-  --color-tone-pink: color-mix(in srgb, #e0559b 72%, var(--misty-theme-text));
-  --color-tone-amber: color-mix(in srgb, #d9a21b 72%, var(--misty-theme-text));
-  --color-tone-teal: color-mix(in srgb, #14a39a 72%, var(--misty-theme-text));
-  --color-tone-sand: color-mix(in srgb, #a88a5a 72%, var(--misty-theme-text));
+  --color-tone-blue: color-mix(in srgb, #4f86e8 72%, var(--kura-theme-text));
+  --color-tone-red: color-mix(in srgb, #e5533d 72%, var(--kura-theme-text));
+  --color-tone-green: color-mix(in srgb, #3fa463 72%, var(--kura-theme-text));
+  --color-tone-orange: color-mix(in srgb, #e8833a 72%, var(--kura-theme-text));
+  --color-tone-violet: color-mix(in srgb, #8b5cf6 72%, var(--kura-theme-text));
+  --color-tone-pink: color-mix(in srgb, #e0559b 72%, var(--kura-theme-text));
+  --color-tone-amber: color-mix(in srgb, #d9a21b 72%, var(--kura-theme-text));
+  --color-tone-teal: color-mix(in srgb, #14a39a 72%, var(--kura-theme-text));
+  --color-tone-sand: color-mix(in srgb, #a88a5a 72%, var(--kura-theme-text));
 
   /* Gruvbox-inspired pastels, deterministically assigned per person so the
      app doesn't read as entirely monochrome. Kept soft (no neon) — these are
@@ -173,8 +173,8 @@
   body {
     margin: 0;
     overflow: hidden;
-    background-color: var(--misty-theme-bg);
-    color: var(--misty-theme-text);
+    background-color: var(--kura-theme-bg);
+    color: var(--kura-theme-text);
     font-family:
       system-ui,
       -apple-system,
@@ -187,7 +187,7 @@
 
   #root {
     overflow: hidden;
-    background-color: var(--misty-theme-bg);
+    background-color: var(--kura-theme-bg);
   }
 
   /* Panel opacity only means something when there is something behind the app
@@ -198,12 +198,12 @@
   html[data-wallpaper-active="true"] #root {
     background-color: color-mix(
       in srgb,
-      var(--misty-theme-bg) calc(var(--misty-panel-opacity, 1) * 100%),
+      var(--kura-theme-bg) calc(var(--kura-panel-opacity, 1) * 100%),
       transparent
     );
   }
 
-  html[data-wallpaper-active="true"] [data-misty-desktop-frame] {
+  html[data-wallpaper-active="true"] [data-kura-desktop-frame] {
     background-color: transparent;
   }
 
@@ -216,8 +216,8 @@
   html:has([data-browser-page-host]),
   html:has([data-browser-page-host]) body,
   html:has([data-browser-page-host]) #root,
-  html:has([data-browser-page-host]) [data-misty-desktop-frame],
-  html:has([data-browser-page-host]) [data-misty-route-shell],
+  html:has([data-browser-page-host]) [data-kura-desktop-frame],
+  html:has([data-browser-page-host]) [data-kura-route-shell],
   html:has([data-browser-page-host]) [data-workspace-panes],
   html:has([data-browser-page-host])
     [data-workspace-pane]:has([data-browser-page-host]),
@@ -225,20 +225,20 @@
     [data-workspace-pane]:has([data-browser-page-host])
     > div,
   html:has([data-browser-page-host])
-    [data-misty-trusted-app]:has([data-browser-page-host]),
+    [data-kura-trusted-app]:has([data-browser-page-host]),
   html:has([data-browser-page-host])
-    [data-misty-native-surface]:has([data-browser-page-host]),
+    [data-kura-native-surface]:has([data-browser-page-host]),
   html:has([data-browser-page-host])
     [data-browser-page-container]:has([data-browser-page-host]),
   html:has([data-browser-page-host]) [data-browser-workspace-tab],
   html:has([data-browser-page-host]) [data-browser-page-stage],
   html:has([data-browser-page-host])
-    [data-browser-page-host]:not([data-misty-browser-background]) {
+    [data-browser-page-host]:not([data-kura-browser-background]) {
     background-color: transparent !important;
   }
 
   /* Browser chrome is application UI, not selectable page content. Prevent a
-     stray drag or focus transfer elsewhere in Misty from painting selection
+     stray drag or focus transfer elsewhere in the app from painting selection
      or tap-highlight layers behind the native child view. */
   [data-browser-workspace-tab],
   [data-browser-page-stage],
@@ -267,7 +267,7 @@
     font: inherit;
   }
 
-  /* Misty uses fill, text tone, and edge markers for interaction state. Keep
+  /* Kura uses fill, text tone, and edge markers for interaction state. Keep
      browser/Tailwind focus halos from drawing a second bright box around the
      active surface. */
   *:focus,
@@ -301,8 +301,8 @@
   }
 
   ::selection {
-    background-color: var(--misty-theme-active);
-    color: var(--misty-theme-text-bright);
+    background-color: var(--kura-theme-active);
+    color: var(--kura-theme-text-bright);
   }
 }
 
@@ -316,27 +316,27 @@
  */
 @layer components {
   :root {
-    --misty-marker: #e0e0e0;
-    --misty-marker-size: 3px;
+    --kura-marker: #e0e0e0;
+    --kura-marker-size: 3px;
     /* The sidebar pads its children by 12px (px-3). The marker cancels that
        padding so it sits flush against the panel edge instead of floating
        inside it. Any surface with different padding overrides this locally. */
-    --misty-marker-inset: 12px;
+    --kura-marker-inset: 12px;
 
-    --misty-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --misty-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-    --misty-transition-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
-    --misty-transition-page: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+    --kura-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --kura-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --kura-transition-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    --kura-transition-page: 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @media (pointer: coarse) {
-    .misty-navigator-row-target,
-    .misty-sidebar-row-target {
+    .kura-navigator-row-target,
+    .kura-sidebar-row-target {
       min-height: 44px;
     }
 
-    .misty-navigator-icon-target,
-    .misty-sidebar-icon-target {
+    .kura-navigator-icon-target,
+    .kura-sidebar-icon-target {
       min-width: 44px;
       min-height: 44px;
     }
@@ -365,13 +365,13 @@
   }
 
   /* Monochrome loading placeholder: a soft highlight sweeps across the block. */
-  .misty-skeleton {
+  .kura-skeleton {
     position: relative;
     isolation: isolate;
     overflow: hidden;
   }
 
-  .misty-skeleton::after {
+  .kura-skeleton::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -382,17 +382,17 @@
       color-mix(in oklab, var(--color-cream) 7%, transparent) 50%,
       transparent 100%
     );
-    animation: misty-skeleton-sweep 1.6s ease-in-out infinite;
+    animation: kura-skeleton-sweep 1.6s ease-in-out infinite;
   }
 
-  @keyframes misty-skeleton-sweep {
+  @keyframes kura-skeleton-sweep {
     to {
       transform: translateX(100%);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .misty-skeleton::after {
+    .kura-skeleton::after {
       animation: none;
       display: none;
     }
@@ -406,31 +406,31 @@
     animation: collapsible-up 150ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .misty-active-marker-side,
-  .misty-active-marker-bottom,
-  .misty-marker-host {
+  .kura-active-marker-side,
+  .kura-active-marker-bottom,
+  .kura-marker-host {
     position: relative;
   }
 
-  .misty-active-marker-side::before,
-  .misty-active-marker-bottom::after,
-  .misty-marker-host::before {
+  .kura-active-marker-side::before,
+  .kura-active-marker-bottom::after,
+  .kura-marker-host::before {
     position: absolute;
     z-index: 1;
     display: block;
-    background: var(--misty-marker);
+    background: var(--kura-marker);
     content: "";
     pointer-events: none;
   }
 
   /* One geometry for the side marker, whether it is showing because the row is
      active or because it is hovered. */
-  .misty-active-marker-side::before,
-  .misty-marker-host::before {
+  .kura-active-marker-side::before,
+  .kura-marker-host::before {
     top: 6px;
     bottom: 6px;
-    left: calc(var(--misty-marker-inset) * -1);
-    width: var(--misty-marker-size);
+    left: calc(var(--kura-marker-inset) * -1);
+    width: var(--kura-marker-size);
     border-radius: 0 999px 999px 0;
     transform-origin: center;
     transition:
@@ -439,34 +439,34 @@
   }
 
   /* Hosts start collapsed; hovering previews a short, dimmed marker. */
-  .misty-marker-host::before {
+  .kura-marker-host::before {
     opacity: 0;
     scale: 1 0;
   }
 
-  .misty-marker-host:hover::before,
-  .misty-marker-host:focus-visible::before {
+  .kura-marker-host:hover::before,
+  .kura-marker-host:focus-visible::before {
     opacity: 0.55;
     scale: 1 0.45;
   }
 
   /* Active wins over hover and grows to the full row. */
-  .misty-active-marker-side::before,
-  .misty-marker-host.misty-active-marker-side::before,
-  .misty-marker-host.misty-active-marker-side:hover::before {
+  .kura-active-marker-side::before,
+  .kura-marker-host.kura-active-marker-side::before,
+  .kura-marker-host.kura-active-marker-side:hover::before {
     opacity: 1;
     scale: 1 1;
   }
 
   /* Grow in rather than snapping when a row becomes active. */
   @starting-style {
-    .misty-active-marker-side::before {
+    .kura-active-marker-side::before {
       opacity: 0;
       scale: 1 0;
     }
   }
 
-  .misty-active-marker-bottom::after {
+  .kura-active-marker-bottom::after {
     right: 8px;
     bottom: 0;
     left: 8px;
@@ -476,20 +476,20 @@
 
   /* Every navbar action except Profile previews the same edge marker on hover.
      The active route/popover grows it to full height without moving the icon. */
-  .misty-navbar-marker-side {
+  .kura-navbar-marker-side {
     position: relative;
   }
 
-  .misty-navbar-marker-side::before {
+  .kura-navbar-marker-side::before {
     position: absolute;
     top: 50%;
     left: calc((100% - 80px) / 2);
     z-index: 1;
     display: block;
     height: 28px;
-    width: var(--misty-marker-size);
+    width: var(--kura-marker-size);
     border-radius: 0 999px 999px 0;
-    background: var(--misty-marker);
+    background: var(--kura-marker);
     content: "";
     pointer-events: none;
     translate: 0 -50%;
@@ -501,15 +501,15 @@
       opacity 160ms linear;
   }
 
-  .misty-navbar-marker-side:hover::before,
-  .misty-navbar-marker-side:focus-visible::before {
+  .kura-navbar-marker-side:hover::before,
+  .kura-navbar-marker-side:focus-visible::before {
     opacity: 0.55;
     scale: 1 0.45;
   }
 
-  .misty-navbar-marker-side[aria-current="page"]::before,
-  .misty-navbar-marker-side[aria-expanded="true"]::before,
-  .misty-navbar-marker-side[data-state="open"]::before {
+  .kura-navbar-marker-side[aria-current="page"]::before,
+  .kura-navbar-marker-side[aria-expanded="true"]::before,
+  .kura-navbar-marker-side[data-state="open"]::before {
     opacity: 1;
     scale: 1 1;
   }
@@ -517,54 +517,50 @@
   /* Nested navbar destinations are intentionally monochrome. Their source
      assets include brand images and multicolour SVGs, so normalize both at
      the subsection boundary without changing top-level app iconography. */
-  .misty-navigator-subsection-icon svg [stroke]:not([stroke="none"]) {
+  .kura-navigator-subsection-icon svg [stroke]:not([stroke="none"]) {
     stroke: currentColor !important;
   }
 
-  .misty-navigator-subsection-icon
+  .kura-navigator-subsection-icon
     [data-navigator-feature-icon]
     [fill]:not([fill="none"]) {
     fill: none !important;
     opacity: 1;
   }
 
-  .misty-navigator-subsection-icon
+  .kura-navigator-subsection-icon
     [data-social-provider-icon]
     [fill]:not([fill="none"]) {
     fill: currentColor !important;
     opacity: 1;
   }
 
-  .misty-navigator-subsection-icon img {
+  .kura-navigator-subsection-icon img {
     filter: grayscale(1) brightness(0) invert(1);
   }
 
   /* Brand marks keep a 20px navigation slot, but dense social artwork is
      optically inset and the user-supplied mail glyphs render in white. */
-  .misty-navigator-subsection-icon [data-social-provider-icon] {
+  .kura-navigator-subsection-icon [data-social-provider-icon] {
     width: 18px !important;
     height: 18px !important;
   }
 
-  .misty-navigator-subsection-icon [data-mail-provider-icon] {
+  .kura-navigator-subsection-icon [data-mail-provider-icon] {
     filter: brightness(0) invert(1);
   }
 
-  .misty-navigator-subsection-icon,
-  .misty-navigator-subsection-icon svg {
+  .kura-navigator-subsection-icon,
+  .kura-navigator-subsection-icon svg {
     box-shadow: none;
     filter: none;
     text-shadow: none;
   }
 
-  .misty-navigator-subsection-icon [data-social-provider-icon="misty"] > span {
-    background: currentColor !important;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .misty-active-marker-side::before,
-    .misty-marker-host::before,
-    .misty-navbar-marker-side::before {
+    .kura-active-marker-side::before,
+    .kura-marker-host::before,
+    .kura-navbar-marker-side::before {
       transition: none;
     }
 
@@ -577,7 +573,7 @@
   }
 
   /* The editor and every piece of Code chrome consume the same semantic
-     palette, avoiding a themed editor floating inside Misty-coloured UI. */
+     palette, avoiding a themed editor floating inside differently coloured UI. */
   .coding-workspace,
   .code-theme-overlay {
     --code-workspace-bg: #282828;
@@ -628,8 +624,8 @@
     --code-info: #076678;
   }
 
-  .coding-workspace[data-editor-theme="misty-dark"],
-  html[data-code-overlay-theme="misty-dark"] .code-theme-overlay {
+  .coding-workspace[data-editor-theme="kura-dark"],
+  html[data-code-overlay-theme="kura-dark"] .code-theme-overlay {
     --code-workspace-bg: #131313;
     --code-editor-bg: #131313;
     --code-sidebar-bg: #161616;
@@ -1070,7 +1066,7 @@
   }
 
   html[data-code-overlay-theme="gruvbox-dark"] .code-theme-overlay,
-  html[data-code-overlay-theme="misty-dark"] .code-theme-overlay {
+  html[data-code-overlay-theme="kura-dark"] .code-theme-overlay {
     color-scheme: dark;
   }
 
@@ -1122,7 +1118,7 @@
 @utility layer-agent-surface {
   z-index: 2147482400;
 }
-/* Floating app chrome: global Misty panel, layout controls */
+/* Floating app chrome: global panel, layout controls */
 @utility layer-chrome {
   z-index: 2147482500;
 }

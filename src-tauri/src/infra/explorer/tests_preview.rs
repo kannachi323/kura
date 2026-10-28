@@ -1,5 +1,4 @@
 use super::*;
-use crate::domain::clipboard::ClipboardCache;
 use std::io::Cursor;
 
 #[tokio::test]
@@ -131,8 +130,8 @@ fn drag_stage_file_names_are_sanitized() {
 }
 
 #[test]
-fn drag_stage_expiration_uses_remote_file_cache_ttl() {
-    let ttl_ms = ClipboardCache::DEFAULT_TTL_HOURS * 60 * 60 * 1000;
+fn drag_stage_entries_expire_after_their_ttl() {
+    let ttl_ms = 72 * 60 * 60 * 1000;
     let now_ms = ttl_ms * 2;
 
     assert!(!drag_stage_entry_expired(now_ms - ttl_ms, now_ms, ttl_ms));

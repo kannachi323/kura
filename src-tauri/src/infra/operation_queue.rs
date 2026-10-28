@@ -51,6 +51,9 @@ enum QueuedExplorerOperation {
     Delete(DeleteItemsRequest),
     Paste(PasteItemsRequest),
     ArchiveCreate(ArchiveCreateRequest),
+    /// A downloaded cloud file changed on disk; upload it unless the cloud
+    /// changed too.
+    CloudUpload(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,12 +89,14 @@ impl OperationQueueService {
         if request.sources.is_empty() {
             return Ok(self.snapshot_with_redo_state().await);
         }
-        self.enqueue_paste_items_inner(request).await
+        self.enqueue_paste_items_inner(request, OperationOrigin::User)
+            .await
     }
 
     async fn enqueue_paste_items_inner(
         &self,
         request: PasteItemsRequest,
+        origin: OperationOrigin,
     ) -> ApiResult<OperationQueueSnapshot> {
         if request.sources.is_empty() {
             return Ok(self.snapshot_with_redo_state().await);
@@ -118,6 +123,7 @@ impl OperationQueueService {
                 supports_replace: true,
                 supports_keep_both: true,
                 title: format!("{} {}", operation_action_label(operation_kind), file_name),
+                from_undo: origin == OperationOrigin::Undo,
                 ..OperationDescriptor::default()
             });
             payloads.push(QueuedExplorerOperation::Paste(PasteItemsRequest {
@@ -136,7 +142,7 @@ impl OperationQueueService {
             ClipboardOperation::Copy => "Copy items",
             ClipboardOperation::Move => "Move items",
         };
-        self.enqueue_operations(label, false, descriptors, payloads)
+        self.enqueue_with_origin(label, descriptors, payloads, origin)
             .await
     }
 
@@ -169,17 +175,18 @@ impl OperationQueueService {
         &self,
         request: RenameItemRequest,
     ) -> ApiResult<OperationQueueSnapshot> {
-        self.enqueue_rename_item_inner(request).await
+        self.enqueue_rename_item_inner(request, OperationOrigin::User)
+            .await
     }
 
     async fn enqueue_rename_item_inner(
         &self,
         request: RenameItemRequest,
+        origin: OperationOrigin,
     ) -> ApiResult<OperationQueueSnapshot> {
         let target_path = child_path(&parent_path(&request.path), &request.new_name);
-        self.enqueue_operations(
+        self.enqueue_with_origin(
             "Rename item",
-            false,
             vec![OperationDescriptor {
                 kind: OperationKind::Rename,
                 source: self.endpoint_for_path(request.path.clone()),
@@ -187,9 +194,11 @@ impl OperationQueueService {
                 supports_replace: true,
                 supports_keep_both: false,
                 title: format!("Rename to {}", request.new_name),
+                from_undo: origin == OperationOrigin::Undo,
                 ..OperationDescriptor::default()
             }],
             vec![QueuedExplorerOperation::Rename(request)],
+            origin,
         )
         .await
     }
@@ -440,12 +449,44 @@ impl OperationQueueService {
             .0)
     }
 
+    /// Undo and redo keep the redo stack; anything the user starts clears it.
+    async fn enqueue_with_origin(
+        &self,
+        label: impl Into<String>,
+        descriptors: Vec<OperationDescriptor>,
+        payloads: Vec<QueuedExplorerOperation>,
+        origin: OperationOrigin,
+    ) -> ApiResult<OperationQueueSnapshot> {
+        Ok(self
+            .enqueue_operations_inner(
+                label,
+                false,
+                descriptors,
+                payloads,
+                origin == OperationOrigin::User,
+            )
+            .await?
+            .0)
+    }
+
     async fn enqueue_operations_with_ids(
+        &self,
+        label: impl Into<String>,
+        preserve_order: bool,
+        descriptors: Vec<OperationDescriptor>,
+        payloads: Vec<QueuedExplorerOperation>,
+    ) -> ApiResult<(OperationQueueSnapshot, Vec<u64>)> {
+        self.enqueue_operations_inner(label, preserve_order, descriptors, payloads, true)
+            .await
+    }
+
+    async fn enqueue_operations_inner(
         &self,
         label: impl Into<String>,
         preserve_order: bool,
         mut descriptors: Vec<OperationDescriptor>,
         payloads: Vec<QueuedExplorerOperation>,
+        clear_redo: bool,
     ) -> ApiResult<(OperationQueueSnapshot, Vec<u64>)> {
         if descriptors.len() != payloads.len() {
             return Err(ApiError::Message(
@@ -470,7 +511,9 @@ impl OperationQueueService {
             // small window between enqueue and payload insertion.
             descriptor.paused = true;
         }
-        self.clear_redo_stack().await;
+        if clear_redo {
+            self.clear_redo_stack().await;
+        }
         let (_, operation_ids) = self
             .queue
             .enqueue_batch_with_ids(label, preserve_order, descriptors)
@@ -489,8 +532,60 @@ impl OperationQueueService {
         Ok((self.snapshot_with_redo_state().await, operation_ids))
     }
 
+    /// Cloud paths keep their Kura path (so undo and retry work with paths)
+    /// and also name their account and remote path for the transfer history.
     fn endpoint_for_path(&self, path: String) -> OperationEndpoint {
-        endpoint_for_path(path, None)
+        match self.explorer.cloud_path(&path) {
+            Some(cloud) => OperationEndpoint {
+                local_path: path,
+                remote_name: cloud.remote,
+                remote_path: cloud.rel,
+            },
+            None => endpoint_for_path(path, None),
+        }
+    }
+
+    /// Queues an upload for a cloud file that changed on disk. An upload for
+    /// the same file that hasn't started yet already covers it.
+    pub async fn enqueue_cloud_upload(&self, path: String) -> ApiResult<OperationQueueSnapshot> {
+        let already_queued = self
+            .queue
+            .snapshot()
+            .await
+            .operations
+            .iter()
+            .any(|operation| {
+                operation.kind == OperationKind::Upload
+                    && operation.source.local_path == path
+                    && matches!(
+                        operation.status,
+                        OperationStatus::Queued | OperationStatus::WaitingForResolution
+                    )
+            });
+        if already_queued {
+            return Ok(self.snapshot_with_redo_state().await);
+        }
+        let name = leaf_name(&path).unwrap_or_else(|| path.clone());
+        let endpoint = self.endpoint_for_path(path.clone());
+        Ok(self
+            .enqueue_operations_inner(
+                format!("Upload {name}"),
+                false,
+                vec![OperationDescriptor {
+                    kind: OperationKind::Upload,
+                    source: endpoint.clone(),
+                    target: endpoint,
+                    supports_replace: true,
+                    supports_keep_both: true,
+                    title: format!("Upload {name}"),
+                    ..OperationDescriptor::default()
+                }],
+                vec![QueuedExplorerOperation::CloudUpload(path)],
+                // Saving a file in the background must not cost the redo history.
+                false,
+            )
+            .await?
+            .0)
     }
 
     pub async fn enqueue_file_sync_apply(
@@ -735,7 +830,10 @@ impl OperationQueueService {
 
         let snapshot = match row.transfer_type {
             FileTransferType::Rename => self.enqueue_undo_rename(&row).await?,
-            FileTransferType::Move => self.enqueue_undo_move(&row).await?,
+            // Trash keeps the item's Trash path as its destination.
+            FileTransferType::Move | FileTransferType::Delete => {
+                self.enqueue_undo_move(&row).await?
+            }
             _ => {
                 return Err(ApiError::Message(format!(
                     "Transfer {} does not support undo.",
@@ -751,9 +849,12 @@ impl OperationQueueService {
     }
 
     pub async fn redo(&self) -> ApiResult<OperationQueueSnapshot> {
-        let row = self.redo_stack.lock().await.pop().ok_or_else(|| {
-            ApiError::Message("No undone rename or move is available to redo.".to_string())
-        })?;
+        let row = self
+            .redo_stack
+            .lock()
+            .await
+            .pop()
+            .ok_or_else(|| ApiError::Message("Nothing to redo.".to_string()))?;
         match self.enqueue_original_transfer(&row).await {
             Ok(snapshot) => Ok(snapshot),
             Err(error) => {
@@ -801,12 +902,6 @@ impl OperationQueueService {
         &self,
         row: &crate::domain::file_transfer::FileTransferRecord,
     ) -> ApiResult<OperationQueueSnapshot> {
-        if row.item_type == FileTransferItemType::Remote {
-            return Err(ApiError::Message(
-                "Cloud file transfers are no longer supported.".into(),
-            ));
-        }
-
         if row.local_source_path.is_empty() || row.local_dest_path.is_empty() {
             return Err(ApiError::Message(
                 "Local rename undo is missing source or destination metadata.".to_string(),
@@ -817,11 +912,14 @@ impl OperationQueueService {
             .is_directory_at(&row.local_dest_path)
             .await?
             .unwrap_or(false);
-        self.enqueue_rename_item_inner(RenameItemRequest {
-            path: row.local_dest_path.clone(),
-            new_name: original_name,
-            source_is_directory: Some(source_is_directory),
-        })
+        self.enqueue_rename_item_inner(
+            RenameItemRequest {
+                path: row.local_dest_path.clone(),
+                new_name: original_name,
+                source_is_directory: Some(source_is_directory),
+            },
+            OperationOrigin::Undo,
+        )
         .await
     }
 
@@ -829,12 +927,6 @@ impl OperationQueueService {
         &self,
         row: &crate::domain::file_transfer::FileTransferRecord,
     ) -> ApiResult<OperationQueueSnapshot> {
-        if row.item_type == FileTransferItemType::Remote {
-            return Err(ApiError::Message(
-                "Cloud file transfers are no longer supported.".into(),
-            ));
-        }
-
         if row.local_source_path.is_empty() || row.local_dest_path.is_empty() {
             return Err(ApiError::Message(
                 "Local move undo is missing source or destination metadata.".to_string(),
@@ -846,17 +938,20 @@ impl OperationQueueService {
             .is_directory_at(&row.local_dest_path)
             .await?
             .unwrap_or(false);
-        self.enqueue_paste_items_inner(PasteItemsRequest {
-            sources: vec![PasteItem {
-                path: row.local_dest_path.clone(),
-                is_directory,
-                size_bytes: None,
-                remote_modified: None,
-            }],
-            destination_directory: original_parent,
-            operation: ClipboardOperation::Move,
-            target_name: Some(original_name),
-        })
+        self.enqueue_paste_items_inner(
+            PasteItemsRequest {
+                sources: vec![PasteItem {
+                    path: row.local_dest_path.clone(),
+                    is_directory,
+                    size_bytes: None,
+                    remote_modified: None,
+                }],
+                destination_directory: original_parent,
+                operation: ClipboardOperation::Move,
+                target_name: Some(original_name),
+            },
+            OperationOrigin::Undo,
+        )
         .await
     }
 
@@ -867,6 +962,7 @@ impl OperationQueueService {
         match row.transfer_type {
             FileTransferType::Rename => self.enqueue_redo_rename(row).await,
             FileTransferType::Move => self.enqueue_redo_move(row).await,
+            FileTransferType::Delete => self.enqueue_redo_trash(row).await,
             _ => Err(ApiError::Message(format!(
                 "Transfer {} does not support redo.",
                 row.id
@@ -879,9 +975,17 @@ impl OperationQueueService {
         row: &FileTransferRecord,
     ) -> ApiResult<OperationQueueSnapshot> {
         match row.transfer_type {
-            FileTransferType::Upload | FileTransferType::Download => Err(ApiError::Message(
-                "Cloud file transfers are no longer supported.".into(),
-            )),
+            FileTransferType::Upload
+                if !row.local_source_path.is_empty()
+                    && row.local_source_path == row.local_dest_path =>
+            {
+                self.enqueue_cloud_upload(row.local_source_path.clone())
+                    .await
+            }
+            FileTransferType::Upload | FileTransferType::Download => {
+                self.enqueue_retry_paste(row, ClipboardOperation::Copy)
+                    .await
+            }
             FileTransferType::Copy => {
                 self.enqueue_retry_paste(row, ClipboardOperation::Copy)
                     .await
@@ -922,17 +1026,20 @@ impl OperationQueueService {
             ));
         };
         let is_directory = self.is_directory_at(&source_path).await?.unwrap_or(false);
-        self.enqueue_paste_items_inner(PasteItemsRequest {
-            sources: vec![PasteItem {
-                path: source_path,
-                is_directory,
-                size_bytes: None,
-                remote_modified: None,
-            }],
-            destination_directory,
-            operation,
-            target_name: Some(target_name),
-        })
+        self.enqueue_paste_items_inner(
+            PasteItemsRequest {
+                sources: vec![PasteItem {
+                    path: source_path,
+                    is_directory,
+                    size_bytes: None,
+                    remote_modified: None,
+                }],
+                destination_directory,
+                operation,
+                target_name: Some(target_name),
+            },
+            OperationOrigin::User,
+        )
         .await
     }
 
@@ -976,11 +1083,14 @@ impl OperationQueueService {
             )
         };
         let source_is_directory = self.is_directory_at(&source_path).await?.unwrap_or(false);
-        self.enqueue_rename_item_inner(RenameItemRequest {
-            path: source_path,
-            new_name: target_name,
-            source_is_directory: Some(source_is_directory),
-        })
+        self.enqueue_rename_item_inner(
+            RenameItemRequest {
+                path: source_path,
+                new_name: target_name,
+                source_is_directory: Some(source_is_directory),
+            },
+            OperationOrigin::User,
+        )
         .await
     }
 
@@ -1022,11 +1132,14 @@ impl OperationQueueService {
             .is_directory_at(&row.local_source_path)
             .await?
             .unwrap_or(false);
-        self.enqueue_rename_item_inner(RenameItemRequest {
-            path: row.local_source_path.clone(),
-            new_name: redone_name,
-            source_is_directory: Some(source_is_directory),
-        })
+        self.enqueue_rename_item_inner(
+            RenameItemRequest {
+                path: row.local_source_path.clone(),
+                new_name: redone_name,
+                source_is_directory: Some(source_is_directory),
+            },
+            OperationOrigin::Redo,
+        )
         .await
     }
 
@@ -1051,17 +1164,48 @@ impl OperationQueueService {
             .is_directory_at(&row.local_source_path)
             .await?
             .unwrap_or(false);
-        self.enqueue_paste_items_inner(PasteItemsRequest {
-            sources: vec![PasteItem {
-                path: row.local_source_path.clone(),
-                is_directory,
-                size_bytes: None,
-                remote_modified: None,
+        self.enqueue_paste_items_inner(
+            PasteItemsRequest {
+                sources: vec![PasteItem {
+                    path: row.local_source_path.clone(),
+                    is_directory,
+                    size_bytes: None,
+                    remote_modified: None,
+                }],
+                destination_directory: redone_parent,
+                operation: ClipboardOperation::Move,
+                target_name: Some(redone_name),
+            },
+            OperationOrigin::Redo,
+        )
+        .await
+    }
+
+    async fn enqueue_redo_trash(
+        &self,
+        row: &FileTransferRecord,
+    ) -> ApiResult<OperationQueueSnapshot> {
+        if row.local_source_path.is_empty() {
+            return Err(ApiError::Message(
+                "Trash redo is missing the original path.".to_string(),
+            ));
+        }
+        let path = row.local_source_path.clone();
+        let name = leaf_name(&path).unwrap_or_else(|| path.clone());
+        self.enqueue_with_origin(
+            "Move items to Trash",
+            vec![OperationDescriptor {
+                kind: OperationKind::Delete,
+                source: self.endpoint_for_path(path.clone()),
+                title: format!("Trash {name}"),
+                ..OperationDescriptor::default()
             }],
-            destination_directory: redone_parent,
-            operation: ClipboardOperation::Move,
-            target_name: Some(redone_name),
-        })
+            vec![QueuedExplorerOperation::Delete(DeleteItemsRequest {
+                paths: vec![path],
+                permanent: false,
+            })],
+            OperationOrigin::Redo,
+        )
         .await
     }
 
@@ -1124,14 +1268,14 @@ impl OperationQueueService {
         result: ApiResult<ExecutionOutcome>,
         cancellation: &AtomicBool,
     ) {
-        let transfer_id = self
+        let (transfer_id, from_undo) = self
             .queue
             .snapshot()
             .await
             .operations
             .iter()
             .find(|operation| operation.operation_id == operation_id)
-            .map(|operation| operation.transfer_id)
+            .map(|operation| (operation.transfer_id, operation.from_undo))
             .unwrap_or_default();
         match result {
             Ok(ExecutionOutcome::Completed) => {
@@ -1139,6 +1283,11 @@ impl OperationQueueService {
                 let completed = self.queue.complete(operation_id, None).await;
                 if completed && transfer_id > 0 {
                     let _ = self.transfers.complete_transfer(transfer_id).await;
+                    if from_undo {
+                        // An undo must not become the next thing Cmd+Z
+                        // undoes; the redo stack covers going forward.
+                        let _ = self.transfers.clear_undo(transfer_id).await;
+                    }
                     let _ = self
                         .transfers
                         .complete_logical_descendants(transfer_id)
@@ -1392,6 +1541,51 @@ impl OperationQueueService {
                     )
                     .await?;
             }
+            QueuedExplorerOperation::CloudUpload(path) => {
+                let choice = match operation.conflict_policy {
+                    ConflictPolicy::Ask => None,
+                    ConflictPolicy::Replace => Some(kuragine::ConflictChoice::KeepMine),
+                    ConflictPolicy::KeepBoth => Some(kuragine::ConflictChoice::KeepBoth),
+                    ConflictPolicy::Skip => return Ok(ExecutionOutcome::Skipped),
+                };
+                let result = match choice {
+                    None => {
+                        self.explorer
+                            .cloud_upload_change(
+                                &path,
+                                Some(cancellation.as_ref()),
+                                operation.transfer_id,
+                            )
+                            .await?
+                    }
+                    Some(choice) => {
+                        self.explorer
+                            .cloud_resolve_conflict(
+                                &path,
+                                choice,
+                                Some(cancellation.as_ref()),
+                                operation.transfer_id,
+                            )
+                            .await?
+                    }
+                };
+                if let crate::infra::explorer::CloudUploadResult::Conflict(conflict) = result {
+                    if !self.queue.wait_for_conflict(operation.operation_id).await {
+                        return Err(ApiError::Message(format!(
+                            "Operation {} could not wait for conflict resolution.",
+                            operation.operation_id
+                        )));
+                    }
+                    self.queue
+                        .set_conflict_comparison(
+                            operation.operation_id,
+                            conflict.local_path.to_string_lossy().into_owned(),
+                            conflict.remote_copy_path.to_string_lossy().into_owned(),
+                        )
+                        .await;
+                    return Ok(ExecutionOutcome::WaitingForConflict);
+                }
+            }
             QueuedExplorerOperation::ArchiveCreate(mut request) => {
                 let destination = PathBuf::from(&request.destination_path);
                 if self
@@ -1566,6 +1760,14 @@ impl OperationQueueService {
             .sync_queue_state(operation.transfer_id, transfer_queue_patch(operation))
             .await;
     }
+}
+
+/// Who asked for an operation, which decides how it touches undo history.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OperationOrigin {
+    User,
+    Undo,
+    Redo,
 }
 
 fn ensure_not_canceled(cancellation: &AtomicBool) -> ApiResult<()> {
@@ -1988,7 +2190,7 @@ mod tests {
     #[test]
     fn endpoint_for_path_preserves_remote_metadata() {
         let endpoint = endpoint_for_path(
-            "/Users/misty/.misty/mnt/drive-work/report.pdf".to_string(),
+            "/Users/example/.kura/mnt/drive-work/report.pdf".to_string(),
             Some(RemoteBrowseTarget {
                 provider_type: "drive".to_string(),
                 remote_name: "drive-work".to_string(),
@@ -2013,14 +2215,14 @@ mod tests {
     #[test]
     fn remote_to_local_copy_is_described_as_download() {
         let source = endpoint_for_path(
-            "/Users/misty/.misty/mnt/drive-work/work/report.pdf".to_string(),
+            "/Users/example/.kura/mnt/drive-work/work/report.pdf".to_string(),
             Some(RemoteBrowseTarget {
                 provider_type: "drive".to_string(),
                 remote_name: "drive-work".to_string(),
                 remote_path: "/work/report.pdf".to_string(),
             }),
         );
-        let target = local_endpoint("/Users/misty/Downloads/report.pdf".to_string());
+        let target = local_endpoint("/Users/me/Downloads/report.pdf".to_string());
 
         assert_eq!(
             operation_kind_for_paste(ClipboardOperation::Copy, &source, &target),
@@ -2031,9 +2233,9 @@ mod tests {
 
     #[test]
     fn local_to_remote_copy_is_described_as_upload() {
-        let source = local_endpoint("/Users/misty/Desktop/report.pdf".to_string());
+        let source = local_endpoint("/Users/me/Desktop/report.pdf".to_string());
         let target = endpoint_for_path(
-            "/Users/misty/.misty/mnt/drive-work/uploads/report.pdf".to_string(),
+            "/Users/example/.kura/mnt/drive-work/uploads/report.pdf".to_string(),
             Some(RemoteBrowseTarget {
                 provider_type: "drive".to_string(),
                 remote_name: "drive-work".to_string(),
@@ -2053,7 +2255,7 @@ mod tests {
         let local_source = local_endpoint("/tmp/report.pdf".to_string());
         let local_target = local_endpoint("/tmp/archive/report.pdf".to_string());
         let remote_source = endpoint_for_path(
-            "/Users/misty/.misty/mnt/drive-work/report.pdf".to_string(),
+            "/Users/example/.kura/mnt/drive-work/report.pdf".to_string(),
             Some(RemoteBrowseTarget {
                 provider_type: "drive".to_string(),
                 remote_name: "drive-work".to_string(),
@@ -3076,7 +3278,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn retired_cloud_folder_delete_is_refused() {
+    async fn deleting_in_an_unconnected_cloud_folder_is_refused() {
         let environment =
             AppEnvironmentService::for_test_home(unique_test_dir("folder-delete-home"));
         let mount_root = environment.mount_root();
@@ -3095,12 +3297,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(
-            error
-                .to_string()
-                .contains("Cloud file locations are no longer supported"),
-            "{error}"
-        );
+        assert!(error.to_string().contains("isn't connected"), "{error}");
         let transfer_page = transfers.snapshot(TransferFilter::default()).await.unwrap();
         assert!(transfer_page.rows.is_empty());
     }
@@ -3111,6 +3308,164 @@ mod tests {
         let explorer_library = ExplorerLibraryService::new(environment.clone());
         let explorer = ExplorerService::new(environment, transfers.clone(), explorer_library);
         OperationQueueService::new(explorer, transfers)
+    }
+
+    async fn completed_rename(
+        service: &OperationQueueService,
+        root: &Path,
+        from: &str,
+        to: &str,
+    ) -> (PathBuf, PathBuf) {
+        let original = root.join(from);
+        let renamed = root.join(to);
+        let snapshot = service
+            .enqueue_rename_item(RenameItemRequest {
+                path: original.to_string_lossy().to_string(),
+                new_name: to.to_string(),
+                source_is_directory: Some(false),
+            })
+            .await
+            .unwrap();
+        wait_for_operation_status(
+            service,
+            newest_operation_id(&snapshot),
+            OperationStatus::Completed,
+        )
+        .await;
+        (original, renamed)
+    }
+
+    fn transfer_id_of(snapshot: &OperationQueueSnapshot, operation_id: u64) -> u64 {
+        snapshot
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == operation_id)
+            .map(|operation| operation.transfer_id)
+            .expect("operation transfer")
+    }
+
+    #[tokio::test]
+    async fn an_undo_is_not_itself_the_next_undo() {
+        let service = test_operation_queue_service();
+        let root = unique_test_dir("undo-not-undoable");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        tokio::fs::write(root.join("a.txt"), b"a").await.unwrap();
+        let (original, _) = completed_rename(&service, &root, "a.txt", "b.txt").await;
+
+        let latest = service
+            .transfers
+            .snapshot(Default::default())
+            .await
+            .unwrap();
+        let rename = latest.rows.iter().find(|row| row.undoable).unwrap();
+        let undo = service.undo(rename.undo_token_id).await.unwrap();
+        let undo_operation = newest_operation_id(&undo);
+        wait_for_operation_status(&service, undo_operation, OperationStatus::Completed).await;
+        assert!(original.is_file());
+
+        // The queue reports Completed a moment before the transfer row settles.
+        let undo_transfer_id = transfer_id_of(&service.snapshot().await, undo_operation);
+        let mut undoable = true;
+        for _ in 0..50 {
+            undoable = service
+                .transfers
+                .transfer_by_id(undo_transfer_id)
+                .await
+                .unwrap()
+                .undoable;
+            if !undoable {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert!(!undoable);
+        let _ = tokio::fs::remove_dir_all(&root).await;
+    }
+
+    #[tokio::test]
+    async fn two_undos_can_both_be_redone() {
+        let service = test_operation_queue_service();
+        let root = unique_test_dir("undo-redo-twice");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        tokio::fs::write(root.join("a.txt"), b"a").await.unwrap();
+        tokio::fs::write(root.join("c.txt"), b"c").await.unwrap();
+        completed_rename(&service, &root, "a.txt", "b.txt").await;
+        completed_rename(&service, &root, "c.txt", "d.txt").await;
+
+        let page = service
+            .transfers
+            .snapshot(Default::default())
+            .await
+            .unwrap();
+        let mut tokens: Vec<_> = page
+            .rows
+            .iter()
+            .filter(|row| row.undoable)
+            .map(|row| (row.id, row.undo_token_id))
+            .collect();
+        tokens.sort();
+        for (_, token) in tokens.iter().rev() {
+            let snapshot = service.undo(*token).await.unwrap();
+            let id = newest_operation_id(&snapshot);
+            wait_for_operation_status(&service, id, OperationStatus::Completed).await;
+        }
+        assert!(root.join("a.txt").is_file() && root.join("c.txt").is_file());
+
+        for _ in 0..2 {
+            let snapshot = service.redo().await.unwrap();
+            let id = newest_operation_id(&snapshot);
+            wait_for_operation_status(&service, id, OperationStatus::Completed).await;
+        }
+        assert!(root.join("b.txt").is_file() && root.join("d.txt").is_file());
+        assert!(service.redo().await.is_err());
+        let _ = tokio::fs::remove_dir_all(&root).await;
+    }
+
+    #[tokio::test]
+    async fn trash_can_be_undone_and_redone() {
+        let service = test_operation_queue_service();
+        let root = unique_test_dir("trash-undo");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let file = root.join("report.txt");
+        tokio::fs::write(&file, b"report").await.unwrap();
+
+        let snapshot = service
+            .enqueue_delete_items(DeleteItemsRequest {
+                paths: vec![file.to_string_lossy().to_string()],
+                permanent: false,
+            })
+            .await
+            .unwrap();
+        let trash_operation = newest_operation_id(&snapshot);
+        wait_for_operation_status(&service, trash_operation, OperationStatus::Completed).await;
+        assert!(!file.exists());
+
+        let row = service
+            .transfers
+            .transfer_by_id(transfer_id_of(&service.snapshot().await, trash_operation))
+            .await
+            .unwrap();
+        assert!(row.undoable, "trash should be undoable");
+        assert!(Path::new(&row.local_dest_path).is_file());
+
+        let undo = service.undo(row.undo_token_id).await.unwrap();
+        wait_for_operation_status(
+            &service,
+            newest_operation_id(&undo),
+            OperationStatus::Completed,
+        )
+        .await;
+        assert_eq!(tokio::fs::read(&file).await.unwrap(), b"report");
+
+        let redo = service.redo().await.unwrap();
+        wait_for_operation_status(
+            &service,
+            newest_operation_id(&redo),
+            OperationStatus::Completed,
+        )
+        .await;
+        assert!(!file.exists());
+        let _ = tokio::fs::remove_dir_all(&root).await;
     }
 
     fn unique_test_dir(name: &str) -> PathBuf {

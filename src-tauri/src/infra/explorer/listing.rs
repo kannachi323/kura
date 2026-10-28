@@ -30,6 +30,18 @@ impl ExplorerService {
                     "Unsupported virtual Explorer location: {path}"
                 )));
             }
+            if self.is_cloud_root(path) {
+                return self.cloud_root_listing();
+            }
+            if let Some(cloud) = self.cloud_path(path) {
+                return self
+                    .cloud_listing(
+                        cloud,
+                        request.show_hidden.unwrap_or(false),
+                        request.force_remote_refresh.unwrap_or(false),
+                    )
+                    .await;
+            }
         }
 
         let requested = request
@@ -171,6 +183,12 @@ impl ExplorerService {
     }
 
     pub async fn item_is_directory(&self, path: &str) -> ApiResult<Option<bool>> {
+        if self.is_cloud_root(path) {
+            return Ok(Some(true));
+        }
+        if let Some(cloud) = self.cloud_path(path) {
+            return self.cloud_is_directory(&cloud).await;
+        }
         self.reject_virtual_mount_container(path, "inspect")?;
         // Match std::filesystem::is_directory in the native Explorer: the
         // decision to browse or open follows a local symlink's target.

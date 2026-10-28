@@ -1,4 +1,5 @@
 import type { DirectorySizeRecord, FileEntry } from "@/native/ipc";
+import { CloudStateIcon } from "../CloudStateIcon";
 import { TableCell, TableRow } from "@/shared/ui";
 import type { MouseEvent } from "react";
 import { memo, useMemo } from "react";
@@ -168,9 +169,12 @@ function FileTableCell(props: {
             ) : props.passiveRename ? (
               <PassiveRenameDraftView draft={props.passiveRename} />
             ) : (
-              <span className={fileBrowserStyles.tableNameText}>
-                {props.entry.name}
-              </span>
+              <>
+                <span className={fileBrowserStyles.tableNameText}>
+                  {props.entry.name}
+                </span>
+                <CloudStateIcon state={props.entry.location.cloudState} />
+              </>
             )}
           </span>
         </TableCell>

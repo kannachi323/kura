@@ -40,7 +40,7 @@ pub struct AppEnvironmentSnapshot {
     pub kura_config_path: String,
     pub workspaces_path: String,
     pub commands_path: String,
-    /// Retired remote-mount prefix, relative to the home directory.
+    /// Where cloud accounts' folders live: `~/.kura/providers`.
     pub mount_path: String,
     pub config_exists: bool,
 }
@@ -76,6 +76,14 @@ impl AppEnvironmentService {
         self.inner.commands_path.clone()
     }
 
+    pub fn kura_dir(&self) -> PathBuf {
+        self.inner.kura_dir.clone()
+    }
+
+    pub fn db_dir(&self) -> PathBuf {
+        self.inner.db_dir.clone()
+    }
+
     pub fn config_dir(&self) -> PathBuf {
         self.inner.config_dir.clone()
     }
@@ -84,9 +92,10 @@ impl AppEnvironmentService {
         self.inner.home_dir.clone()
     }
 
-    /// Legacy remote-mount prefix; paths under it are treated as remote, never indexed.
+    /// `~/.kura/providers`: one folder per cloud account, holding the files
+    /// Kura downloaded. Paths under it are cloud paths and are never indexed.
     pub fn mount_root(&self) -> PathBuf {
-        self.inner.kura_dir.join("mnt")
+        self.inner.kura_dir.join("providers")
     }
 
     pub fn cache_dir(&self) -> PathBuf {
@@ -172,7 +181,7 @@ impl AppEnvironment {
             kura_config_path: display_path(&self.kura_config_path),
             workspaces_path: display_path(&self.workspaces_path),
             commands_path: display_path(&self.commands_path),
-            mount_path: ".kura/mnt".to_owned(),
+            mount_path: display_path(&self.kura_dir.join("providers")),
             config_exists: self.config_exists,
         }
     }

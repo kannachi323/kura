@@ -258,10 +258,8 @@ export function clipboardPayloadForPane(
     pane?.listing?.entries.filter((entry) => selected.has(entry.id)) ?? [];
   return {
     kind: entries.length > 0 ? "file_refs" : "empty",
-    origin: "local_misty",
+    origin: "local_kura",
     payload_id: "",
-    source_device_id: "",
-    source_device_name: "",
     revision: 0,
     created_unix_ms: 0,
     text: "",
@@ -269,7 +267,7 @@ export function clipboardPayloadForPane(
     file_refs: entries.map((entry) => ({
       display_name: entry.name,
       local_path: entry.location.kind === "local" ? entry.path : "",
-      provider_type: entry.location.kind === "peer_device" ? "misty_peer" : "",
+      provider_type: entry.location.kind === "peer_device" ? "kura_peer" : "",
       remote_name: entry.location.peerDeviceId ?? "",
       remote_path: entry.location.kind === "peer_device" ? entry.path : "",
       is_dir: entry.kind === "folder",
@@ -396,7 +394,7 @@ export function pasteItemFromClipboardRef(
     return { path: fileRef.local_path, isDirectory: fileRef.is_dir };
   }
   if (
-    fileRef.provider_type === "misty_peer" &&
+    fileRef.provider_type === "kura_peer" &&
     fileRef.remote_path.startsWith("kura://device/")
   ) {
     return { path: fileRef.remote_path, isDirectory: fileRef.is_dir };

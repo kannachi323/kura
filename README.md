@@ -11,8 +11,6 @@ Kura is a free, open-source file manager for macOS, Windows and Linux. It works 
 - Folder sync pairs, Open With choices per file type, and external and network volumes.
 - Opens from other apps with `kura://open?path=…&select=…` and `kura://search?q=…`.
 
-If the [Misty](https://mistysys.com) app is running on the same computer, Kura can show the clipboard you share across your Misty devices. Kura itself never signs in or talks to Misty's servers. Misty asks before it lets Kura connect.
-
 ## Performance
 
 Listing a folder of 100,000 entries takes about 0.2 seconds, 19x faster than the first
