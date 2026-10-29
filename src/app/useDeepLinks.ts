@@ -1,13 +1,14 @@
 import { useExplorerStore } from "@/features/files/workspace/explorer/store";
 import { useSearchStore } from "@/features/files/workspace/search";
-import { useMultiPanelStore } from "@/features/workspace";
+import { filesMultiPanelStore } from "@/features/files/workspace/explorer/workspace/explorerWorkspace/filesDockStores";
+import { useWorkspaceStore } from "@/features/workspace";
 import { hasTauriInternals } from "@/shared/platform/tauri";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { useEffect } from "react";
 
 /**
  * Handles `kura://open?path=…&select=…` and `kura://search?q=…`, which other apps
- * (including Misty) use to hand a file or a search to Kura.
+ * use to hand a file or a search to Kura.
  */
 export function useDeepLinks(): void {
   useEffect(() => {
@@ -64,9 +65,12 @@ export async function handleKuraUrl(raw: string): Promise<void> {
   }
 }
 
+/** Bring a Files tab forward and wait for its active pane to load. */
 async function waitForActivePane(): Promise<string | null> {
+  const view = useWorkspaceStore.getState().openDestination("files");
+  const store = filesMultiPanelStore(view.id);
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const paneId = useMultiPanelStore.getState().activePaneId;
+    const paneId = store.getState().activePaneId;
     if (paneId && useExplorerStore.getState().initialized) return paneId;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }

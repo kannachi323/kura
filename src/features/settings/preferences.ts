@@ -41,7 +41,9 @@ export function selectAppearancePreferences(
   document: SettingsDocument,
 ): AppearancePreferences {
   const source = document ?? {};
+  const theme = settingsString(source, "appearance", "theme", "system");
   return {
+    theme: theme === "light" || theme === "dark" ? theme : "system",
     compactModeEnabled: settingsBoolean(
       source,
       "appearance",
@@ -174,7 +176,9 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+export type AppTheme = "system" | "light" | "dark";
 export interface AppearancePreferences {
+  theme: AppTheme;
   compactModeEnabled: boolean;
   thumbnailPreviewsEnabled: boolean;
 }

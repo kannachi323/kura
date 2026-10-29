@@ -1,17 +1,32 @@
+import type { ExplorerViewMode } from "../model/types/store/types";
 import { useOperationQueueStore } from "../store/useOperationQueueStore";
 export {
   newestUndoableTransfer,
   transferTypeLabel,
 } from "./explorerCommands/transferLabels";
+import { useAppStore } from "@/features/app-shell";
 import { multiPanelStoreForPane } from "@/features/workspace";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
+  appOpenWindow,
   operationQueueRedo,
+  operationQueueSessionStarted,
   operationQueueUndo,
   transfersSnapshot,
 } from "../../native";
 import { errorText } from "@/shared/lib/format";
-import { selectedPathsForPane, useExplorerStore } from "../store";
-import { openCompareWith } from "./ExplorerContextMenu";
+import {
+  selectedEntriesForPane,
+  selectedPathsForPane,
+  useExplorerStore,
+} from "../store";
+import {
+  goToFolderEvent,
+  openInNewTab,
+  quickLookEvent,
+} from "../components/fileListKeyboard";
+export { openInNewTab };
+import { openCompareWith } from "./contextMenu/remoteVerification";
 import { useSearchStore } from "../../search";
 import { toggleActiveTabPanelVisibility } from "./ExplorerDesktopPlugins";
 import {
@@ -20,7 +35,7 @@ import {
 } from "./explorerCommands/transferLabels";
 
 const explorerDuplicateFinderEvent = "kura:explorer-duplicate-finder";
-export const kuraOpenSettingsEvent = "kura:open-settings";
+const trashPath = "kura://trash";
 
 export const executableShortcutCommands = [
   "explorer.new_folder",
@@ -42,49 +57,36 @@ export const executableShortcutCommands = [
   "explorer.toggle_hidden",
   "explorer.preview.toggle",
   "explorer.sidebar.toggle",
-  "explorer.new_tab",
-  "explorer.close_tab",
-  "explorer.restore_tab",
-  "explorer.next_workspace",
-  "explorer.tab_1",
-  "explorer.tab_2",
-  "explorer.tab_3",
-  "explorer.tab_4",
-  "explorer.tab_5",
-  "explorer.tab_6",
-  "explorer.tab_7",
-  "explorer.tab_8",
-  "explorer.tab_9",
-  "app.open_settings",
+  "explorer.duplicate",
+  "explorer.new_folder_with_selection",
+  "explorer.get_info",
+  "explorer.quick_look",
+  "explorer.go_to_folder",
+  "explorer.go_home",
+  "explorer.go_desktop",
+  "explorer.go_documents",
+  "explorer.go_downloads",
+  "explorer.go_applications",
+  "explorer.go_trash",
+  "explorer.empty_trash",
+  "explorer.invert_selection",
+  "explorer.reveal",
+  "explorer.open_in_new_tab",
+  "explorer.view_list",
+  "explorer.view_grid",
+  "explorer.view_columns",
+  "explorer.new_window",
 ] as const;
 
 export function runExplorerCommand(commandId: string, paneId: string): void {
   const explorer = useExplorerStore.getState();
   const multiPanelStore = multiPanelStoreForPane(paneId);
-  const multi = multiPanelStore.getState();
-  const activeTab =
-    multi.tabs.find((tab) => tab.id === multi.activeTabId) ?? multi.tabs[0];
   switch (commandId) {
-    case "app.open_settings":
-      window.dispatchEvent(new CustomEvent(kuraOpenSettingsEvent));
-      break;
     case "explorer.new_folder":
       void explorer.createItem(paneId, "folder");
       break;
     case "explorer.search":
       openDeepSearch(paneId);
-      break;
-    case "explorer.new_tab": {
-      const path =
-        activeTab?.path ?? explorer.panes[paneId]?.listing?.path ?? "/";
-      multi.addTab(path, activeTab?.title || "Files");
-      break;
-    }
-    case "explorer.close_tab":
-      if (activeTab && multi.tabs.length > 1) multi.closeTab(activeTab.id);
-      break;
-    case "explorer.restore_tab":
-      multi.restoreTab();
       break;
     case "explorer.refresh":
       void explorer.refreshPane(paneId);
@@ -105,7 +107,10 @@ export function runExplorerCommand(commandId: string, paneId: string): void {
       openCompareWith(paneId);
       break;
     case "explorer.delete":
-      void explorer.deleteSelected(paneId);
+      // In the Trash, Finder's Move to Trash key puts items back.
+      if (explorer.panes[paneId]?.listing?.path === trashPath)
+        void explorer.putBackSelected(paneId);
+      else void explorer.deleteSelected(paneId);
       break;
     case "explorer.download":
       void explorer.downloadSelected(paneId);
@@ -139,31 +144,113 @@ export function runExplorerCommand(commandId: string, paneId: string): void {
     case "explorer.sidebar.toggle":
       toggleActiveTabPanelVisibility("sidebar", multiPanelStore);
       break;
-    case "explorer.next_workspace": {
-      if (multi.tabs.length <= 1) break;
-      const activeIndex = Math.max(
-        0,
-        multi.tabs.findIndex((tab) => tab.id === multi.activeTabId),
+    case "explorer.duplicate":
+      void explorer.duplicateSelected(paneId);
+      break;
+    case "explorer.new_folder_with_selection":
+      void explorer.newFolderWithSelection(paneId);
+      break;
+    case "explorer.get_info":
+      toggleActiveTabPanelVisibility("preview", multiPanelStore, true);
+      break;
+    case "explorer.quick_look":
+      quickLookSelected(paneId);
+      break;
+    case "explorer.go_to_folder":
+      window.dispatchEvent(
+        new CustomEvent(goToFolderEvent, { detail: { paneId } }),
       );
-      const nextTab = multi.tabs[(activeIndex + 1) % multi.tabs.length];
-      if (nextTab) multi.selectTab(nextTab.id);
+      break;
+    case "explorer.go_home":
+    case "explorer.go_desktop":
+    case "explorer.go_documents":
+    case "explorer.go_downloads":
+    case "explorer.go_applications":
+    case "explorer.go_trash": {
+      const path = standardFolderPath(commandId);
+      if (path) void explorer.navigatePane(paneId, path);
       break;
     }
-    case "explorer.tab_1":
-    case "explorer.tab_2":
-    case "explorer.tab_3":
-    case "explorer.tab_4":
-    case "explorer.tab_5":
-    case "explorer.tab_6":
-    case "explorer.tab_7":
-    case "explorer.tab_8":
-    case "explorer.tab_9": {
-      const index = Number(commandId.slice("explorer.tab_".length)) - 1;
-      const tab = multi.tabs[index];
-      if (tab) multi.selectTab(tab.id);
+    case "explorer.empty_trash":
+      void explorer.emptyTrash(paneId);
+      break;
+    case "explorer.view_list":
+    case "explorer.view_grid":
+    case "explorer.view_columns":
+      explorer.setViewMode(
+        commandId.slice("explorer.view_".length) as ExplorerViewMode,
+        paneId,
+      );
+      break;
+    case "explorer.new_window": {
+      const path = explorer.panes[paneId]?.listing?.path;
+      openWindow(path && !path.startsWith("kura://") ? path : null);
+      break;
+    }
+    case "explorer.invert_selection":
+      explorer.invertSelection(paneId);
+      break;
+    case "explorer.reveal":
+      revealSelected(paneId);
+      break;
+    case "explorer.open_in_new_tab": {
+      const folder = selectedEntriesForPane(explorer.panes[paneId]).find(
+        (entry) => entry.kind === "folder" && !entry.isDeleted,
+      );
+      if (folder) openInNewTab(folder.path);
       break;
     }
   }
+}
+
+export function quickLookSelected(paneId: string): void {
+  const entry = selectedEntriesForPane(
+    useExplorerStore.getState().panes[paneId],
+  )[0];
+  if (entry)
+    window.dispatchEvent(
+      new CustomEvent(quickLookEvent, { detail: { entry } }),
+    );
+}
+
+export function revealSelected(paneId: string): void {
+  const paths = selectedEntriesForPane(
+    useExplorerStore.getState().panes[paneId],
+  )
+    .filter((entry) => entry.location.kind === "local")
+    .map((entry) => entry.path);
+  if (paths.length === 0) return;
+  revealItemInDir(paths).catch((error: unknown) =>
+    useExplorerStore
+      .getState()
+      .pushNotification(`Could not reveal: ${errorText(error)}`, "error", 4500),
+  );
+}
+
+export function openWindow(path: string | null): void {
+  appOpenWindow(path).catch((error: unknown) =>
+    useExplorerStore
+      .getState()
+      .pushNotification(
+        `Could not open a window: ${errorText(error)}`,
+        "error",
+        4500,
+      ),
+  );
+}
+
+function standardFolderPath(commandId: string): string | null {
+  if (commandId === "explorer.go_trash") return trashPath;
+  if (commandId === "explorer.go_applications") return "/Applications";
+  const home = useAppStore.getState().app?.environment.homeDir;
+  if (!home) return null;
+  const folder: Record<string, string> = {
+    "explorer.go_desktop": "Desktop",
+    "explorer.go_documents": "Documents",
+    "explorer.go_downloads": "Downloads",
+  };
+  const name = folder[commandId];
+  return name ? `${home.replace(/\/$/, "")}/${name}` : home;
 }
 
 function openDuplicateFinder(paneId: string): void {
@@ -175,20 +262,19 @@ function openDuplicateFinder(paneId: string): void {
 function openDeepSearch(paneId: string): void {
   const currentPath =
     useExplorerStore.getState().panes[paneId]?.listing?.path ?? "";
-  void useSearchStore.getState().openSearch(currentPath);
+  void useSearchStore.getState().openSearch(currentPath, paneId);
 }
+
+let sessionStartedMs: number | undefined;
 
 export async function undoLatestTransferOperation(): Promise<void> {
   const explorer = useExplorerStore.getState();
   try {
     const rows = (await transfersSnapshot({ limit: 500 })).rows;
-    const latest = newestUndoableTransfer(rows);
+    sessionStartedMs ??= await operationQueueSessionStarted();
+    const latest = newestUndoableTransfer(rows, sessionStartedMs);
     if (!latest) {
-      explorer.pushNotification(
-        "No completed rename or move is available to undo.",
-        "info",
-        3500,
-      );
+      explorer.pushNotification("Nothing to undo.", "info", 3500);
       return;
     }
 

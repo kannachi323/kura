@@ -49,6 +49,8 @@ export function titleFromPath(path: string): string {
   if (path === "kura://recent") return "Recent";
   if (path === "kura://starred") return "Starred";
   if (path === "kura://trash") return "Trash";
+  if (path.startsWith("kura://tag/"))
+    return decodeURIComponent(path.slice("kura://tag/".length));
   if (path === "kura://local") return "Local";
   const clean = H.normalizedPath(path);
   return clean.split("/").filter(Boolean).pop() || clean || "Home";

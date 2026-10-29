@@ -89,6 +89,9 @@ pub struct OperationDescriptor {
     pub error_message: String,
     pub attempt: u32,
     pub paused: bool,
+    /// Enqueued by undo: its own completion must not become the next undo.
+    #[serde(default)]
+    pub from_undo: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -115,6 +118,10 @@ pub struct ConflictDialogState {
     pub title: String,
     pub source_label: String,
     pub target_label: String,
+    /// For a cloud upload conflict: the local file and the cloud version
+    /// downloaded beside it, for comparing side by side. Empty otherwise.
+    pub compare_local_path: String,
+    pub compare_cloud_path: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -298,8 +305,19 @@ impl OperationQueue {
             title: operation.title.clone(),
             source_label: operation.source.display(),
             target_label: operation.target.display(),
+            compare_local_path: String::new(),
+            compare_cloud_path: String::new(),
         };
         true
+    }
+
+    /// Adds the two versions of a cloud file to the open conflict dialog.
+    pub async fn set_conflict_comparison(&self, operation_id: u64, local: String, cloud: String) {
+        let mut inner = self.inner.lock().await;
+        if inner.conflict_dialog.operation_id == operation_id {
+            inner.conflict_dialog.compare_local_path = local;
+            inner.conflict_dialog.compare_cloud_path = cloud;
+        }
     }
 
     pub async fn resolve_conflict(

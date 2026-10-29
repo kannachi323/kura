@@ -30,6 +30,7 @@ let indexedError: string | null = null;
 
 export const useSearchStore = create<SearchStore>((set, get) => ({
   open: false,
+  paneId: null,
   query: "",
   scope: "everything",
   currentPath: "",
@@ -48,8 +49,8 @@ export const useSearchStore = create<SearchStore>((set, get) => ({
       set({ initialized: true, error: userFacingErrorText(error) });
     }
   },
-  openSearch: async (currentPath) => {
-    set({ open: true, currentPath, error: null });
+  openSearch: async (currentPath, paneId = null) => {
+    set({ open: true, currentPath, paneId, error: null });
     await get().initialize();
     scheduleStatusPolling();
     scheduleSearch();
@@ -88,6 +89,8 @@ export const useSearchStore = create<SearchStore>((set, get) => ({
         maxDepth: searchPreferences.maxDepth,
         ignoredPaths: searchPreferences.ignoredPaths,
         incremental: true,
+        // Live updates between scans follow "Index files automatically".
+        watch: searchPreferences.automaticFileDiscoveryEnabled,
       });
       set({ status, currentPath, error: null });
       scheduleStatusPolling();
@@ -210,6 +213,7 @@ function stopStatusPolling(): void {
 
 export interface SearchStore {
   open: boolean;
+  paneId: string | null;
   query: string;
   scope: SearchQueryScope;
   currentPath: string;
@@ -219,7 +223,8 @@ export interface SearchStore {
   error: string | null;
   initialized: boolean;
   initialize: () => Promise<void>;
-  openSearch: (currentPath: string) => Promise<void>;
+  /** Opens search for a folder; results open in `paneId` (or the active pane). */
+  openSearch: (currentPath: string, paneId?: string | null) => Promise<void>;
   closeSearch: () => void;
   setQuery: (query: string) => void;
   setScope: (scope: SearchQueryScope) => void;

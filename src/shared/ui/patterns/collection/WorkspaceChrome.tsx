@@ -11,7 +11,7 @@ export function WorkspaceSidebar({
     <aside
       className={cn(
         "flex h-full min-h-0 w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r",
-        "border-charcoal-border bg-charcoal-sidebar p-2 misty-transient-scrollbar",
+        "border-charcoal-border bg-charcoal-sidebar p-2 kura-transient-scrollbar",
         className,
       )}
       {...props}
@@ -91,7 +91,7 @@ export function WorkspaceWelcome({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 overflow-y-auto p-6 misty-transient-scrollbar">
+    <div className="flex min-h-0 flex-1 overflow-y-auto p-6 kura-transient-scrollbar">
       <section className="m-auto w-full max-w-184 py-12 text-center">
         <div className="mb-5 flex justify-center text-cream-muted">{icon}</div>
         <h1 className="flex min-h-9 items-center text-xl font-medium text-cream-bright">

@@ -1,19 +1,22 @@
-const shimmer = "misty-skeleton rounded-md bg-charcoal-hover";
+const shimmer = "kura-skeleton rounded-md bg-charcoal-hover";
 
 const rows = Array.from({ length: 10 }, (_, index) => index);
 const sidebarRows = Array.from({ length: 7 }, (_, index) => index);
 
-export function ExplorerLoadingShell() {
+/** `embedded` drops the tab row: window tabs already sit above the pane. */
+export function ExplorerLoadingShell(props: { embedded?: boolean }) {
   return (
     <section
-      className="grid h-full min-h-0 grid-rows-[46px_72px_minmax(0,1fr)_26px] overflow-hidden bg-charcoal-sidebar"
+      className={`grid h-full min-h-0 ${props.embedded ? "grid-rows-[72px_minmax(0,1fr)_26px]" : "grid-rows-[46px_72px_minmax(0,1fr)_26px]"} overflow-hidden bg-charcoal-sidebar`}
       aria-busy="true"
       aria-label="Loading File Explorer"
     >
-      <div className="flex min-w-0 items-center gap-3 border-b border-charcoal-border px-3">
-        <span className={`${shimmer} h-7 w-36`} />
-        <span className={`${shimmer} h-7 w-24 opacity-65`} />
-      </div>
+      {props.embedded ? null : (
+        <div className="flex min-w-0 items-center gap-3 border-b border-charcoal-border px-3">
+          <span className={`${shimmer} h-7 w-36`} />
+          <span className={`${shimmer} h-7 w-24 opacity-65`} />
+        </div>
+      )}
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-charcoal-border px-4">
         <div className="flex min-w-0 items-center gap-2">

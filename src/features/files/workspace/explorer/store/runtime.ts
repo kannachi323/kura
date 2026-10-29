@@ -9,6 +9,7 @@ export const explorerRuntime: ExplorerRuntime = {
   nextExplorerNotificationId: 1,
   directorySizeSchedulerTimer: null,
   pendingPaneRefreshes: new Map(),
+  pendingSelections: new Map(),
   paneLoadRequestsInFlight: new Map(),
   directorySizeRefreshIntervalMs: 30 * 60 * 1000,
   store: null,
@@ -36,6 +37,8 @@ export interface ExplorerRuntime {
     { firstTimer: number | null; followupTimer: number | null }
   >;
   paneLoadRequestsInFlight: Map<string, Promise<void>>;
+  /** An item to select once it shows up in the pane (after create/rename). */
+  pendingSelections: Map<string, { path: string; expiresAtMs: number }>;
   directorySizeRefreshIntervalMs: number;
   store: StoreApi<ExplorerStore> | null;
 }

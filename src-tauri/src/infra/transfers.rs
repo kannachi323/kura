@@ -306,12 +306,38 @@ impl TransferService {
         .map_err(|err| ApiError::Message(format!("Transfer worker failed: {err}")))?
     }
 
+    /// Records where an item ended up (Trash uses this so it can be undone).
+    pub async fn set_local_dest_path(&self, id: u64, path: String) -> ApiResult<()> {
+        self.mutate(id, move |record| record.local_dest_path = path)
+            .await
+    }
+
     pub async fn clear_undo(&self, id: u64) -> ApiResult<()> {
         self.mutate(id, |record| {
             record.undoable = false;
             record.undo_token_id = 0;
         })
         .await
+    }
+
+    /// Forgets how to undo a trash whose item was put back some other way
+    /// (Put Back), so Undo doesn't try to move an item that left the Trash.
+    pub async fn clear_trash_undo_for(&self, trash_path: String) -> ApiResult<()> {
+        let db_path = self.db_path.clone();
+        let db_lock = self.db_lock.clone();
+        tokio::task::spawn_blocking(move || {
+            let _guard = lock_db(&db_lock)?;
+            let conn = open_db(&db_path)?;
+            conn.execute(
+                "UPDATE transfers SET undoable = 0, undo_token_id = 0
+                 WHERE transfer_type = 'delete' AND local_dest_path = ?1",
+                params![trash_path],
+            )
+            .map_err(sql_error)?;
+            Ok(())
+        })
+        .await
+        .map_err(|err| ApiError::Message(format!("Transfer worker failed: {err}")))?
     }
 
     async fn mutate<F>(&self, id: u64, mutation: F) -> ApiResult<()>
@@ -358,6 +384,18 @@ fn maybe_mark_undoable(record: &mut TransferRecord) {
                     && !record.remote_source_path.is_empty()
                     && !record.remote_dest_name.is_empty()
                     && !record.remote_dest_path.is_empty())
+        }
+        // Undoing a local copy moves the copy to the Trash.
+        TransferType::Copy => {
+            record.item_type == TransferItemType::Local
+                && !record.local_source_path.is_empty()
+                && !record.local_dest_path.is_empty()
+        }
+        // Only Trash records a destination; permanent deletes cannot be undone.
+        TransferType::Delete => {
+            record.item_type == TransferItemType::Local
+                && !record.local_source_path.is_empty()
+                && !record.local_dest_path.is_empty()
         }
         _ => false,
     };
@@ -1164,7 +1202,7 @@ mod tests {
             std::process::id(),
             now_epoch_ms()
         ));
-        let db_path = root.join("misty.db");
+        let db_path = root.join("data.db");
         (
             TransferService {
                 db_path,
@@ -1689,7 +1727,7 @@ mod tests {
         cache_record.remote_source_name = "drive".to_string();
         cache_record.remote_source_path = "/thumb.png".to_string();
         cache_record.local_dest_path =
-            "/Users/example/.misty/.cache/remote-files/v1/staging/thumb.png".to_string();
+            "/Users/example/.kura/.cache/remote-files/v1/staging/thumb.png".to_string();
         let cache_id = service
             .start_transfer(cache_record)
             .await

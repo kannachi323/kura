@@ -72,6 +72,10 @@ export function operationQueueResumeAll(): Promise<OperationQueueSnapshot> {
   return invoke("operation_queue_resume_all");
 }
 
+/** When this run of Kura started (ms); Cmd+Z only undoes later work. */
+export function operationQueueSessionStarted(): Promise<number> {
+  return invoke("operation_queue_session_started");
+}
 export function operationQueueUndo(
   undoTokenId: number,
 ): Promise<OperationQueueSnapshot> {

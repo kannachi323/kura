@@ -60,7 +60,7 @@ export function buildExplorerLocationResults(
   const results: ExplorerLocationResult[] = [];
   const seen = new Set<string>();
   const add = (label: string, path: string, badge: string) => {
-    if (!path || isRetiredCloudLocation(path, mountRoot)) return;
+    if (!path || isRetiredCloudLocation(path)) return;
     const normalized = normalizedPath(path) || "/";
     const key = explorerPathKey(normalized);
     if (seen.has(key)) return;
@@ -146,6 +146,8 @@ function titleFromPath(path: string): string {
   if (path === "kura://recent") return "Recent";
   if (path === "kura://starred") return "Starred";
   if (path === "kura://trash") return "Trash";
+  if (path.startsWith("kura://tag/"))
+    return decodeURIComponent(path.slice("kura://tag/".length));
   return explorerPathName(path) || "Home";
 }
 function joinPath(...parts: string[]): string {

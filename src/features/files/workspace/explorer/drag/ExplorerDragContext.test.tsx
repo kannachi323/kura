@@ -306,7 +306,7 @@ describe("ExplorerDragProvider", () => {
     );
     const remoteItem: ExplorerDragItem = {
       ...item,
-      path: "/mnt/misty/work/photo.jpg",
+      path: "/mnt/share/work/photo.jpg",
       storageId: "remote:work",
       location: {
         kind: "remote",

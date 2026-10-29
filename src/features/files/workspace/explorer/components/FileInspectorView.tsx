@@ -8,6 +8,7 @@ import {
   type PreviewRuntime,
   formatBytes,
   formatDate,
+  kindLabel,
 } from "@/features/file-ui";
 import type * as PreviewHooks from "./FileInspectorPreview";
 import { IconButton } from "@/shared/ui";
@@ -151,7 +152,9 @@ export function FileInspectorView(
         ) : !showPreviewTransition &&
           (displayEntry?.kind !== "folder" || multiple) ? (
           <span className={inspectorStyles.previewStatus}>
-            Open the full reader
+            {multiple
+              ? `${props.selectedCount} items selected`
+              : "No preview for this file"}
           </span>
         ) : null}
         {canOpenPreview ? (
@@ -204,6 +207,10 @@ export function FileInspectorView(
           <>
             <Detail label="Name" value={title} />
             <Detail
+              label="Kind"
+              value={displayEntry ? kindLabel(displayEntry) : "-"}
+            />
+            <Detail
               label="Size"
               valueNode={sizeDetailValue(displayEntry, displayDirectorySize)}
             />
@@ -216,10 +223,13 @@ export function FileInspectorView(
                   : "-"
               }
             />
-            <Detail
-              label="Items"
-              value={itemsLabel(displayEntry, props.listing)}
-            />
+            {displayEntry?.kind === "folder" &&
+            itemsLabel(displayEntry, props.listing) !== "-" ? (
+              <Detail
+                label="Items"
+                value={itemsLabel(displayEntry, props.listing)}
+              />
+            ) : null}
             <Detail
               label="Modified"
               value={formatDate(
@@ -233,6 +243,18 @@ export function FileInspectorView(
               value={formatDate(metadata?.createdMs ?? displayEntry?.createdMs)}
             />
             <Detail label="Accessed" value={formatDate(metadata?.accessedMs)} />
+            {metadata?.osTags.length ? (
+              <Detail label="Tags" value={metadata.osTags.join(", ")} />
+            ) : null}
+            {[...(metadata?.fields ?? []), ...(metadata?.extracted ?? [])].map(
+              (field) => (
+                <Detail
+                  key={field.label}
+                  label={field.label}
+                  value={field.value}
+                />
+              ),
+            )}
           </>
         )}
       </section>

@@ -6,11 +6,12 @@ use crate::domain::clipboard::NativeClipboard;
 use crate::domain::file_sync::FileSyncPairStore;
 use crate::infra::{
     devices::DeviceService, directory_size::DirectorySizeService,
-    environment::AppEnvironmentService, explorer::ExplorerService,
-    explorer_library::ExplorerLibraryService, file_sync::FileSyncService,
-    metadata::MetadataService, navigation_names::NavigationNamesService,
-    operation_queue::OperationQueueService, power_pack::PowerPackService, search::SearchService,
-    settings::SettingsService, transfers::TransferService,
+    directory_watch::DirectoryWatchService, environment::AppEnvironmentService,
+    explorer::ExplorerService, explorer_library::ExplorerLibraryService,
+    file_sync::FileSyncService, metadata::MetadataService,
+    navigation_names::NavigationNamesService, operation_queue::OperationQueueService,
+    power_pack::PowerPackService, search::SearchService, settings::SettingsService,
+    transfers::TransferService,
 };
 
 /// Every native service Kura's window uses. Nothing here talks to a network.
@@ -24,6 +25,8 @@ pub struct KuraRuntime {
     pub settings: SettingsService,
     pub devices: DeviceService,
     pub directory_size: DirectorySizeService,
+    pub directory_watch: DirectoryWatchService,
+    pub extra_windows: crate::infra::extra_windows::ExtraWindowsService,
     pub metadata: MetadataService,
     pub power_pack: PowerPackService,
     pub search: SearchService,
@@ -39,14 +42,14 @@ impl KuraRuntime {
 
     pub fn new_with_data_root(data_root: Option<PathBuf>) -> Self {
         let environment = AppEnvironmentService::new_with_data_root(data_root);
+        crate::infra::data_home::prepare(&environment);
         #[cfg(desktop)]
         let native_clipboard: Arc<dyn NativeClipboard> =
             crate::infra::native_clipboard::SystemClipboardAdapter::new();
         #[cfg(desktop)]
-        let clipboard = ClipboardService::new(Some(native_clipboard), None);
+        let clipboard = ClipboardService::new(Some(native_clipboard));
         #[cfg(not(desktop))]
-        let clipboard = ClipboardService::new(None, None);
-        clipboard.set_device_identity("local".to_owned(), "This device".to_owned());
+        let clipboard = ClipboardService::new(None);
         #[cfg(desktop)]
         let _ = clipboard.start();
         let transfers = TransferService::new(environment.clone());
@@ -75,6 +78,9 @@ impl KuraRuntime {
             sync_pairs.clone(),
         );
 
+        let extra_windows = crate::infra::extra_windows::ExtraWindowsService::new(
+            environment.config_dir().join("windows.json"),
+        );
         Self {
             navigation_names: NavigationNamesService::new(
                 environment.config_dir().join("navigation.json"),
@@ -87,6 +93,8 @@ impl KuraRuntime {
             settings,
             devices,
             directory_size,
+            directory_watch: DirectoryWatchService::new(),
+            extra_windows,
             metadata,
             power_pack,
             search,

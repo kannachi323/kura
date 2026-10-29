@@ -1,4 +1,4 @@
-export type ExplorerViewMode = "list" | "grid";
+export type ExplorerViewMode = "list" | "grid" | "columns";
 export type ExplorerCommandQueryMode = "search" | "filter";
 export type ExplorerSortColumn = "name" | "modified" | "size" | "type";
 export type ExplorerSortDirection = "asc" | "desc";

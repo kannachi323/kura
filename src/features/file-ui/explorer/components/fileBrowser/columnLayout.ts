@@ -9,8 +9,8 @@ import {
   minimumColumnWidths,
 } from "./fileTableConfig";
 
-const TABLE_COLUMN_STORAGE_KEY = "misty.explorer.fileTable.columnWidths";
-const TABLE_COLUMN_ORDER_STORAGE_KEY = "misty.explorer.fileTable.columnOrder";
+const TABLE_COLUMN_STORAGE_KEY = "kura.explorer.fileTable.columnWidths";
+const TABLE_COLUMN_ORDER_STORAGE_KEY = "kura.explorer.fileTable.columnOrder";
 
 /**
  * Column widths and order, persisted per browser.

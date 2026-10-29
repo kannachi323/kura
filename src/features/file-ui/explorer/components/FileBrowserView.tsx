@@ -148,10 +148,26 @@ export const FileBrowserView = memo(function FileBrowserView(
       ) : (
         <FileTable {...props} listing={displayListing} />
       )}
+      {entries.length === 0 && props.inlineEdit?.kind !== "create" ? (
+        <p className={fileBrowserStyles.emptyFolder} role="status">
+          {queryActive
+            ? "No items match this filter."
+            : props.listing.path === "kura://trash"
+              ? "The Trash is empty."
+              : "This folder is empty."}
+        </p>
+      ) : null}
       <footer className={fileBrowserStyles.footer}>
         <div className={fileBrowserStyles.footerGroup}>
           <span className={fileBrowserStyles.footerItem}>{selectionLabel}</span>
         </div>
+        {props.statusDetail ? (
+          <div className={fileBrowserStyles.footerGroup}>
+            <span className={fileBrowserStyles.footerItem}>
+              {props.statusDetail}
+            </span>
+          </div>
+        ) : null}
       </footer>
     </section>
   );

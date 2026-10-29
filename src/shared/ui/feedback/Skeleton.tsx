@@ -8,7 +8,7 @@ function Skeleton({
     <div
       data-slot="skeleton"
       aria-hidden="true"
-      className={cn("misty-skeleton rounded-md bg-charcoal-card", className)}
+      className={cn("kura-skeleton rounded-md bg-charcoal-card", className)}
       {...props}
     />
   );

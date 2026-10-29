@@ -17,6 +17,7 @@ export function canOpenTerminalPath(path: string): boolean {
 export function toggleActiveTabPanelVisibility(
   panel: "sidebar" | "preview",
   store: MultiPanelStoreHook = useMultiPanelStore,
+  visible?: boolean,
 ): void {
   const multi = store.getState();
   const activeTab =
@@ -24,11 +25,11 @@ export function toggleActiveTabPanelVisibility(
   if (!activeTab) return;
   if (panel === "sidebar") {
     multi.setTabPanelVisibility(activeTab.id, {
-      sidebarVisible: !(activeTab.sidebarVisible ?? true),
+      sidebarVisible: visible ?? !(activeTab.sidebarVisible ?? true),
     });
   } else {
     multi.setTabPanelVisibility(activeTab.id, {
-      previewVisible: !(activeTab.previewVisible ?? true),
+      previewVisible: visible ?? !(activeTab.previewVisible ?? true),
     });
   }
 }

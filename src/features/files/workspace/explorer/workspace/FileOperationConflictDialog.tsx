@@ -14,15 +14,19 @@ import {
 } from "@/shared/ui";
 import { useState } from "react";
 import { useOperationQueueStore } from "../store";
+import { CloudConflictPrompt } from "./CloudConflictPrompt";
 
 /** Name collisions belong to the file action, even without a history workspace. */
 export function FileOperationConflictDialog() {
   const conflict = useOperationQueueStore(
     (state) => state.snapshot?.conflictDialog,
   );
-  return conflict?.open ? (
+  if (!conflict?.open) return null;
+  return conflict.compareCloudPath ? (
+    <CloudConflictPrompt key={conflict.operationId} conflict={conflict} />
+  ) : (
     <ConflictPrompt key={conflict.operationId} conflict={conflict} />
-  ) : null;
+  );
 }
 
 function ConflictPrompt({

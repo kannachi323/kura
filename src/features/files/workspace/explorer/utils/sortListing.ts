@@ -5,7 +5,7 @@ import type {
 } from "@/native/ipc";
 import type { ExplorerSortState } from "../model/interfaces/store/types";
 import type { ExplorerSortColumn } from "../model/types/store/types";
-import { entrySizeBytes } from "@/features/file-ui";
+import { entrySizeBytes, kindLabel } from "@/features/file-ui";
 export function sortListing(
   listing: DirectoryListing,
   sort: ExplorerSortState,
@@ -61,15 +61,17 @@ export function compareNullableNumber(
   return left === right ? 0 : left < right ? -1 : 1;
 }
 
+// localeCompare with options builds a collator per call, which made sorting
+// a 100k-file folder take seconds. One shared collator does the same work.
+const nameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
 export function compareText(left: string | null, right: string | null): number {
-  return (left ?? "").localeCompare(right ?? "", undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
+  return nameCollator.compare(left ?? "", right ?? "");
 }
 
 export function typeLabel(entry: FileEntry): string {
-  return entry.kind === "folder"
-    ? "Folder"
-    : entry.mimeType || entry.extension || entry.kind;
+  return kindLabel(entry);
 }

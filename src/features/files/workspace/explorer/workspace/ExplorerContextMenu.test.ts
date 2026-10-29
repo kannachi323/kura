@@ -58,7 +58,7 @@ function archiveEntry(overrides: Partial<FileEntry> = {}): FileEntry {
   return {
     id: "entry-1",
     name: "backup.zip",
-    path: "/Users/misty/Downloads/backup.zip",
+    path: "/Users/me/Downloads/backup.zip",
     kind: "file",
     isDeleted: false,
     location: {
@@ -100,7 +100,7 @@ describe("canActOnLocalArchiveFile", () => {
   it("blocks a non-archive file", () => {
     expect(
       canActOnLocalArchiveFile(
-        archiveEntry({ path: "/Users/misty/notes.txt" }),
+        archiveEntry({ path: "/Users/me/notes.txt" }),
         false,
       ),
     ).toBe(false);
@@ -109,7 +109,7 @@ describe("canActOnLocalArchiveFile", () => {
   it("blocks a folder even if its name ends in an archive extension", () => {
     expect(
       canActOnLocalArchiveFile(
-        archiveEntry({ kind: "folder", path: "/Users/misty/old.zip" }),
+        archiveEntry({ kind: "folder", path: "/Users/me/old.zip" }),
         false,
       ),
     ).toBe(false);
@@ -131,7 +131,7 @@ describe("archive extraction refreshes the pane it was invoked from", () => {
       message: "Extracted 3 files.",
     });
 
-    await extractArchiveHere("/Users/misty/Downloads/backup.zip", "pane-42");
+    await extractArchiveHere("/Users/me/Downloads/backup.zip", "pane-42");
 
     expect(explorerStoreMocks.refreshPane).toHaveBeenCalledWith("pane-42");
     expect(explorerStoreMocks.pushNotification).toHaveBeenCalledWith(
@@ -148,11 +148,11 @@ describe("archive extraction refreshes the pane it was invoked from", () => {
     vi.stubGlobal(
       "window",
       Object.assign(Object.create(window), {
-        prompt: () => "/Users/misty/Documents/backup",
+        prompt: () => "/Users/me/Documents/backup",
       }),
     );
 
-    await extractArchiveTo("/Users/misty/Downloads/backup.zip", "pane-42");
+    await extractArchiveTo("/Users/me/Downloads/backup.zip", "pane-42");
 
     expect(explorerStoreMocks.refreshPane).toHaveBeenCalledWith("pane-42");
     vi.unstubAllGlobals();
@@ -162,7 +162,7 @@ describe("archive extraction refreshes the pane it was invoked from", () => {
     explorerStoreMocks.refreshPane.mockClear();
     backendMocks.archiveExtract.mockRejectedValue(new Error("disk full"));
 
-    await extractArchiveHere("/Users/misty/Downloads/backup.zip", "pane-42");
+    await extractArchiveHere("/Users/me/Downloads/backup.zip", "pane-42");
 
     expect(explorerStoreMocks.refreshPane).not.toHaveBeenCalled();
     expect(explorerStoreMocks.pushNotification).toHaveBeenCalledWith(

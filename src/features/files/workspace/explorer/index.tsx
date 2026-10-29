@@ -21,7 +21,7 @@ export default function FilesPage(props: {
   workspaceTitle?: string;
 }) {
   return (
-    <Suspense fallback={<ExplorerLoadingShell />}>
+    <Suspense fallback={<ExplorerLoadingShell embedded={props.embedded} />}>
       <DesktopFilesPage {...props} />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds, signs and publishes a Kura release from this Mac, like Misty's
-# releases: nothing builds on hosted CI.
+# Builds, signs and publishes a Kura release from this Mac: nothing builds on
+# hosted CI.
 #
 #   scripts/release.sh 0.1.0
 #
@@ -10,7 +10,7 @@
 #   APPLE_SIGNING_IDENTITY                   "Developer ID Application: …"
 #   APPLE_API_KEY, APPLE_API_ISSUER,
 #   APPLE_API_KEY_PATH                       notarization (App Store Connect API key)
-#   gh                                       signed in to github.com/misty-org/kura
+#   gh                                       signed in to github.com/kannachi323/kura
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -49,7 +49,7 @@ dmg="$(ls "$bundle"/dmg/*.dmg)"
 signature="$(cat "$app_archive.sig")"
 notes="Kura $version"
 published="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-url="https://github.com/misty-org/kura/releases/download/kura-v$version/$(basename "$app_archive")"
+url="https://github.com/kannachi323/kura/releases/download/kura-v$version/$(basename "$app_archive")"
 
 cat > "$bundle/latest.json" <<JSON
 {
@@ -67,4 +67,4 @@ git commit -am "Release Kura $version"
 git tag "kura-v$version"
 git push --follow-tags
 gh release create "kura-v$version" "$dmg" "$app_archive" "$app_archive.sig" "$bundle/latest.json" \
-  --repo misty-org/kura --title "Kura $version" --notes "$notes"
+  --repo kannachi323/kura --title "Kura $version" --notes "$notes"

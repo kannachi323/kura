@@ -1,4 +1,7 @@
 import { useFileBrowserRuntime } from "./FileBrowserRuntime";
+import { useRevealEntry } from "./revealEntry";
+import { MarqueeBox } from "./MarqueeBox";
+import { useMarqueeSelection } from "./useMarqueeSelection";
 import type { DirectoryListing, FileEntry } from "@/native/ipc";
 import type { CSSProperties, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,8 +13,6 @@ import { fileBrowserStyles } from "../FileBrowserStyles";
 import { passiveRenameDraftsFor } from "./EntryPresentation";
 import { FileGridItem } from "./FileGridItem";
 import {
-  GRID_GAP,
-  GRID_ITEM_HEIGHT,
   GRID_OVERSCAN_ROWS,
   GRID_PADDING,
   GRID_SCROLLBAR_RESERVE,
@@ -55,46 +56,26 @@ export function FileGrid(
   const createOffset = props.inlineEdit?.kind === "create" ? 1 : 0;
   const itemCount = props.listing.entries.length + createOffset;
   const gridPadding = compactModeEnabled ? 2 : GRID_PADDING;
-  const gridGap = compactModeEnabled ? 10 : GRID_GAP;
+  const gridGap = compactModeEnabled ? 8 : 12;
   const scrollbarReserve = GRID_SCROLLBAR_RESERVE;
   const usableWidth = Math.max(
     1,
     viewportWidth - gridPadding * 2 - scrollbarReserve,
   );
-  const desiredColumns = itemScale === 0 ? 6 : itemScale === 1 ? 5 : 4;
-  const minimumColumnWidth = compactModeEnabled
-    ? itemScale === 0
-      ? 86
-      : itemScale === 1
-        ? 112
-        : 138
-    : itemScale === 0
-      ? 108
-      : itemScale === 1
-        ? 144
-        : 180;
+  // Fixed-size cells, as in Finder's icon view: a wider pane shows more
+  // columns rather than stretching each icon's cell.
+  const columnWidth = compactModeEnabled
+    ? [88, 104, 128][itemScale]
+    : [96, 120, 148][itemScale];
   const columns = Math.max(
     1,
-    Math.min(
-      desiredColumns,
-      Math.floor((usableWidth + gridGap) / (minimumColumnWidth + gridGap)) || 1,
-    ),
+    Math.floor((usableWidth + gridGap) / (columnWidth + gridGap)),
   );
-  const columnWidth = Math.max(
-    1,
-    (usableWidth - Math.max(0, columns - 1) * gridGap) / columns,
-  );
-  const thumbInset = compactModeEnabled ? 8 : 10;
-  const gridThumbWidth = Math.max(
-    itemScale === 0 ? 72 : itemScale === 1 ? 112 : 152,
-    columnWidth - thumbInset,
-  );
-  const gridThumbHeight = Math.max(64, Math.round(gridThumbWidth * 0.6));
-  const gridIconSize = itemScale === 0 ? 42 : itemScale === 1 ? 60 : 82;
-  const gridItemHeight = Math.max(
-    compactModeEnabled ? 122 : GRID_ITEM_HEIGHT,
-    gridThumbHeight + (compactModeEnabled ? 76 : 94),
-  );
+  const gridThumbWidth = columnWidth - 12;
+  const gridThumbHeight = Math.round(gridThumbWidth * 0.6);
+  const gridIconSize = [40, 52, 68][itemScale];
+  // Thumbnail, two lines of 12 px label, gaps and padding.
+  const gridItemHeight = gridThumbHeight + (compactModeEnabled ? 52 : 58);
   const rowStride = gridItemHeight + gridGap;
   const rowCount = Math.ceil(itemCount / columns);
   const totalHeight =
@@ -196,6 +177,17 @@ export function FileGrid(
     rowStride,
   ]);
 
+  useRevealEntry({
+    paneId: props.paneId,
+    entryIds: () => props.listing.entries.map((entry) => entry.id),
+    scrollRef,
+    bounds: (index) => {
+      const top =
+        gridPadding + Math.floor((index + createOffset) / columns) * rowStride;
+      return { top, bottom: top + gridItemHeight };
+    },
+  });
+
   const handleScroll = useCallback(() => {
     if (scrollFrameRef.current !== null) return;
     scrollFrameRef.current = window.requestAnimationFrame(() => {
@@ -214,21 +206,56 @@ export function FileGrid(
     [props, visibleEntryIds],
   );
 
+  const marquee = useMarqueeSelection({
+    scrollRef,
+    enabled: !props.selectionOnly && !props.inlineEdit,
+    selectedIds: props.selectedIds,
+    onSelectIds: props.onSelectIds,
+    hitTest: (rect) => {
+      const entries = props.listing.entries;
+      const columnStride = columnWidth + gridGap;
+      const firstRow = Math.max(
+        0,
+        Math.floor((rect.top - gridPadding - gridItemHeight) / rowStride) + 1,
+      );
+      const lastRow = Math.floor((rect.bottom - gridPadding) / rowStride);
+      const firstColumn = Math.max(
+        0,
+        Math.floor((rect.left - gridPadding - columnWidth) / columnStride) + 1,
+      );
+      const lastColumn = Math.min(
+        columns - 1,
+        Math.floor((rect.right - gridPadding) / columnStride),
+      );
+      const ids: string[] = [];
+      for (let row = firstRow; row <= lastRow; row += 1) {
+        for (let column = firstColumn; column <= lastColumn; column += 1) {
+          const entry = entries[row * columns + column];
+          if (entry) ids.push(entry.id);
+        }
+      }
+      return ids;
+    },
+  });
+
   return (
     <div
       ref={scrollRef}
       className={fileBrowserStyles.gridScroll}
       onScroll={handleScroll}
       data-explorer-scroll-container
+      {...marquee.handlers}
     >
       <div
         className={fileBrowserStyles.gridSizer}
         style={{ height: totalHeight }}
       >
+        {marquee.box ? <MarqueeBox rect={marquee.box} /> : null}
         <div
           className={fileBrowserStyles.grid}
+          data-grid-columns={columns}
           style={{
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`,
             left: gridPadding,
             right: gridPadding + scrollbarReserve,
             top: gridTop,

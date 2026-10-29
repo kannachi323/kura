@@ -104,7 +104,7 @@ export function PreviewBodyView(props: {
     );
   if (resource.kind === "markdown")
     return (
-      <article className="prose prose-invert mx-auto max-w-4xl px-8 py-10">
+      <article className="kura-markdown mx-auto max-w-3xl px-8 py-10">
         <Suspense fallback={<span>Rendering Markdown…</span>}>
           <ReactMarkdown>{props.textDraft}</ReactMarkdown>
         </Suspense>

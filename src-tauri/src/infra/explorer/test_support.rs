@@ -47,7 +47,7 @@ pub(super) async fn wait_until_path_exists(path: &Path) {
 
 pub(super) fn unique_test_dir(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!(
-        "misty-{name}-{}",
+        "kura-{name}-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()

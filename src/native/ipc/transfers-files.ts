@@ -113,6 +113,9 @@ export interface ConflictDialogState {
   title: string;
   sourceLabel: string;
   targetLabel: string;
+  /** Set for a cloud upload conflict: the local file and the cloud version. */
+  compareLocalPath: string;
+  compareCloudPath: string;
 }
 
 export interface OperationQueueSnapshot {

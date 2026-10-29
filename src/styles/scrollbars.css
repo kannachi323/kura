@@ -1,13 +1,13 @@
 :root {
   /* Fixed logical pixels keep the same thickness at every viewport size. */
-  --misty-scrollbar-size: 5px;
+  --kura-scrollbar-size: 5px;
 }
 
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--misty-theme-active, #737373)
-      var(--misty-theme-bg, transparent);
+    scrollbar-color: var(--kura-theme-active, #737373)
+      var(--kura-theme-bg, transparent);
   }
 
   /* WebKit/Blink standard scrollbar properties override custom sizing.
@@ -21,21 +21,21 @@
   }
 
   ::-webkit-scrollbar {
-    width: var(--misty-scrollbar-size);
-    height: var(--misty-scrollbar-size);
+    width: var(--kura-scrollbar-size);
+    height: var(--kura-scrollbar-size);
   }
 
   ::-webkit-scrollbar-track,
   ::-webkit-scrollbar-corner {
-    background: var(--misty-theme-bg, transparent);
+    background: var(--kura-theme-bg, transparent);
   }
 
   ::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: var(--misty-theme-active, #737373);
+    background: var(--kura-theme-active, #737373);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--misty-theme-text-muted, #999);
+    background: var(--kura-theme-text-muted, #999);
   }
 }

@@ -16,8 +16,7 @@ pub enum ClipboardPayloadKind {
 pub enum ClipboardOrigin {
     LocalSystem,
     #[default]
-    LocalMisty,
-    RemoteShared,
+    LocalKura,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -62,10 +61,6 @@ pub struct ClipboardPayload {
     pub origin: ClipboardOrigin,
     #[serde(default)]
     pub payload_id: String,
-    #[serde(default)]
-    pub source_device_id: String,
-    #[serde(default)]
-    pub source_device_name: String,
     #[serde(default)]
     pub revision: u64,
     #[serde(default)]

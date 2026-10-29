@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
-const activeScrollbarClass = "misty-transient-scrollbar-active";
-const transientScrollbarSelector = ".misty-transient-scrollbar";
+const activeScrollbarClass = "kura-transient-scrollbar-active";
+const transientScrollbarSelector = ".kura-transient-scrollbar";
 
 export function useTransientScrollbars(
   rootRef: RefObject<HTMLElement | null>,

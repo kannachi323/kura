@@ -1,13 +1,14 @@
 import { openTerminalAtPath } from "../../../native";
 import { reportSystemError } from "@/features/activity";
+import { useWorkspaceStore } from "@/features/workspace";
 import { IconButton, toolbarIconProps } from "@/shared/ui";
-import { Settings, Terminal } from "lucide-react";
+import { ArrowRightLeft, Settings, Terminal } from "lucide-react";
 import { useCallback, useState } from "react";
 
 export function ExplorerTray(props: {
   terminalEnabled: boolean;
   terminalPath: string;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }) {
   const [errorMessage, setErrorMessage] = useState("");
   const openTerminal = useCallback(() => {
@@ -43,13 +44,27 @@ export function ExplorerTray(props: {
       >
         <Terminal {...toolbarIconProps} />
       </IconButton>
-      <IconButton
-        label="Settings"
-        tooltip={false}
-        onClick={props.onOpenSettings}
-      >
-        <Settings {...toolbarIconProps} />
-      </IconButton>
+      {props.onOpenSettings ? (
+        <IconButton
+          label="Settings"
+          tooltip={false}
+          onClick={props.onOpenSettings}
+        >
+          <Settings {...toolbarIconProps} />
+        </IconButton>
+      ) : null}
     </>
+  );
+}
+
+/** Opens the Transfers tab, or returns to it when it is already open. */
+export function TransfersButton() {
+  return (
+    <IconButton
+      label="Transfers"
+      onClick={() => useWorkspaceStore.getState().openDestination("transfers")}
+    >
+      <ArrowRightLeft {...toolbarIconProps} />
+    </IconButton>
   );
 }

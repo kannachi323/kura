@@ -338,7 +338,7 @@ function startGesture(
         // Horizontal workspace tabs lift with their own curved tab shape.
         const lifted = preview.firstElementChild as HTMLElement | null;
         const tabShape = lifted?.querySelector<SVGElement>(
-          ".misty-workspace-tab-shape",
+          ".kura-workspace-tab-shape",
         );
         if (tabShape && list.dataset.reorderAxis !== "y") {
           // Computed styles were frozen per node, so each descendant inherited "hidden".

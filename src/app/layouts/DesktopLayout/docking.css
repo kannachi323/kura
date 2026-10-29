@@ -1,0 +1,435 @@
+/* Shared shell metrics are supplied by dockingGeometry. */
+.kura-docking-frame {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--kura-theme-workspace);
+  color: var(--kura-theme-text);
+}
+.kura-docking-titlebar {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--shell-titlebar, 38px);
+  z-index: 50;
+  background: transparent;
+  pointer-events: auto;
+}
+.kura-docking-titlebar[data-shared-chrome="true"] {
+  pointer-events: none;
+}
+.kura-docking-titlebar-drag-region {
+  position: absolute;
+  inset: 0 auto 0 0;
+  max-width: 100%;
+  /* Browser views make the shell transparent. Paint this otherwise empty
+     corner so the native window backing cannot show beside the traffic lights. */
+  background: var(--kura-theme-workspace);
+  pointer-events: auto;
+}
+.kura-shell-motion {
+  transition-duration: var(--shell-motion-duration, 300ms);
+  transition-timing-function: var(--shell-motion-easing, ease-in-out);
+}
+
+[data-navigator-tray]
+  .kura-navigator-tray-item:is(
+    :hover,
+    :focus-visible,
+    [aria-current="page"],
+    [data-state="open"],
+    :active
+  ) {
+  background-color: var(--kura-theme-active);
+}
+
+/* One tab surface. Vertical tabs use the same 28px row, controls and spacing. */
+.kura-workspace-tabs {
+  height: var(--shell-titlebar, 38px);
+  align-items: center;
+  padding: 0 var(--shell-gap, 8px);
+}
+.kura-workspace-tabs[data-tab-position="bottom"],
+.kura-workspace-tabs[data-tab-position="right"] {
+  order: 2;
+}
+.kura-workspace-tabs:is(
+  [data-tab-position="left"],
+  [data-tab-position="right"]
+) {
+  height: auto;
+  width: min(var(--shell-side-tabs, 200px), 35%);
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 5px var(--shell-gap, 8px);
+}
+.kura-workspace-tab-list {
+  scrollbar-width: none;
+}
+.kura-workspace-tab-list::-webkit-scrollbar {
+  display: none;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-list {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--tab-fade-start, 0px),
+    black calc(100% - var(--tab-fade-end, 0px)),
+    transparent
+  );
+}
+.kura-workspace-tab {
+  height: var(--shell-tab-height, 28px);
+  min-width: 80px;
+  max-width: 160px;
+  flex: 1 1 120px;
+}
+.kura-workspace-tabs:is([data-tab-position="left"], [data-tab-position="right"])
+  .kura-workspace-tab {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex: none;
+}
+.kura-workspace-tab-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  height: 28px;
+}
+.kura-workspace-tabs:is([data-tab-position="left"], [data-tab-position="right"])
+  .kura-workspace-tab-actions {
+  margin: 8px 0 0;
+  height: auto;
+  min-height: 28px;
+  flex-wrap: wrap;
+}
+.kura-workspace-tabs svg,
+#kura-windows-workspace-controls svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+#kura-windows-workspace-controls svg {
+  stroke-width: 1.5;
+}
+.kura-workspace-tabs [role="tab"] img {
+  width: 16px;
+  height: 16px;
+}
+
+/* Every orientation uses the reference pane seam. Geometry chooses the edges
+   that touch chrome; masks keep WebKit toolbar paint inside the curved seam. */
+.kura-docking-frame [data-workspace-panes] {
+  background: var(--kura-theme-workspace);
+}
+.kura-docking-frame [data-workspace-panes] > [role="tabpanel"] {
+  position: relative;
+  isolation: isolate;
+  padding: var(--pane-seam-top) var(--pane-seam-right) var(--pane-seam-bottom)
+    var(--pane-seam-left);
+  overflow: clip;
+}
+.kura-docking-frame [data-workspace-panes] > [role="tabpanel"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2147483646;
+  background:
+    radial-gradient(
+        circle at 100% 100%,
+        transparent 11.5px,
+        var(--kura-theme-workspace) 12px
+      )
+      top left / var(--pane-corner-top-left) var(--pane-corner-top-left),
+    radial-gradient(
+        circle at 0 100%,
+        transparent 11.5px,
+        var(--kura-theme-workspace) 12px
+      )
+      top right / var(--pane-corner-top-right) var(--pane-corner-top-right),
+    radial-gradient(
+        circle at 100% 0,
+        transparent 11.5px,
+        var(--kura-theme-workspace) 12px
+      )
+      bottom left / var(--pane-corner-bottom-left)
+      var(--pane-corner-bottom-left),
+    radial-gradient(
+        circle at 0 0,
+        transparent 11.5px,
+        var(--kura-theme-workspace) 12px
+      )
+      bottom right / var(--pane-corner-bottom-right)
+      var(--pane-corner-bottom-right);
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.kura-docking-frame [data-workspace-panes] > [role="tabpanel"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2147483647;
+  border-style: solid;
+  border-color: var(--color-charcoal-border);
+  border-width: var(--pane-seam-top) var(--pane-seam-right)
+    var(--pane-seam-bottom) var(--pane-seam-left);
+  border-radius: var(--pane-corner-top-left) var(--pane-corner-top-right)
+    var(--pane-corner-bottom-right) var(--pane-corner-bottom-left);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kura-shell-motion {
+    transition: none;
+  }
+}
+
+/* Surfaces that meet native window buttons share their existing toolbar row. */
+[data-window-toolbar][data-window-chrome="true"] {
+  padding-left: max(
+    var(--window-toolbar-base-left, 8px),
+    var(--window-chrome-left, 0px)
+  ) !important;
+  padding-right: max(
+    var(--window-toolbar-base-right, 8px),
+    var(--window-chrome-right, 0px)
+  ) !important;
+}
+.kura-workspace-tabs[data-window-chrome="true"]:is(
+    [data-tab-position="left"],
+    [data-tab-position="right"]
+  ) {
+  padding-top: calc(5px + var(--window-chrome-top, 0px));
+}
+[data-workspace-titlebar-fallback] {
+  display: none;
+}
+[data-window-titlebar-fallback-active="true"] {
+  padding-top: var(--shell-titlebar, 38px);
+}
+[data-window-titlebar-fallback-active="true"]
+  > [data-workspace-titlebar-fallback] {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--shell-titlebar, 38px);
+  padding-left: max(12px, var(--window-chrome-left, 0px));
+  padding-right: max(12px, var(--window-chrome-right, 0px));
+}
+
+/* Connected tabs. The strip shares the shell's black frame; the active tab
+   (ConnectedTabShape) rises out of the pane below with matching fill. The strip
+   overlaps the pane's seam row by 1px so the tab can cover it, and the pane
+   keeps the standard corners and seams from dockingGeometry. Everything in the
+   strip shares the bar's center line with the traffic lights. Tabs fill the
+   strip below a small --tab-inset gap, and their content is centered on the strip,
+   the same line as New tab and the pane controls. */
+.kura-workspace-tabs:is(
+  [data-tab-position="top"],
+  [data-tab-position="bottom"]
+) {
+  /* Corner and shoulder radius; ConnectedTabShape and the drag preview read it. */
+  --tab-shoulder: 14px;
+  --tab-inset: var(--shell-tab-inset, 3px);
+  position: relative;
+  z-index: 1;
+  height: var(--shell-tab-strip-height, 38px);
+  align-items: stretch;
+  border: 0;
+  /* WorkspaceTabStrip sets padding-left from the traffic-light inset. */
+  /* Leave the overlapped seam row unpainted so the pane outline shows. */
+  background: linear-gradient(
+      var(--kura-theme-workspace),
+      var(--kura-theme-workspace)
+    )
+    top / 100% calc(100% - 1px) no-repeat;
+}
+.kura-workspace-tabs[data-tab-position="top"] {
+  margin-bottom: -1px;
+}
+.kura-workspace-tabs[data-tab-position="bottom"] {
+  margin-top: -1px;
+  background-position: bottom;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-list[data-reorder-list] {
+  height: 100%;
+  align-items: flex-end;
+  gap: 0;
+  padding: var(--tab-inset) var(--tab-shoulder) 0;
+}
+.kura-workspace-tabs[data-tab-position="bottom"]
+  .kura-workspace-tab-list[data-reorder-list] {
+  align-items: flex-start;
+  padding-block: 0 var(--tab-inset);
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  min-width: 96px;
+  max-width: 232px;
+  flex: 1 1 232px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--workspace-tab-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab
+  [role="tab"] {
+  justify-content: flex-start;
+  gap: 8px;
+  /* Favicon and close glyph both sit 12px inside the tab's sides. */
+  padding: 0 6px 0 12px;
+  color: inherit;
+  text-align: left;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab[data-active="true"] {
+  z-index: 2;
+  background: transparent;
+  color: var(--workspace-tab-text);
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab:not([data-active="true"]):hover {
+  color: var(--workspace-tab-text);
+  background: transparent;
+}
+/* Inactive hover: a pill shorter than the active tab, inset sideways to clear
+   the active shoulders, kept off the pane seam so the seam stays visible, and
+   centered on the tab's content. */
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab:not([data-active="true"])::before {
+  content: "";
+  position: absolute;
+  inset: 3px 4px 6px;
+  z-index: -1;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--workspace-tab-surface) 75%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab:not(
+    [data-active="true"],
+    [data-reorder-dragging="true"]
+  ):hover::before {
+  opacity: 1;
+}
+.kura-workspace-tab-shape {
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--tab-shoulder));
+  z-index: -1;
+  width: calc(100% + 2 * var(--tab-shoulder));
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.kura-workspace-tab:not([data-active="true"]) .kura-workspace-tab-shape {
+  visibility: hidden;
+}
+.kura-workspace-tab-shape-outline {
+  fill: none;
+  stroke: var(--color-charcoal-border);
+  stroke-width: 1px;
+}
+.kura-workspace-tabs[data-tab-position="bottom"] .kura-workspace-tab-shape {
+  scale: 1 -1;
+}
+.kura-workspace-tabs[data-tab-position="bottom"]
+  .kura-workspace-tab:not([data-active="true"])::before {
+  inset: 6px 4px 3px;
+}
+/* The tab fills the strip minus the --tab-inset gap; padding the pane side by the
+   same gap centers its content on the strip, level with New tab and the controls. */
+.kura-workspace-tabs[data-tab-position="top"] .kura-workspace-tab {
+  padding: 0 0 var(--tab-inset);
+}
+.kura-workspace-tabs[data-tab-position="bottom"] .kura-workspace-tab {
+  padding: var(--tab-inset) 0 0;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-list
+  > :is(button, .kura-tab-group-header),
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-actions {
+  align-self: center;
+  margin-block: 0;
+}
+/* New tab and group headers sit in the tab list, which is inset from the strip;
+   the opposite margin puts them back on the strip's center line. The pane controls
+   sit outside the list and center on the strip directly. */
+.kura-workspace-tabs[data-tab-position="top"]
+  .kura-workspace-tab-list
+  > :is(button, .kura-tab-group-header) {
+  margin-bottom: var(--tab-inset);
+}
+.kura-workspace-tabs[data-tab-position="bottom"]
+  .kura-workspace-tab-list
+  > :is(button, .kura-tab-group-header) {
+  margin-top: var(--tab-inset);
+}
+/* A clear gap after New tab, so it reads as part of the tabs and not the pane controls. */
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-actions {
+  margin-left: 25px;
+  color: var(--workspace-tab-muted);
+}
+/* Close and New tab share a 1.33px stroke and sit 12px either side of the
+   tab's trailing edge. Close is the quieter control: a 20px target with a 7px
+   glyph, against New tab's 24px target and 8px glyph. Lucide's x spans 12/24
+   of its box and its plus 14/24. */
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  :is(.kura-workspace-new-tab, .kura-workspace-tab-close) {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-new-tab {
+  margin-left: 4px;
+  color: var(--workspace-tab-muted);
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-new-tab
+  svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.29;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-close {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin: 0 6px 0 0;
+  color: inherit;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-workspace-tab-close
+  svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.29;
+}
+.kura-workspace-tabs:is([data-tab-position="top"], [data-tab-position="bottom"])
+  .kura-tab-group-member:not([data-group-active="true"])::after {
+  bottom: 0;
+}

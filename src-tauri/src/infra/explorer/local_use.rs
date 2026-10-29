@@ -5,6 +5,22 @@ impl ExplorerService {
         &self,
         request: PrepareOpenItemRequest,
     ) -> ApiResult<PreparedOpenItem> {
+        if let Some(cloud) = self.cloud_path(&request.path) {
+            let local = self.cloud_ensure_local(&cloud, None).await?;
+            if !local.is_file() {
+                return Err(ApiError::Message(format!(
+                    "{} is not a file.",
+                    request.path
+                )));
+            }
+            return Ok(PreparedOpenItem {
+                local_path: display_path(&local),
+                cached: true,
+                source_path: Some(request.path),
+                cache_path: None,
+                cache_hit: true,
+            });
+        }
         self.reject_virtual_mount_container(&request.path, "open")?;
         if !Path::new(&request.path).is_file() {
             return Err(ApiError::Message(format!(
@@ -78,6 +94,15 @@ impl ExplorerService {
         cancellation: Option<&AtomicBool>,
     ) -> ApiResult<PreparedDragItem> {
         ensure_not_canceled_if(cancellation)?;
+        if let Some(cloud) = self.cloud_path(&request.path) {
+            let local = self.cloud_ensure_local(&cloud, cancellation).await?;
+            return Ok(PreparedDragItem {
+                source_path: request.path,
+                local_path: display_path(&local),
+                is_directory: local.is_dir(),
+                cached: true,
+            });
+        }
         self.reject_virtual_mount_container(&request.path, "drag")?;
         let path = Path::new(&request.path);
         if !path.exists() {

@@ -7,7 +7,13 @@ import {
   type ExplorerDragPayload,
 } from "@/features/file-ui";
 import { useExplorerStore } from "../store";
+import { useAppStore } from "@/features/app-shell";
+import { ColumnView } from "./ColumnView";
+import { TrashNotice } from "./TrashNotice";
 import { FileBrowser } from "./FileBrowser";
+import { handleFileListKey, openInNewTab } from "./fileListKeyboard";
+import { useVolumeSpaceLabel } from "./useVolumeSpaceLabel";
+import { forgetFolderTags } from "../store/finderTags";
 
 const paneStyles = {
   shell:
@@ -35,6 +41,12 @@ export const ExplorerPane = memo(function ExplorerPane(
     );
   const directorySizes = useExplorerStore((state) => state.directorySizes);
   const listing = pane?.listing ?? null;
+  const volumeSpaceLabel = useVolumeSpaceLabel(listing);
+  const homePath = useAppStore((state) => state.app?.environment.homeDir ?? "");
+  // A refresh (from the folder watcher, say) may follow a tag change.
+  useEffect(() => {
+    if (listing?.location.kind === "local") forgetFolderTags(listing.path);
+  }, [listing]);
   const cutPaths = useMemo(
     () =>
       new Set(
@@ -72,9 +84,16 @@ export const ExplorerPane = memo(function ExplorerPane(
   }, [props.paneId]);
 
   const handleOpen = useCallback(
-    (entry: FileEntry) => {
-      void useExplorerStore.getState().openEntry(props.paneId, entry);
+    (entry: FileEntry, options?: { newTab?: boolean }) => {
+      if (options?.newTab && entry.kind === "folder") openInNewTab(entry.path);
+      else void useExplorerStore.getState().openEntry(props.paneId, entry);
     },
+    [props.paneId],
+  );
+
+  const handleSelectIds = useCallback(
+    (entryIds: string[]) =>
+      useExplorerStore.getState().setSelection(props.paneId, entryIds),
     [props.paneId],
   );
 
@@ -136,38 +155,68 @@ export const ExplorerPane = memo(function ExplorerPane(
     <div
       className={`${paneStyles.shell} ${props.isActive === false ? paneStyles.shellInactive : ""}`}
       data-explorer-pane-id={props.paneId}
+      onKeyDown={(event) => handleFileListKey(event, props.paneId)}
+      style={
+        listing?.path === "kura://trash"
+          ? { gridTemplateRows: "auto minmax(0, 1fr)" }
+          : undefined
+      }
     >
-      <FileBrowser
-        paneId={props.paneId}
-        listing={listing}
-        selectedIds={pane?.selectedIds ?? emptySelectedIds}
-        loading={pane?.showLoadingSkeleton ?? false}
-        error={pane?.error ?? null}
-        viewMode={viewMode}
-        itemScale={itemScale}
-        sort={sort}
-        showHidden={showHidden}
-        commandQuery={pane?.commandQuery ?? ""}
-        commandQueryMode={pane?.commandQueryMode ?? "search"}
-        directorySizes={directorySizes}
-        cutPaths={cutPaths}
-        inlineEdit={inlineEdit}
-        onSort={(column) =>
-          useExplorerStore.getState().setSort(column, props.paneId)
-        }
-        onToggleHidden={() =>
-          void useExplorerStore.getState().toggleHidden(props.paneId)
-        }
-        onSelect={handleSelect}
-        onClearSelection={handleClearSelection}
-        onOpen={handleOpen}
-        onContextMenu={handleContextMenu}
-        onBackgroundContextMenu={handleBackgroundContextMenu}
-        onDropItems={handleDropItems}
-        onInlineEditChange={useExplorerStore.getState().setInlineEditValue}
-        onInlineEditCommit={handleInlineEditCommit}
-        onInlineEditCancel={useExplorerStore.getState().cancelInlineEdit}
-      />
+      {listing?.path === "kura://trash" ? <TrashNotice /> : null}
+      {viewMode === "columns" &&
+      listing &&
+      !pane?.error &&
+      !pane?.showLoadingSkeleton ? (
+        <ColumnView
+          paneId={props.paneId}
+          listing={listing}
+          homePath={homePath}
+          showHidden={showHidden}
+          selectedIds={pane?.selectedIds ?? emptySelectedIds}
+          inlineEdit={inlineEdit}
+          statusDetail={volumeSpaceLabel}
+          onDropItems={handleDropItems}
+          onContextMenu={(event, entry) =>
+            entry
+              ? handleContextMenu(event, entry)
+              : handleBackgroundContextMenu(event)
+          }
+        />
+      ) : (
+        <FileBrowser
+          paneId={props.paneId}
+          listing={listing}
+          selectedIds={pane?.selectedIds ?? emptySelectedIds}
+          loading={pane?.showLoadingSkeleton ?? false}
+          error={pane?.error ?? null}
+          viewMode={viewMode}
+          itemScale={itemScale}
+          sort={sort}
+          showHidden={showHidden}
+          commandQuery={pane?.commandQuery ?? ""}
+          commandQueryMode={pane?.commandQueryMode ?? "search"}
+          directorySizes={directorySizes}
+          cutPaths={cutPaths}
+          inlineEdit={inlineEdit}
+          onSort={(column) =>
+            useExplorerStore.getState().setSort(column, props.paneId)
+          }
+          onToggleHidden={() =>
+            void useExplorerStore.getState().toggleHidden(props.paneId)
+          }
+          onSelect={handleSelect}
+          onClearSelection={handleClearSelection}
+          onSelectIds={handleSelectIds}
+          statusDetail={volumeSpaceLabel}
+          onOpen={handleOpen}
+          onContextMenu={handleContextMenu}
+          onBackgroundContextMenu={handleBackgroundContextMenu}
+          onDropItems={handleDropItems}
+          onInlineEditChange={useExplorerStore.getState().setInlineEditValue}
+          onInlineEditCommit={handleInlineEditCommit}
+          onInlineEditCancel={useExplorerStore.getState().cancelInlineEdit}
+        />
+      )}
     </div>
   );
 });

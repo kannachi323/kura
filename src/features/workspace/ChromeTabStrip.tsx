@@ -159,7 +159,7 @@ export const ChromeTabStrip = memo(function ChromeTabStrip(
                 data-reorder-item={tab.id}
                 data-reorder-preview="true"
                 data-active={active ? "true" : "false"}
-                data-misty-window-drag-block={
+                data-kura-window-drag-block={
                   props.onReorderTab || props.onMoveTab ? "true" : undefined
                 }
                 data-reorder-drag-source={

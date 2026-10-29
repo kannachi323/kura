@@ -5,7 +5,7 @@ import type {
   ExplorerStore,
 } from "../../interfaces/store/types";
 
-export type ExplorerViewMode = "list" | "grid";
+export type ExplorerViewMode = "list" | "grid" | "columns";
 
 export type ExplorerCommandQueryMode = "search" | "filter";
 
@@ -24,6 +24,7 @@ export type NavigationMode = "push" | "back" | "forward" | "replace";
 export type ExplorerDialogState =
   | { kind: "delete"; paneId: string; paths: string[]; permanent: boolean }
   | { kind: "batchRename"; paneId: string; items: ExplorerBatchRenameItem[] }
+  | { kind: "newTag"; paneId: string }
   | null;
 
 export type ExplorerSet = Parameters<StateCreator<ExplorerStore>>[0];

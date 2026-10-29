@@ -51,6 +51,10 @@ impl ExplorerService {
     }
 
     pub async fn preview_item(&self, path: &str) -> ApiResult<ExplorerPreviewPayload> {
+        if let Some(cloud) = self.cloud_path(path) {
+            let local = self.cloud_ensure_local(&cloud, None).await?;
+            return self.preview_local_item(&local).await;
+        }
         self.reject_virtual_mount_container(path, "preview")?;
         self.preview_local_item(Path::new(path)).await
     }
@@ -63,6 +67,8 @@ impl ExplorerService {
         _remote_modified: Option<&str>,
         size_bytes: Option<u64>,
     ) -> ApiResult<GeneratedImageThumbnail> {
+        // Cloud images get thumbnails once downloaded; until then the guard
+        // passes and the missing file reports itself.
         self.reject_virtual_mount_container(path, "thumbnail")?;
         let identity = size_bytes.map(|size_bytes| ImageThumbnailIdentity {
             path: path.to_string(),

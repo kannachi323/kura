@@ -39,7 +39,12 @@ export interface FileBrowserProps {
     visibleEntryIds: string[],
   ) => void;
   onClearSelection: () => void;
-  onOpen: (entry: FileEntry) => void;
+  /** Shown at the right of the status bar, e.g. "245 GB available". */
+  statusDetail?: string | null;
+  /** Replaces the selection; used by rubber-band selection. */
+  onSelectIds?: (entryIds: string[]) => void;
+  /** `newTab`: Cmd+double-click or middle-click on a folder. */
+  onOpen: (entry: FileEntry, options?: { newTab?: boolean }) => void;
   onContextMenu: (event: MouseEvent, entry: FileEntry) => void;
   onBackgroundContextMenu: (event: MouseEvent) => void;
   onDropItems: (

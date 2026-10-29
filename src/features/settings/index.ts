@@ -1,3 +1,4 @@
+export * from "./openSettings";
 export * from "./preferences";
 export { useSettingsStore } from "./useSettingsStore";
 export type {
@@ -5,4 +6,4 @@ export type {
   SettingValue,
   SettingsStore,
 } from "./useSettingsStore";
-export { SettingsPage } from "./SettingsPage";
+export { SettingsOverlay, SettingsWorkspace } from "./SettingsWorkspace";

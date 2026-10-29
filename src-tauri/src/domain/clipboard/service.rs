@@ -1,12 +1,7 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
-};
+use std::sync::{Arc, Mutex};
 
 use super::{ClipboardOrigin, ClipboardPayload, ClipboardPayloadKind};
 use crate::domain::file_transfer::now_epoch_ms;
-
-pub type ClipboardChangeCallback = Arc<dyn Fn(ClipboardPayload) + Send + Sync + 'static>;
 
 pub trait NativeClipboard: Send + Sync {
     fn supported(&self) -> bool;
@@ -16,43 +11,26 @@ pub trait NativeClipboard: Send + Sync {
     fn write_payload(&self, payload: &ClipboardPayload) -> bool;
 }
 
-pub trait SharedClipboardClient: Send + Sync {
-    fn publish(&self, payload: &ClipboardPayload) -> bool;
-    fn hydrate_payload(&self, payload: &mut ClipboardPayload) -> bool;
-}
-
 #[derive(Default)]
 struct ClipboardState {
     local: ClipboardPayload,
-    shared: ClipboardPayload,
     last_seen_fingerprint: Vec<u8>,
-    device_id: String,
-    device_name: String,
     next_revision: u64,
-    last_remote_clock: Option<(u64, String)>,
-    on_change: Option<ClipboardChangeCallback>,
 }
 
 pub struct ClipboardService {
     native: Option<Arc<dyn NativeClipboard>>,
-    shared_client: Option<Arc<dyn SharedClipboardClient>>,
     state: Mutex<ClipboardState>,
-    apply_in_flight: AtomicBool,
 }
 
 impl ClipboardService {
-    pub fn new(
-        native: Option<Arc<dyn NativeClipboard>>,
-        shared_client: Option<Arc<dyn SharedClipboardClient>>,
-    ) -> Arc<Self> {
+    pub fn new(native: Option<Arc<dyn NativeClipboard>>) -> Arc<Self> {
         Arc::new(Self {
             native,
-            shared_client,
             state: Mutex::new(ClipboardState {
                 next_revision: 1,
                 ..ClipboardState::default()
             }),
-            apply_in_flight: AtomicBool::new(false),
         })
     }
 
@@ -77,12 +55,6 @@ impl ClipboardService {
         }
     }
 
-    pub fn set_device_identity(&self, device_id: String, device_name: String) {
-        let mut state = self.state.lock().expect("clipboard state lock");
-        state.device_id = device_id;
-        state.device_name = device_name;
-    }
-
     pub fn current_local(&self) -> ClipboardPayload {
         self.state
             .lock()
@@ -91,71 +63,10 @@ impl ClipboardService {
             .clone()
     }
 
-    pub fn latest_shared(&self) -> ClipboardPayload {
-        self.state
-            .lock()
-            .expect("clipboard state lock")
-            .shared
-            .clone()
-    }
-
-    pub fn publish_current_to_shared(&self) -> bool {
-        self.publish_payload_to_shared(&self.current_local())
-    }
-
-    pub fn publish_payload_to_shared(&self, payload: &ClipboardPayload) -> bool {
-        !payload.empty()
-            && self
-                .shared_client
-                .as_ref()
-                .is_some_and(|client| client.publish(payload))
-    }
-
-    pub fn apply_shared_to_system_async(self: &Arc<Self>) -> bool {
-        if self.apply_in_flight.swap(true, Ordering::AcqRel) {
-            return false;
-        }
-        let payload = self.latest_shared();
-        if payload.empty() {
-            self.apply_in_flight.store(false, Ordering::Release);
-            return false;
-        }
-        let service = Arc::clone(self);
-        std::thread::spawn(move || {
-            let _ = service.apply_payload_to_system(payload);
-            service.apply_in_flight.store(false, Ordering::Release);
-        });
-        true
-    }
-
-    pub fn accept_remote_payload(&self, mut payload: ClipboardPayload) {
-        payload.origin = ClipboardOrigin::RemoteShared;
-        {
-            let mut state = self.state.lock().expect("clipboard state lock");
-            let clock = (payload.revision, payload.source_device_id.clone());
-            if state
-                .last_remote_clock
-                .as_ref()
-                .is_some_and(|current| current >= &clock)
-            {
-                return;
-            }
-            state.last_remote_clock = Some(clock);
-            state.next_revision = state.next_revision.max(payload.revision.saturating_add(1));
-        }
-        self.set_shared_payload(payload);
-    }
-
-    pub fn set_local_misty_payload(&self, payload: ClipboardPayload) -> ClipboardPayload {
-        let payload = self.finalize_payload(payload, ClipboardOrigin::LocalMisty);
+    pub fn set_local_kura_payload(&self, payload: ClipboardPayload) -> ClipboardPayload {
+        let payload = self.finalize_payload(payload, ClipboardOrigin::LocalKura);
         self.set_local_payload(payload.clone());
         payload
-    }
-
-    pub fn publish_local_system_payload_to_shared(&self, payload: ClipboardPayload) -> bool {
-        let payload = self.finalize_payload(payload, ClipboardOrigin::LocalSystem);
-        self.set_local_payload(payload.clone());
-        self.publish_payload_to_shared(&payload)
     }
 
     pub fn finalize_payload(
@@ -166,14 +77,9 @@ impl ClipboardService {
         payload.origin = origin;
         payload.created_unix_ms = now_epoch_ms();
         let mut state = self.state.lock().expect("clipboard state lock");
-        payload.source_device_id = state.device_id.clone();
-        payload.source_device_name = state.device_name.clone();
         payload.revision = state.next_revision;
         state.next_revision = state.next_revision.saturating_add(1);
-        payload.payload_id = format!(
-            "{}:{}:{}",
-            payload.source_device_id, payload.revision, payload.created_unix_ms
-        );
+        payload.payload_id = format!("{}:{}", payload.revision, payload.created_unix_ms);
         payload
     }
 
@@ -236,49 +142,11 @@ impl ClipboardService {
             state.last_seen_fingerprint = fingerprint;
         }
         let payload = self.finalize_payload(payload, ClipboardOrigin::LocalSystem);
-        self.set_local_payload(payload.clone());
-        let _ = self.publish_payload_to_shared(&payload);
-    }
-
-    fn apply_payload_to_system(&self, mut payload: ClipboardPayload) -> bool {
-        let Some(native) = &self.native else {
-            return false;
-        };
-        if payload.empty() {
-            return false;
-        }
-        if let Some(shared_client) = &self.shared_client {
-            if !shared_client.hydrate_payload(&mut payload) {
-                return false;
-            }
-        }
-        self.state
-            .lock()
-            .expect("clipboard state lock")
-            .last_seen_fingerprint = Self::fingerprint_for(&payload);
-        native.write_payload(&payload)
+        self.set_local_payload(payload);
     }
 
     fn set_local_payload(&self, payload: ClipboardPayload) {
-        let callback = {
-            let mut state = self.state.lock().expect("clipboard state lock");
-            state.local = payload.clone();
-            state.on_change.clone()
-        };
-        if let Some(callback) = callback {
-            callback(payload);
-        }
-    }
-
-    fn set_shared_payload(&self, payload: ClipboardPayload) {
-        let callback = {
-            let mut state = self.state.lock().expect("clipboard state lock");
-            state.shared = payload.clone();
-            state.on_change.clone()
-        };
-        if let Some(callback) = callback {
-            callback(payload);
-        }
+        self.state.lock().expect("clipboard state lock").local = payload;
     }
 }
 
@@ -328,79 +196,18 @@ mod tests {
     }
 
     #[test]
-    fn publishes_local_system_image_payload_to_shared_client() {
-        #[derive(Default)]
-        struct CaptureSharedClient {
-            published: Mutex<Option<ClipboardPayload>>,
-        }
-
-        impl SharedClipboardClient for CaptureSharedClient {
-            fn publish(&self, payload: &ClipboardPayload) -> bool {
-                *self.published.lock().expect("published lock") = Some(payload.clone());
-                true
-            }
-
-            fn hydrate_payload(&self, _payload: &mut ClipboardPayload) -> bool {
-                true
-            }
-        }
-
-        let client = Arc::new(CaptureSharedClient::default());
-        let shared: Arc<dyn SharedClipboardClient> = client.clone();
-        let service = ClipboardService::new(None, Some(shared));
-        service.set_device_identity("device-a".into(), "Laptop".into());
-        let ok = service.publish_local_system_payload_to_shared(ClipboardPayload {
-            kind: ClipboardPayloadKind::Image,
-            images: vec![super::super::ClipboardImage {
-                mime_type: "image/png".into(),
-                size_bytes: 3,
-                width: 12,
-                height: 8,
-                bytes: vec![1, 2, 3],
-                ..super::super::ClipboardImage::default()
-            }],
-            ..ClipboardPayload::default()
-        });
-
-        assert!(ok);
-        let local = service.current_local();
-        assert_eq!(local.origin, ClipboardOrigin::LocalSystem);
-        assert_eq!(local.source_device_id, "device-a");
-        assert_eq!(local.revision, 1);
-
-        let published = client
-            .published
-            .lock()
-            .expect("published lock")
-            .clone()
-            .expect("published payload");
-        assert_eq!(published.origin, ClipboardOrigin::LocalSystem);
-        assert_eq!(published.images[0].mime_type, "image/png");
-        assert_eq!(published.images[0].width, 12);
-        assert_eq!(published.images[0].height, 8);
-        assert_eq!(published.images[0].bytes, vec![1, 2, 3]);
-    }
-
-    #[test]
-    fn remote_lamport_clock_rejects_stale_payloads_and_breaks_ties_by_endpoint() {
-        let service = ClipboardService::new(None, None);
-        let remote = |revision, endpoint: &str, text: &str| ClipboardPayload {
+    fn kura_payloads_get_increasing_revisions() {
+        let service = ClipboardService::new(None);
+        let text = |text: &str| ClipboardPayload {
             kind: ClipboardPayloadKind::Text,
-            source_device_id: endpoint.to_owned(),
-            revision,
             text: text.to_owned(),
             ..ClipboardPayload::default()
         };
-        service.accept_remote_payload(remote(7, "endpoint-b", "new"));
-        service.accept_remote_payload(remote(6, "endpoint-z", "stale"));
-        service.accept_remote_payload(remote(7, "endpoint-a", "lower tie"));
-        assert_eq!(service.latest_shared().text, "new");
+        let first = service.set_local_kura_payload(text("one"));
+        let second = service.set_local_kura_payload(text("two"));
 
-        service.accept_remote_payload(remote(7, "endpoint-c", "higher tie"));
-        assert_eq!(service.latest_shared().text, "higher tie");
-        assert_eq!(
-            service.latest_shared().origin,
-            ClipboardOrigin::RemoteShared
-        );
+        assert_eq!(first.origin, ClipboardOrigin::LocalKura);
+        assert_eq!((first.revision, second.revision), (1, 2));
+        assert_eq!(service.current_local().text, "two");
     }
 }

@@ -1,33 +1,38 @@
 import { TransfersPage } from "../../../transfers/TransfersPage";
 import { transfersPath } from "../../../transfers/transferModel";
 import { useAppStore } from "@/features/app-shell";
-import { useMultiPanelStore } from "@/features/workspace";
 import {
   selectAdvancedPreferences,
   selectFilePreferences,
+  requestOpenSettings,
   selectGeneralPreferences,
   useSettingsStore,
 } from "@/features/settings";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useTransientScrollbars } from "@/shared/hooks/useTransientScrollbars";
+import { secondaryWindow } from "@/shared/platform/tauri";
+import { appWindowSetFolder } from "../../native";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { ExplorerLoadingShell } from "../components/ExplorerLoadingShell";
 import { ExplorerPane } from "../components/ExplorerPane";
+import { openInNewTabEvent } from "../components/fileListKeyboard";
+import { QuickLookHost } from "../components/QuickLookHost";
 import { ExplorerSidebar } from "../components/ExplorerSidebar";
 import { ExplorerDragProvider } from "../drag/ExplorerDragContext";
 import { useExplorerStore } from "../store";
 import { FileOperationConflictDialog } from "./FileOperationConflictDialog";
 import { ExplorerDialog } from "./ExplorerBatchRenameDialog";
-import {
-  executableShortcutCommands,
-  kuraOpenSettingsEvent,
-} from "./ExplorerCommands";
+import { executableShortcutCommands } from "./ExplorerCommands";
+import { filesMultiPanelStore } from "./explorerWorkspace/filesDockStores";
+import { useFilesDockWorkspace } from "./explorerWorkspace/useFilesDockWorkspace";
 import { CompareDialog } from "./ExplorerCompareDialog";
 import { ExplorerContextMenu } from "./ExplorerContextMenu";
 import {
   canCloseExplorerTab,
   canOpenTerminalPath,
   ExplorerTray,
+  TransfersButton,
 } from "./ExplorerDesktopPlugins";
 import { cx } from "./ExplorerDesktopShared";
 import {
@@ -53,6 +58,7 @@ import {
   useScopedExplorerWorkspace,
   type ExplorerWorkspaceProps,
 } from "./explorerWorkspace/useScopedExplorerWorkspace";
+import { useCloudEvents } from "./explorerWorkspace/useCloudEvents";
 import { useTransferRefreshPolling } from "./explorerWorkspace/useTransferRefreshPolling";
 import { resolveExplorerBottomBarRenderer } from "./ExplorerWorkspaceChrome";
 import {
@@ -60,12 +66,18 @@ import {
   resolveMountRoot,
   resolvePreferredWorkspaceRoot,
 } from "./ExplorerWorkspaceUtils";
+import { SearchPalette } from "./SearchPalette";
+import { useDirectoryWatch } from "./useDirectoryWatch";
+import { useSearchAutoIndex } from "./useSearchAutoIndex";
 import { useExplorerDevices } from "./useExplorerDevices";
 export type { ResizeTarget } from "../model/types/workspace/index";
 export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   props: ExplorerWorkspaceProps,
 ) {
-  const multiPanelStore = useMultiPanelStore;
+  const multiPanelStore = useMemo(
+    () => filesMultiPanelStore(props.workspaceId),
+    [props.workspaceId],
+  );
   const workspaceFocused = props.active !== false;
   const app = useAppStore((state) => state.app);
   const {
@@ -142,7 +154,12 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     if (!settingsLoaded) return;
     useExplorerStore.setState({
       showHidden: filePreferences.showHiddenFiles,
-      viewMode: filePreferences.defaultViewModeIndex === 1 ? "grid" : "list",
+      viewMode:
+        filePreferences.defaultViewModeIndex === 1
+          ? "grid"
+          : filePreferences.defaultViewModeIndex === 2
+            ? "columns"
+            : "list",
     });
   }, [
     filePreferences.defaultViewModeIndex,
@@ -157,6 +174,8 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   const homePath = storageHomePath;
   const { devicesLoading, mountedDevices, refreshDevices } =
     useExplorerDevices();
+  useDirectoryWatch();
+  useSearchAutoIndex(homePath);
   const mountRoot = resolveMountRoot(
     storageHomePath,
     settingsMountPath || app?.environment.mountPath || "",
@@ -167,17 +186,45 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
       : (state.panes[activePaneId]?.listing?.path ?? homePath),
   );
   const explorerInitialized = useExplorerStore((state) => state.initialized);
+  const embeddedOpenInNewTab = useFilesDockWorkspace({
+    workspaceId: props.workspaceId,
+    activePath,
+    initialized: explorerInitialized,
+    homePath,
+    multiPanelStore,
+  });
   const openSidebarPathInNewTab = useCallback(
     (path: string, title?: string) => {
-      multiPanelStore.getState().addTab(path, title || sidebarTabTitle(path));
+      if (props.embedded) embeddedOpenInNewTab(path, title);
+      else
+        multiPanelStore.getState().addTab(path, title || sidebarTabTitle(path));
     },
-    [multiPanelStore],
+    [embeddedOpenInNewTab, multiPanelStore, props.embedded],
   );
+
   useEffect(() => {
-    if (!explorerInitialized || !homePath) return;
-    const multi = multiPanelStore.getState();
-    if (multi.tabs.length === 0) multi.initialize(homePath, "Files");
-  }, [explorerInitialized, homePath, multiPanelStore]);
+    const open = (event: Event) => {
+      const { path } = (event as CustomEvent<{ path: string }>).detail;
+      openSidebarPathInNewTab(path);
+    };
+    window.addEventListener(openInNewTabEvent, open);
+    return () => window.removeEventListener(openInNewTabEvent, open);
+  }, [openSidebarPathInNewTab]);
+
+  // A window opened with New Window starts at the folder it was opened for.
+  const startPathApplied = useRef(false);
+  useEffect(() => {
+    const startPath = secondaryWindow()?.path;
+    if (startPathApplied.current || !startPath || !activePaneId) return;
+    startPathApplied.current = true;
+    void useExplorerStore.getState().navigatePane(activePaneId, startPath);
+  }, [activePaneId]);
+
+  // An extra window reopens at its folder after a restart.
+  useEffect(() => {
+    if (secondaryWindow() && activePath)
+      void appWindowSetFolder(activePath).catch(() => undefined);
+  }, [activePath]);
 
   // Restore retired extension tabs to the built-in file browser.
   useLegacyPluginTabMigration({
@@ -204,6 +251,7 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     setCompareDialog,
   } = useExplorerDialogEvents(activePaneIdRef, ownsPane);
   useTransferRefreshPolling(mountRoot);
+  useCloudEvents();
   const {
     resizeTarget,
     resizeSidebarBy,
@@ -231,8 +279,11 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   );
   const sidebarVisible =
     activeTabSidebarVisible && activePath !== transfersPath;
+  // Like Finder's preview, the inspector steps aside in a narrow window so
+  // the file list keeps its room; it comes back when the window widens.
+  const narrowWindow = useMediaQuery("(max-width: 760px)");
   const previewVisible =
-    activeTabPreviewVisible && activePath !== transfersPath;
+    activeTabPreviewVisible && activePath !== transfersPath && !narrowWindow;
   useEffect(() => {
     activePaneIdRef.current = activePaneId;
     activePathRef.current = activePath;
@@ -259,10 +310,19 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
           paneId={paneId}
           fallbackPath={path}
           locationResults={locationResults}
+          searchActions={props.embedded ? <TransfersButton /> : null}
+          extraActions={
+            props.embedded ? (
+              <ExplorerTray
+                terminalEnabled={canOpenTerminalPath(path)}
+                terminalPath={path}
+              />
+            ) : null
+          }
         />
       );
     },
-    [locationResults],
+    [locationResults, props.embedded],
   );
   const renderPane = useCallback(
     (paneId: string, path: string) => {
@@ -314,9 +374,7 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   const renderTabActions = useCallback(
     () => (
       <ExplorerTray
-        onOpenSettings={() =>
-          window.dispatchEvent(new CustomEvent(kuraOpenSettingsEvent))
-        }
+        onOpenSettings={requestOpenSettings}
         terminalEnabled={
           canOpenTerminalPath(activeTabPath) && canOpenTerminalPath(activePath)
         }
@@ -329,7 +387,8 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     () => createExplorerAddTabControl(homePath),
     [homePath],
   );
-  if (!explorerInitialized || !hasExplorerTabs) return <ExplorerLoadingShell />;
+  if (!explorerInitialized || !hasExplorerTabs)
+    return <ExplorerLoadingShell embedded={props.embedded} />;
   return (
     <ExplorerDragProvider>
       <section
@@ -365,6 +424,12 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
           />
         </main>
         {workspaceFocused ? <FileOperationConflictDialog /> : null}
+        {workspaceFocused ? (
+          <>
+            <SearchPalette fallbackPaneId={activePaneId} />
+            <QuickLookHost />
+          </>
+        ) : null}
         {inlineEdit && ownsPane(inlineEdit.paneId) ? (
           <ExplorerRenameStatus edit={inlineEdit} />
         ) : null}

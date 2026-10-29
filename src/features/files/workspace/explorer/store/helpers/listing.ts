@@ -49,7 +49,7 @@ export function shouldShowLoadingSkeleton(
           : `${environment.homeDir.replace(/\/+$/, "")}/${preferredRoot}`;
   const mountRoot = H.resolveMountRoot(
     storageHome,
-    advanced.mountPath || environment.mountPath || ".misty/mnt",
+    advanced.mountPath || environment.mountPath || ".kura/providers",
   );
   const target = H.normalizedPath(path);
   const mount = H.normalizedPath(mountRoot);
@@ -149,7 +149,7 @@ export function libraryItemFromEntry(entry: FileEntry): ExplorerLibraryItem {
 export function loadPinnedPaths(): string[] {
   try {
     const parsed = JSON.parse(
-      window.localStorage.getItem("misty.explorer.pinnedPaths") ?? "[]",
+      window.localStorage.getItem("kura.explorer.pinnedPaths") ?? "[]",
     );
     const pinnedPaths = Array.isArray(parsed)
       ? H.normalizePinnedPaths(
@@ -157,7 +157,7 @@ export function loadPinnedPaths(): string[] {
         )
       : [];
     window.localStorage.setItem(
-      "misty.explorer.pinnedPaths",
+      "kura.explorer.pinnedPaths",
       JSON.stringify(pinnedPaths),
     );
     return pinnedPaths;

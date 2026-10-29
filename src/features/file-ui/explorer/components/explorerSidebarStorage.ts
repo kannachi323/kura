@@ -5,12 +5,11 @@ import type {
 import { normalizeExplorerPath } from "@/shared/lib/pathNormalization";
 
 /** The sidebar's per-device layout: hidden and ordered Quick access rows, devices, collapsed sections. */
-const DEVICE_CUSTOMIZATION_STORAGE_KEY = "misty.explorer.sidebar.devices";
-const SIDEBAR_COLLAPSE_STORAGE_KEY = "misty.explorer.sidebar.collapsed";
+const DEVICE_CUSTOMIZATION_STORAGE_KEY = "kura.explorer.sidebar.devices";
+const SIDEBAR_COLLAPSE_STORAGE_KEY = "kura.explorer.sidebar.collapsed";
 const QUICK_ACCESS_HIDDEN_STORAGE_KEY =
-  "misty.explorer.sidebar.quickAccessHidden";
-const QUICK_ACCESS_ORDER_STORAGE_KEY =
-  "misty.explorer.sidebar.quickAccessOrder";
+  "kura.explorer.sidebar.quickAccessHidden";
+const QUICK_ACCESS_ORDER_STORAGE_KEY = "kura.explorer.sidebar.quickAccessOrder";
 
 export function normalizeSidebarPath(path: string): string {
   return normalizeExplorerPath(path);
@@ -153,6 +152,7 @@ export function loadSidebarCollapsedState(): SidebarCollapsedState {
     ) as Partial<SidebarCollapsedState>;
     return {
       quickAccess: parsed.quickAccess === true,
+      tags: parsed.tags === true,
       smartFolders: parsed.smartFolders === true,
       remote: parsed.remote === true,
       devices: parsed.devices === true,
@@ -160,6 +160,7 @@ export function loadSidebarCollapsedState(): SidebarCollapsedState {
   } catch {
     return {
       quickAccess: false,
+      tags: false,
       smartFolders: false,
       remote: false,
       devices: false,

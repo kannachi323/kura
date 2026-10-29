@@ -64,7 +64,7 @@ export function ExplorerContextMenuView({
         sideOffset={0}
         collisionPadding={8}
         width="lg"
-        className="max-h-[min(560px,calc(100dvh-2rem))]"
+        className="max-h-[min(560px,var(--radix-dropdown-menu-content-available-height,calc(100dvh-2rem)))]"
         onPointerDown={(event) => event.stopPropagation()}
       >
         {menuEntries.map((item) =>

@@ -15,12 +15,12 @@ import {
   type GlobalPreviewSource,
   formatBytes,
   formatDate,
+  kindLabel,
   type PreviewRuntime,
 } from "@/features/file-ui";
 import { PreviewBodyView } from "./PreviewBodyView";
 import {
   fileName,
-  friendlyType,
   imageOutputMimeType,
   sourceExtension,
   InspectorDetail,
@@ -168,7 +168,12 @@ export function GlobalPreviewDialogView(props: {
                 {props.source.name}
               </DialogTitle>
               <span className="block truncate text-[11px] text-cream-muted">
-                {friendlyType(extension, props.source.mimeType)}
+                {kindLabel({
+                  kind: "file",
+                  extension,
+                  mimeType: props.source.mimeType,
+                  name: props.source.name,
+                })}
               </span>
             </div>
             <span />
@@ -262,23 +267,20 @@ export function GlobalPreviewDialogView(props: {
                 ) : null}
               </div>
             </main>
-            <aside className="min-h-0 overflow-y-auto border-l border-charcoal-border bg-charcoal-card p-5 max-[820px]:hidden">
-              <div className="grid gap-5">
-                <div>
-                  <span className="text-[11px] font-medium text-cream-muted">
-                    Inspector
-                  </span>
-                  <h2 className="m-0 mt-2 break-words text-lg font-semibold">
-                    {props.source.name}
-                  </h2>
-                </div>
-                <dl className="m-0 grid gap-4">
+            <aside className="min-h-0 overflow-y-auto overflow-x-hidden border-l border-charcoal-border bg-charcoal-card p-4 max-[820px]:hidden">
+              <div className="grid gap-4">
+                <h2 className="m-0 break-words text-[13px] font-semibold">
+                  {props.source.name}
+                </h2>
+                <dl className="m-0 grid gap-1.5">
                   <InspectorDetail
                     label="Kind"
-                    value={friendlyType(
+                    value={kindLabel({
+                      kind: "file",
                       extension,
-                      resource?.mimeType ?? props.source.mimeType,
-                    )}
+                      mimeType: resource?.mimeType ?? props.source.mimeType,
+                      name: props.source.name,
+                    })}
                   />
                   <InspectorDetail
                     label="Size"

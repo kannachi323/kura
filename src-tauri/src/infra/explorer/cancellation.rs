@@ -81,69 +81,92 @@ pub(super) async fn remove_local_path(path: &Path, is_directory: bool) -> ApiRes
         .map_err(|error| ApiError::Message(format!("Failed to remove {}: {error}", path.display())))
 }
 
-pub(super) fn trash_virtual_entries(trash_dir: &Path) -> ApiResult<Vec<FileEntry>> {
-    if !trash_dir.exists() {
-        return Ok(Vec::new());
+/// Lists Kura's Trash: items in the legacy `trash_dir`, everything in the
+/// readable `system_dirs` (the system Trash needs Full Disk Access), and
+/// the `recorded` items Kura trashed, which it can read by path either way.
+pub(super) fn trash_virtual_entries(
+    trash_dir: &Path,
+    system_dirs: &[PathBuf],
+    recorded: &[PathBuf],
+) -> ApiResult<Vec<FileEntry>> {
+    let mut paths: Vec<PathBuf> = match std::fs::read_dir(trash_dir) {
+        Ok(read_dir) => read_dir.flatten().map(|item| item.path()).collect(),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(err) => {
+            return Err(ApiError::Message(format!(
+                "Failed to list trash directory {}: {err}",
+                trash_dir.display()
+            )))
+        }
+    };
+    for dir in system_dirs {
+        if let Ok(read_dir) = std::fs::read_dir(dir) {
+            paths.extend(read_dir.flatten().map(|item| item.path()).filter(|path| {
+                // Finder's own bookkeeping, not trashed items.
+                !matches!(
+                    path.file_name().and_then(|name| name.to_str()),
+                    Some(".DS_Store" | ".localized")
+                )
+            }));
+        }
     }
-    let read_dir = std::fs::read_dir(trash_dir).map_err(|err| {
-        ApiError::Message(format!(
-            "Failed to list trash directory {}: {err}",
-            trash_dir.display()
-        ))
-    })?;
-    let mut entries = Vec::new();
-    for item in read_dir {
-        let item = match item {
-            Ok(item) => item,
-            Err(_) => continue,
-        };
-        let path = item.path();
-        let metadata = match std::fs::symlink_metadata(&path) {
-            Ok(metadata) => metadata,
-            Err(_) => continue,
-        };
-        let name = item.file_name().to_string_lossy().to_string();
-        let file_type = metadata.file_type();
-        let kind = if file_type.is_symlink() {
-            FileKind::Symlink
-        } else if file_type.is_dir() {
-            FileKind::Folder
-        } else if file_type.is_file() {
-            FileKind::File
-        } else {
-            FileKind::Other
-        };
-        entries.push(FileEntry {
-            id: display_path(&path),
-            name: name.clone(),
-            path: display_path(&path),
-            extension: path
-                .extension()
-                .and_then(|value| value.to_str())
-                .unwrap_or_default()
-                .to_string(),
-            mime_type: None,
-            remote_modified: None,
-            kind,
-            size_bytes: if metadata.is_file() {
-                Some(metadata.len())
-            } else {
-                None
-            },
-            modified_ms: metadata.modified().ok().and_then(service_system_time_ms),
-            created_ms: metadata.created().ok().and_then(service_system_time_ms),
-            readonly: metadata.permissions().readonly(),
-            hidden: name.starts_with('.'),
-            is_deleted: true,
-            location: ExplorerLocation::local(),
-        });
+    for path in recorded {
+        if !paths.contains(path) {
+            paths.push(path.clone());
+        }
     }
+    let mut entries: Vec<FileEntry> = paths.iter().filter_map(|path| trash_entry(path)).collect();
     entries.sort_by(|left, right| {
         virtual_folder_rank(&left.kind)
             .cmp(&virtual_folder_rank(&right.kind))
             .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
     });
     Ok(entries)
+}
+
+fn trash_entry(path: &Path) -> Option<FileEntry> {
+    path_entry(path, true)
+}
+
+/// A listing entry for one path, read with lstat. Used by virtual folders
+/// (Trash, tags) whose items live in different places.
+pub(super) fn path_entry(path: &Path, is_deleted: bool) -> Option<FileEntry> {
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    let name = path.file_name()?.to_string_lossy().to_string();
+    let file_type = metadata.file_type();
+    let kind = if file_type.is_symlink() {
+        FileKind::Symlink
+    } else if file_type.is_dir() {
+        FileKind::Folder
+    } else if file_type.is_file() {
+        FileKind::File
+    } else {
+        FileKind::Other
+    };
+    Some(FileEntry {
+        id: display_path(path),
+        name: name.clone(),
+        path: display_path(path),
+        extension: path
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default()
+            .to_string(),
+        mime_type: None,
+        remote_modified: None,
+        kind,
+        size_bytes: if metadata.is_file() {
+            Some(metadata.len())
+        } else {
+            None
+        },
+        modified_ms: metadata.modified().ok().and_then(service_system_time_ms),
+        created_ms: metadata.created().ok().and_then(service_system_time_ms),
+        readonly: metadata.permissions().readonly(),
+        hidden: name.starts_with('.'),
+        is_deleted,
+        location: ExplorerLocation::local(),
+    })
 }
 
 pub(super) fn service_system_time_ms(time: std::time::SystemTime) -> Option<i64> {

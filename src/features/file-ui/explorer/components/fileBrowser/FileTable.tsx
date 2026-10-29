@@ -37,6 +37,10 @@ import {
   minimumColumnWidths,
   normalizeItemScale,
 } from "./fileTableConfig";
+import { useFileBrowserRuntime } from "./FileBrowserRuntime";
+import { useRevealEntry } from "./revealEntry";
+import { MarqueeBox } from "./MarqueeBox";
+import { useMarqueeSelection } from "./useMarqueeSelection";
 import { FileTableRow } from "./FileTableRow";
 import { SortableHeader } from "./SortableHeader";
 
@@ -78,9 +82,12 @@ export function FileTable(
   );
   const activeInlineEdit =
     props.inlineEdit?.paneId === props.paneId ? props.inlineEdit : null;
+  const { compactModeEnabled } = useFileBrowserRuntime();
   const itemScale = normalizeItemScale(props.itemScale);
-  const rowHeight = 42 + itemScale * 8;
-  const tableIconSize = 20;
+  // 40px rows by default (Finder-like density), 32px with Compact rows.
+  // 30 px at the default size, close to Finder's list.
+  const rowHeight = (compactModeEnabled ? 20 : 24) + itemScale * 6;
+  const tableIconSize = itemScale === 0 ? 16 : itemScale === 1 ? 18 : 20;
   const rowCount = props.listing.entries.length;
   const tableWidth = columnOrder.reduce(
     (sum, column) => sum + columnWidths[column],
@@ -168,6 +175,16 @@ export function FileTable(
     }
   }, [props.inlineEdit, props.listing.entries, rowHeight]);
 
+  useRevealEntry({
+    paneId: props.paneId,
+    entryIds: () => visibleEntryIds,
+    scrollRef,
+    bounds: (index) => ({
+      top: index * rowHeight,
+      bottom: (index + 1) * rowHeight,
+    }),
+  });
+
   const handleScroll = useCallback(() => {
     if (scrollFrameRef.current !== null) return;
     scrollFrameRef.current = window.requestAnimationFrame(() => {
@@ -245,6 +262,22 @@ export function FileTable(
     [props, visibleEntryIds],
   );
 
+  const marquee = useMarqueeSelection({
+    scrollRef,
+    enabled: !props.selectionOnly && !props.inlineEdit,
+    selectedIds: props.selectedIds,
+    onSelectIds: props.onSelectIds,
+    hitTest: (rect) => {
+      const entries = props.listing.entries;
+      const first = Math.max(0, Math.floor(rect.top / rowHeight));
+      const last = Math.min(
+        entries.length - 1,
+        Math.floor(rect.bottom / rowHeight),
+      );
+      return entries.slice(first, last + 1).map((entry) => entry.id);
+    },
+  });
+
   return (
     <div className={`${fileBrowserStyles.tableWrap} relative`}>
       {columnsDirty ? (
@@ -301,7 +334,9 @@ export function FileTable(
         className={fileBrowserStyles.tableScroll}
         onScroll={handleScroll}
         data-explorer-scroll-container
+        {...marquee.handlers}
       >
+        {marquee.box ? <MarqueeBox rect={marquee.box} /> : null}
         <Table
           unwrapped
           className={fileBrowserStyles.table}

@@ -19,6 +19,7 @@ import type {
 } from "../../model/types/store/types";
 import * as H from "../helpers";
 import { explorerRuntime } from "../runtime";
+import { revealEntry } from "@/features/file-ui/explorer/components/fileBrowser/revealEntry";
 
 export function createNavigationActions(
   set: ExplorerSet,
@@ -29,11 +30,7 @@ export function createNavigationActions(
   return {
     loadPane: (paneId, path, mode = "push", options) => {
       const environment = useAppStore.getState().app?.environment;
-      const legacyMount = environment
-        ? H.resolveMountRoot(environment.homeDir, environment.mountPath)
-        : undefined;
-      if (isRetiredCloudLocation(path, legacyMount))
-        path = environment?.homeDir || "/";
+      if (isRetiredCloudLocation(path)) path = environment?.homeDir || "/";
       path = H.normalizedPath(path);
       if (path === "kura-transfers://history") {
         navigationVersions.set(
@@ -236,6 +233,7 @@ export function createNavigationActions(
           void get().loadDirectorySizeSnapshot(
             H.folderPathsForListing(listing),
           );
+          selectPendingEntry(paneId, listing, get);
         } catch (error) {
           if (navigationVersions.get(paneId) !== version) return;
           set((state) => ({
@@ -247,6 +245,7 @@ export function createNavigationActions(
                 showLoadingSkeleton: false,
                 needsLoad: false,
                 error: userFacingErrorText(error),
+                errorPath: path,
               },
             },
           }));
@@ -489,4 +488,22 @@ export function createNavigationActions(
         await get().loadPane(targetPaneId, pane.listing.path, "replace");
     },
   };
+}
+
+/** Selects an item created or renamed in this pane once the listing has it. */
+function selectPendingEntry(
+  paneId: string,
+  listing: DirectoryListing,
+  get: () => ExplorerStore,
+): void {
+  const pending = explorerRuntime.pendingSelections.get(paneId);
+  if (!pending) return;
+  const entry = listing.entries.find((item) => item.path === pending.path);
+  if (entry) {
+    explorerRuntime.pendingSelections.delete(paneId);
+    get().selectEntry(paneId, entry.id);
+    revealEntry(paneId, entry.id);
+  } else if (Date.now() > pending.expiresAtMs) {
+    explorerRuntime.pendingSelections.delete(paneId);
+  }
 }

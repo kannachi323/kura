@@ -1,4 +1,4 @@
-export { ExplorerTray } from "./explorerPlugins/ExplorerTray";
+export { ExplorerTray, TransfersButton } from "./explorerPlugins/ExplorerTray";
 export {
   canCloseExplorerTab,
   canOpenTerminalPath,

@@ -2,6 +2,7 @@ use std::{
     ffi::OsStr,
     fs,
     path::{Component, Path, PathBuf},
+    sync::{mpsc, Mutex as StdMutex},
     time::UNIX_EPOCH,
 };
 
@@ -221,14 +222,23 @@ pub struct FileEntry {
 #[serde(rename_all = "camelCase")]
 pub struct ExplorerLocation {
     pub kind: ExplorerLocationKind,
+    // Unset fields are left out: a 100k-file listing repeats this per entry.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub provider_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remote_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remote_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub peer_device_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub peer_root_id: Option<String>,
     /// For a connected device: whether it lets this device change its files.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub peer_writable: Option<bool>,
+    /// For a cloud item: "online", "downloaded", "modified" or "conflict".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cloud_state: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -260,6 +270,7 @@ impl ExplorerLocation {
             peer_device_id: Some(device_id),
             peer_root_id: Some(root_id),
             peer_writable: Some(writable),
+            cloud_state: None,
         }
     }
 }
@@ -300,39 +311,10 @@ pub fn list_directory(
     if !path_prefix.ends_with(std::path::is_separator) {
         path_prefix.push(std::path::MAIN_SEPARATOR);
     }
-    let mut entries = Vec::new();
-    let mut total_count = 0usize;
-    let mut hidden_count = 0usize;
-    for item in read_dir {
-        let item = match item {
-            Ok(item) => item,
-            Err(_) => continue,
-        };
-        total_count += 1;
-        let file_name = item.file_name().to_string_lossy().to_string();
-        let hidden = file_name.starts_with('.');
-        if hidden {
-            hidden_count += 1;
-        }
-        if hidden && !show_hidden {
-            continue;
-        }
-        // The directory read already carries this metadata (it does not follow
-        // symlinks), so there is no second stat call per entry.
-        let Ok(metadata) = item.metadata() else {
-            continue;
-        };
-        let mut entry_path = String::with_capacity(path_prefix.len() + file_name.len());
-        entry_path.push_str(&path_prefix);
-        entry_path.push_str(&file_name);
-        entries.push(file_entry(entry_path, file_name, metadata));
-    }
-
-    entries.sort_by(|left, right| {
-        folder_rank(&left.kind)
-            .cmp(&folder_rank(&right.kind))
-            .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
-    });
+    let (mut entries, total_count, hidden_count) =
+        scan_entries(read_dir, show_hidden, &path_prefix);
+    // One lowercase key per entry, not two allocations per comparison.
+    entries.sort_by_cached_key(|entry| (folder_rank(&entry.kind), entry.name.to_lowercase()));
 
     let metadata = fs::symlink_metadata(&path).ok();
     Ok(DirectoryListing {
@@ -444,7 +426,96 @@ fn validate_file_name(name: &str) -> ApiResult<&str> {
     }
 }
 
-fn file_entry(path: String, name: String, metadata: fs::Metadata) -> FileEntry {
+/// Below this many entries the per-file stat calls are cheaper than threads.
+const PARALLEL_STAT_THRESHOLD: usize = 4096;
+/// Entries handed to a stat worker at a time.
+const STAT_BATCH: usize = 2048;
+/// lstat stops scaling past a handful of threads (kernel vnode locks).
+const MAX_STAT_THREADS: usize = 8;
+
+/// Reads a directory and stats each visible entry. Returns the entries, the
+/// total count and the hidden count.
+///
+/// One `lstat` per file dominates a large listing, so once a folder passes
+/// the threshold the calls run on a few worker threads while this thread
+/// keeps reading names.
+fn scan_entries(
+    read_dir: fs::ReadDir,
+    show_hidden: bool,
+    path_prefix: &str,
+) -> (Vec<FileEntry>, usize, usize) {
+    let mut total_count = 0usize;
+    let mut hidden_count = 0usize;
+    let mut visible = read_dir.flatten().filter_map(|item| {
+        total_count += 1;
+        let name = item.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') {
+            hidden_count += 1;
+            if !show_hidden {
+                return None;
+            }
+        }
+        Some((item, name))
+    });
+    let stat = |(item, name): (fs::DirEntry, String)| file_entry(&item, name, path_prefix);
+
+    let first: Vec<_> = visible.by_ref().take(PARALLEL_STAT_THRESHOLD).collect();
+    let threads = std::thread::available_parallelism()
+        .map_or(1, |count| count.get())
+        .min(MAX_STAT_THREADS);
+    let entries = if first.len() < PARALLEL_STAT_THRESHOLD || threads < 2 {
+        first
+            .into_iter()
+            .chain(visible.by_ref())
+            .filter_map(stat)
+            .collect()
+    } else {
+        let (sender, receiver) = mpsc::channel::<Vec<(fs::DirEntry, String)>>();
+        let receiver = StdMutex::new(receiver);
+        std::thread::scope(|scope| {
+            let workers: Vec<_> = (0..threads)
+                .map(|_| {
+                    scope.spawn(|| {
+                        let mut entries = Vec::new();
+                        loop {
+                            let batch = match receiver.lock() {
+                                Ok(receiver) => receiver.recv(),
+                                Err(_) => break,
+                            };
+                            let Ok(batch) = batch else { break };
+                            entries.extend(batch.into_iter().filter_map(stat));
+                        }
+                        entries
+                    })
+                })
+                .collect();
+            let mut batch = first;
+            loop {
+                let rest = batch.split_off(batch.len().min(STAT_BATCH));
+                let _ = sender.send(batch);
+                batch = rest;
+                if batch.is_empty() {
+                    batch = visible.by_ref().take(STAT_BATCH).collect();
+                    if batch.is_empty() {
+                        break;
+                    }
+                }
+            }
+            drop(sender);
+            workers
+                .into_iter()
+                .flat_map(|worker| worker.join().unwrap_or_default())
+                .collect()
+        })
+    };
+    drop(visible);
+    (entries, total_count, hidden_count)
+}
+
+/// `path_prefix` is the folder path ending in a separator.
+fn file_entry(item: &fs::DirEntry, name: String, path_prefix: &str) -> Option<FileEntry> {
+    // DirEntry::metadata does not follow symlinks, like symlink_metadata.
+    let metadata = item.metadata().ok()?;
     let file_type = metadata.file_type();
     let kind = if file_type.is_symlink() {
         FileKind::Symlink
@@ -460,14 +531,16 @@ fn file_entry(path: String, name: String, metadata: fs::Metadata) -> FileEntry {
         .and_then(|value| value.to_str())
         .unwrap_or_default()
         .to_owned();
-    let hidden = name.starts_with('.');
-    FileEntry {
+    let mut path = String::with_capacity(path_prefix.len() + name.len());
+    path.push_str(path_prefix);
+    path.push_str(&name);
+    Some(FileEntry {
         id: path.clone(),
         extension,
         mime_type: None,
         remote_modified: None,
+        hidden: name.starts_with('.'),
         name,
-        hidden,
         path,
         kind,
         size_bytes: if metadata.is_file() {
@@ -480,7 +553,7 @@ fn file_entry(path: String, name: String, metadata: fs::Metadata) -> FileEntry {
         readonly: metadata.permissions().readonly(),
         is_deleted: false,
         location: ExplorerLocation::local(),
-    }
+    })
 }
 
 fn copy_path(source: &Path, destination: &Path) -> ApiResult<()> {
@@ -569,4 +642,65 @@ fn folder_rank(kind: &FileKind) -> u8 {
 
 fn display_path(path: &Path) -> String {
     path.display().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn list(dir: &Path, show_hidden: bool) -> DirectoryListing {
+        list_directory(
+            PathBuf::new(),
+            ListDirectoryRequest {
+                path: Some(dir.display().to_string()),
+                show_hidden: Some(show_hidden),
+                force_remote_refresh: None,
+            },
+        )
+        .expect("list directory")
+    }
+
+    #[test]
+    fn large_folders_list_every_entry_folders_first() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let files = PARALLEL_STAT_THRESHOLD + STAT_BATCH + 7;
+        for index in 0..files {
+            fs::write(dir.path().join(format!("File {index:05}.txt")), b"x").expect("file");
+        }
+        for index in 0..3 {
+            fs::write(dir.path().join(format!(".hidden-{index}")), b"").expect("hidden");
+        }
+        fs::create_dir(dir.path().join("zeta")).expect("folder");
+
+        let listing = list(dir.path(), false);
+        assert_eq!(listing.total_count, files + 4);
+        assert_eq!(listing.hidden_count, 3);
+        assert_eq!(listing.entries.len(), files + 1);
+        assert_eq!(listing.entries[0].name, "zeta");
+        assert!(matches!(listing.entries[0].kind, FileKind::Folder));
+        assert_eq!(listing.entries[1].name, "File 00000.txt");
+        assert_eq!(listing.entries[1].size_bytes, Some(1));
+        assert!(listing.entries[1..]
+            .windows(2)
+            .all(|pair| pair[0].name.to_lowercase() <= pair[1].name.to_lowercase()));
+
+        assert_eq!(list(dir.path(), true).entries.len(), files + 4);
+    }
+
+    #[test]
+    fn small_folders_keep_symlinks_unresolved() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        fs::write(dir.path().join("a.txt"), b"abc").expect("file");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(dir.path().join("a.txt"), dir.path().join("link")).unwrap();
+
+        let listing = list(dir.path(), false);
+        let file = listing.entries.iter().find(|entry| entry.name == "a.txt");
+        assert_eq!(file.and_then(|entry| entry.size_bytes), Some(3));
+        #[cfg(unix)]
+        assert!(listing
+            .entries
+            .iter()
+            .any(|entry| entry.name == "link" && matches!(entry.kind, FileKind::Symlink)));
+    }
 }

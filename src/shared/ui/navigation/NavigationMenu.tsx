@@ -32,7 +32,7 @@ const iconClass = navigationTreeIconClass;
 
 /** One row rhythm and permanently visible action treatment for the navigator. */
 export const navigationMenuRowClass = cn(
-  "misty-navigator-row-target box-border",
+  "kura-navigator-row-target box-border",
   "h-[var(--navigation-row-height,32px)] min-w-0 rounded-md border-0",
   "bg-transparent text-left",
   "text-[length:var(--navigation-row-font-size,13px)] font-medium",
@@ -74,7 +74,7 @@ export const NavigationSectionButton = forwardRef<
     aria-expanded={open}
     data-reorder-handle="true"
     data-reorder-header="true"
-    data-misty-window-drag-block="true"
+    data-kura-window-drag-block="true"
     {...props}
     className={cn(
       navigationMenuRowClass,
@@ -146,7 +146,7 @@ export const NavigationTreeItem = forwardRef<
             data-tree-row-surface="true"
             data-reorder-preview="true"
             data-reorder-handle="true"
-            data-misty-window-drag-block="true"
+            data-kura-window-drag-block="true"
             aria-label={label}
             aria-current={selected ? "page" : undefined}
             title={`${label} · Drag to reorder · Alt+Shift+↑/↓`}
@@ -237,7 +237,7 @@ export const NavigationTreeItem = forwardRef<
         aria-current={selected ? "page" : undefined}
         className={cn(
           navigationTreeRowClass,
-          "misty-navigator-row-target min-w-0 bg-transparent no-underline transition-none hover:text-cream-bright",
+          "kura-navigator-row-target min-w-0 bg-transparent no-underline transition-none hover:text-cream-bright",
           "font-medium text-cream-muted",
           focusClass,
           !nested && "ml-0",

@@ -17,6 +17,8 @@ export interface ExplorerLocationResult {
 
 export interface ExplorerToolbarProps {
   trailingActions?: ReactNode;
+  /** Window-level shortcuts beside the search field, such as Transfers. */
+  searchActions?: ReactNode;
   /** Display labels may differ from the owning runtime's internal path identifiers. */
   breadcrumbs?: Array<{ label: string; path: string }>;
   displayPath?: string;

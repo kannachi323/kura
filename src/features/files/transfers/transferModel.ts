@@ -55,6 +55,21 @@ export function transferActions(
     undo: row.status === "completed" && row.undoable && row.undoTokenId > 0,
   };
 }
+/**
+ * The folder an endpoint is in, short enough for a table cell:
+ * "~/Documents/Reports", or "…/Reports/2026" when it is deep.
+ */
+export function shortFolderPath(path: string, homeDir: string): string {
+  if (!path) return "";
+  const separator = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  let folder = separator > 0 ? path.slice(0, separator) : path;
+  const home = homeDir.replace(/[\\/]+$/, "");
+  if (home && (folder === home || folder.startsWith(`${home}/`)))
+    folder = `~${folder.slice(home.length)}`;
+  const parts = folder.split(/[\\/]/).filter(Boolean);
+  return parts.length > 3 ? `…/${parts.slice(-2).join("/")}` : folder;
+}
+
 export function transferEndpoints(row: TransferRecord) {
   return {
     source:

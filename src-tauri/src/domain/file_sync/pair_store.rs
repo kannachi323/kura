@@ -211,7 +211,7 @@ mod tests {
 
     fn test_store() -> (FileSyncPairStore, PathBuf) {
         let root = std::env::temp_dir().join(format!("kura-sync-pairs-{}", Uuid::new_v4()));
-        (FileSyncPairStore::new(root.join("misty.db")), root)
+        (FileSyncPairStore::new(root.join("data.db")), root)
     }
 
     #[tokio::test]

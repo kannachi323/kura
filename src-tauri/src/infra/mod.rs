@@ -1,13 +1,18 @@
+pub mod cloud;
+#[cfg(test)]
+mod cloud_tests;
+pub mod data_home;
 pub mod devices;
 pub mod directory_size;
 mod directory_size_local;
+pub mod directory_watch;
 pub mod environment;
 pub mod explorer;
 pub mod explorer_library;
+pub mod extra_windows;
 pub mod file_sync;
 mod macos_privacy;
 pub mod metadata;
-pub mod misty_bridge;
 pub mod native_clipboard;
 pub mod navigation_names;
 pub mod operation_queue;
@@ -15,4 +20,6 @@ pub mod paths;
 pub mod power_pack;
 pub mod search;
 pub mod settings;
+pub mod share;
 pub mod transfers;
+pub mod volume_space;

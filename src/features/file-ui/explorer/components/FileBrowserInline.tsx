@@ -72,8 +72,17 @@ export function InlineNameEditor(props: {
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-    input.focus();
-    input.setSelectionRange(0, input.value.length);
+    const focus = () => {
+      input.focus();
+      input.setSelectionRange(0, input.value.length);
+    };
+    focus();
+    // A menu that started the edit (New, context menu) restores focus to
+    // its trigger as it closes; take it back once that has happened.
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement !== input) focus();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [sessionKey]);
 
   return (

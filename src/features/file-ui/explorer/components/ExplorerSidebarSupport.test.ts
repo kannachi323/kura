@@ -42,7 +42,7 @@ describe("Explorer sidebar devices", () => {
 
   it("clears legacy hidden device paths when preferences load", () => {
     window.localStorage.setItem(
-      "misty.explorer.sidebar.devices",
+      "kura.explorer.sidebar.devices",
       JSON.stringify({ hiddenPaths: ["/", "/Volumes/Backup"] }),
     );
 

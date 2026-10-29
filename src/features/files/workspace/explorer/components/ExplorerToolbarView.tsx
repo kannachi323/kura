@@ -37,6 +37,7 @@ import type { ExplorerToolbarRuntime } from "./ExplorerToolbarRuntime";
 import type { ExplorerToolbarProps } from "../model/interfaces/components/ExplorerToolbarModel";
 import { breadcrumbSegments, cx, toolbarStyles } from "@/features/file-ui";
 import { ExplorerToolbarDragNavigationView } from "./ExplorerToolbarDragNavigationView";
+import { goToFolderEvent } from "./fileListKeyboard";
 
 export { ExplorerPaneToolbarActions } from "./ExplorerPaneToolbarActions";
 
@@ -47,6 +48,12 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
   const [pathEditing, setPathEditing] = useState(false);
   const [pathDraft, setPathDraft] = useState(props.displayPath ?? props.path);
   const pathInputRef = useRef<HTMLInputElement | null>(null);
+  const pathBarRef = useRef<HTMLDivElement | null>(null);
+  // Long paths scroll; keep the current folder (the end) in view.
+  useLayoutEffect(() => {
+    const bar = pathBarRef.current;
+    if (bar && !pathEditing) bar.scrollLeft = bar.scrollWidth;
+  }, [props.path, pathEditing]);
   const [refreshSpinning, startRefreshSpin] = useMinimumSpin(false);
 
   useEffect(() => {
@@ -68,6 +75,15 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
     setPathDraft(props.displayPath ?? props.path);
     setPathEditing(true);
   }, [props.path, props.displayPath]);
+
+  useEffect(() => {
+    const goToFolder = (event: Event) => {
+      const detail = (event as CustomEvent<{ paneId: string }>).detail;
+      if (detail.paneId === props.paneId) beginPathEdit();
+    };
+    window.addEventListener(goToFolderEvent, goToFolder);
+    return () => window.removeEventListener(goToFolderEvent, goToFolder);
+  }, [beginPathEdit, props.paneId]);
 
   const submitPathEdit = useCallback(() => {
     const target = pathDraft.trim();
@@ -104,11 +120,12 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
         </div>
 
         <div
+          ref={pathBarRef}
           className={cx(
             toolbarStyles.pathBar,
             pathEditing && toolbarStyles.pathBarEditing,
           )}
-          data-misty-window-drag-block="true"
+          data-kura-window-drag-block="true"
           title={pathEditing ? undefined : "Click empty space to edit path"}
           onClick={(event) => {
             if (event.target === event.currentTarget) beginPathEdit();
@@ -179,6 +196,7 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
             onNavigateSearchResult={props.onNavigateSearchResult}
             onRunCommand={props.onRunCommand}
           />
+          {props.searchActions}
         </div>
       </div>
 
@@ -194,7 +212,13 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
               icon={<Plus size={16} />}
               className="text-cream"
             />
-            <DropdownMenuContent align="start" sideOffset={6} width="sm">
+            <DropdownMenuContent
+              align="start"
+              sideOffset={6}
+              width="sm"
+              // Leave focus on the new item's name field, not the New button.
+              onCloseAutoFocus={(event) => event.preventDefault()}
+            >
               <DropdownMenuLabel>Create in this folder</DropdownMenuLabel>
               <MenuItem
                 icon={<FolderPlus />}

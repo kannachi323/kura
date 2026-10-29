@@ -32,6 +32,8 @@ export function useContextMenuState() {
     targetRemoteName,
     targetRemotePath,
     inTrash,
+    virtualListing,
+    hasEntries,
     canTrashSelection,
     hasPermanentDeleteSelection,
     canCreateFile,
@@ -99,6 +101,10 @@ export function useContextMenuState() {
             ? targetEntry.location.remotePath
             : null,
         inTrash: targetPane?.listing?.path === "kura://trash",
+        virtualListing: Boolean(
+          targetPane?.listing?.path.startsWith("kura://"),
+        ),
+        hasEntries: Boolean(targetPane?.listing?.entries.length),
         canTrashSelection:
           trashableCount > 0 && trashableCount === selectedCount,
         hasPermanentDeleteSelection: permanentDeleteCount > 0,
@@ -137,6 +143,8 @@ export function useContextMenuState() {
     targetRemoteName,
     targetRemotePath,
     inTrash,
+    virtualListing,
+    hasEntries,
     canTrashSelection,
     hasPermanentDeleteSelection,
     canCreateFile,

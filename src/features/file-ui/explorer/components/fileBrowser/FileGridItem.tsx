@@ -1,4 +1,5 @@
 import type { FileEntry } from "@/native/ipc";
+import { CloudStateIcon } from "../CloudStateIcon";
 import type { CSSProperties, MouseEvent } from "react";
 import { memo, useMemo } from "react";
 import {
@@ -6,6 +7,8 @@ import {
   useExplorerDropZone,
 } from "../../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../../drag/operations";
+import { isPackageEntry } from "../../utils/kindLabel";
+import { EntryTagDots } from "./TagDots";
 import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
 import type {
   ExplorerDragModifiers,
@@ -48,7 +51,8 @@ export const FileGridItem = memo(function FileGridItem(props: {
       priority: 20,
       accepts: (payload: ExplorerDragPayload) =>
         transferDropAcceptance(payload, entry.path, {
-          folder: entry.kind === "folder",
+          // Dropping onto an app would move files inside its bundle.
+          folder: entry.kind === "folder" && !isPackageEntry(entry),
           writable: !entry.readonly && !entry.isDeleted,
         }),
       onDrop: (
@@ -62,8 +66,10 @@ export const FileGridItem = memo(function FileGridItem(props: {
           modifiers,
         ),
       onSpringLoad:
-        entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
-      springLoad: entry.kind === "folder",
+        entry.kind === "folder" && !isPackageEntry(entry)
+          ? () => props.onOpen(entry)
+          : undefined,
+      springLoad: entry.kind === "folder" && !isPackageEntry(entry),
     }),
     [entry, props],
   );
@@ -82,15 +88,23 @@ export const FileGridItem = memo(function FileGridItem(props: {
       style={props.style}
       aria-disabled={entry.isDeleted || undefined}
       aria-pressed={props.selected}
+      data-entry-id={entry.id}
       role="button"
       tabIndex={entry.isDeleted ? -1 : 0}
       onPointerDown={source.onPointerDown}
       onClick={(event) => props.onSelect(entry.id, event)}
-      onDoubleClick={() => {
-        if (!entry.isDeleted) props.onOpen(entry);
+      onDoubleClick={(event) => {
+        if (!entry.isDeleted)
+          props.onOpen(entry, { newTab: event.metaKey || event.ctrlKey });
+      }}
+      onAuxClick={(event) => {
+        if (event.button === 1 && entry.kind === "folder" && !entry.isDeleted)
+          props.onOpen(entry, { newTab: true });
       }}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && !entry.isDeleted) props.onOpen(entry);
+        // In the Explorer the pane handles Enter (rename on macOS); pickers open.
+        if (event.key === "Enter" && props.selectionOnly && !entry.isDeleted)
+          props.onOpen(entry);
       }}
       onContextMenu={
         props.selectionOnly
@@ -114,7 +128,11 @@ export const FileGridItem = memo(function FileGridItem(props: {
       ) : props.passiveRename ? (
         <PassiveRenameDraftView draft={props.passiveRename} />
       ) : (
-        <span className={fileBrowserStyles.gridNameText}>{entry.name}</span>
+        <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1">
+          <span className={fileBrowserStyles.gridNameText}>{entry.name}</span>
+          <EntryTagDots entry={entry} />
+          <CloudStateIcon state={entry.location.cloudState} />
+        </span>
       )}
     </div>
   );

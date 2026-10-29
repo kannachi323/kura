@@ -25,6 +25,16 @@ impl From<serde_json::Error> for ApiError {
     }
 }
 
+impl From<kuragine::Error> for ApiError {
+    fn from(value: kuragine::Error) -> Self {
+        match value {
+            // The operation queue recognizes cancellation by this message.
+            kuragine::Error::Canceled => Self::Message("Operation canceled.".to_owned()),
+            other => Self::Message(other.to_string()),
+        }
+    }
+}
+
 impl From<std::io::Error> for ApiError {
     fn from(value: std::io::Error) -> Self {
         Self::Message(value.to_string())

@@ -85,7 +85,7 @@ export const NavigationTrayItem = forwardRef<
   <Slot
     ref={ref}
     className={cn(
-      "misty-navigator-tray-item relative cursor-pointer p-0 text-cream-muted outline-none focus-visible:ring-2 focus-visible:ring-cream/15",
+      "kura-navigator-tray-item relative cursor-pointer p-0 text-cream-muted outline-none focus-visible:ring-2 focus-visible:ring-cream/15",
       className,
     )}
     {...props}
