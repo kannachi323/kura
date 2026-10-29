@@ -8,12 +8,12 @@ import {
   type PreviewRuntime,
   formatBytes,
   formatDate,
+  kindLabel,
 } from "@/features/file-ui";
 import type * as PreviewHooks from "./FileInspectorPreview";
 import { IconButton } from "@/shared/ui";
 import { FileSearch, Maximize2 } from "lucide-react";
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
-import { quickLookEvent } from "./fileListKeyboard";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import {
   ArchiveContentsPreview,
   AudioPreview,
@@ -54,16 +54,6 @@ export function FileInspectorView(
       ? props.directorySizes[displayEntry.path]
       : undefined;
   const [previewOpen, setPreviewOpen] = useState(false);
-  const displayPath = displayEntry?.path;
-  useEffect(() => {
-    // Space in the list toggles the large preview, like Quick Look.
-    const toggle = (event: Event) => {
-      const path = (event as CustomEvent<{ path: string }>).detail.path;
-      if (path === displayPath) setPreviewOpen((open) => !open);
-    };
-    window.addEventListener(quickLookEvent, toggle);
-    return () => window.removeEventListener(quickLookEvent, toggle);
-  }, [displayPath]);
 
   const showPreviewTransition =
     previewLoading && displayEntry?.kind !== "folder" && !multiple;
@@ -217,6 +207,10 @@ export function FileInspectorView(
           <>
             <Detail label="Name" value={title} />
             <Detail
+              label="Kind"
+              value={displayEntry ? kindLabel(displayEntry) : "-"}
+            />
+            <Detail
               label="Size"
               valueNode={sizeDetailValue(displayEntry, displayDirectorySize)}
             />
@@ -246,6 +240,18 @@ export function FileInspectorView(
               value={formatDate(metadata?.createdMs ?? displayEntry?.createdMs)}
             />
             <Detail label="Accessed" value={formatDate(metadata?.accessedMs)} />
+            {metadata?.osTags.length ? (
+              <Detail label="Tags" value={metadata.osTags.join(", ")} />
+            ) : null}
+            {[...(metadata?.fields ?? []), ...(metadata?.extracted ?? [])].map(
+              (field) => (
+                <Detail
+                  key={field.label}
+                  label={field.label}
+                  value={field.value}
+                />
+              ),
+            )}
           </>
         )}
       </section>

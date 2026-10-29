@@ -24,8 +24,10 @@ export const fileBrowserStyles = {
     "grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-charcoal-sidebar",
   tableHeaderWrap: "min-w-0 overflow-hidden",
   tableResetButton: "absolute right-2 top-1.5 z-[4] max-[720px]:hidden",
+  marquee:
+    "pointer-events-none absolute z-[5] rounded-[3px] border border-accent-blue/80 bg-accent-blue/15",
   tableScroll:
-    "kura-transient-scrollbar kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
+    "kura-transient-scrollbar relative kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
   table: cn(
     "w-full min-w-[720px] table-fixed border-collapse max-[720px]:min-w-0",
     "max-[720px]:[&_td:first-child]:w-[64%]",

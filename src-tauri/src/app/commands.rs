@@ -209,9 +209,39 @@ pub async fn explorer_list_directory(
 #[tauri::command]
 pub fn explorer_watch_directories(
     paths: Vec<String>,
+    window: tauri::Window,
     state: State<'_, KuraRuntime>,
 ) -> ApiResult<()> {
-    state.directory_watch.set_directories(paths)
+    state.directory_watch.set_directories(window.label(), paths)
+}
+
+/// Opens another Kura window, at `path` when given. Extra windows are
+/// labelled `files-…`; only the main window restores its workspace.
+#[tauri::command]
+pub async fn app_open_window(app: AppHandle, path: Option<String>) -> ApiResult<()> {
+    let label = format!("files-{}", uuid::Uuid::new_v4().simple());
+    let mut url = format!("index.html?window={label}");
+    if let Some(path) = path.filter(|path| !path.is_empty()) {
+        url.push_str("&path=");
+        url.push_str(
+            &percent_encoding::utf8_percent_encode(&path, percent_encoding::NON_ALPHANUMERIC)
+                .to_string(),
+        );
+    }
+    let builder =
+        tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::App(url.into()))
+            .title("Kura")
+            .inner_size(1100.0, 720.0)
+            .min_inner_size(640.0, 420.0);
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .traffic_light_position(tauri::LogicalPosition::new(16.0, 21.5));
+    builder
+        .build()
+        .map(|_| ())
+        .map_err(|err| ApiError::Message(format!("Could not open a window: {err}")))
 }
 
 #[tauri::command]
@@ -474,6 +504,59 @@ pub async fn explorer_queue_delete_items(
     state: State<'_, KuraRuntime>,
 ) -> ApiResult<OperationQueueSnapshot> {
     state.operation_queue.enqueue_delete_items(request).await
+}
+
+#[tauri::command]
+pub async fn explorer_share(app: AppHandle, paths: Vec<String>, service: String) -> ApiResult<()> {
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    app.run_on_main_thread(move || {
+        let _ = sender.send(crate::infra::share::share_on_main_thread(&paths, &service));
+    })
+    .map_err(|err| ApiError::Message(format!("Could not share: {err}")))?;
+    receiver
+        .await
+        .map_err(|err| ApiError::Message(format!("Could not share: {err}")))?
+}
+
+/// Finder tags for each of `paths`, in order. Read on demand for the rows on
+/// screen: one getxattr costs about ten times an lstat, too much for every
+/// entry of a large listing.
+#[tauri::command]
+pub async fn explorer_read_tags(
+    paths: Vec<String>,
+) -> ApiResult<Vec<Vec<crate::domain::finder_tags::FinderTag>>> {
+    tokio::task::spawn_blocking(move || {
+        paths
+            .iter()
+            .map(|path| crate::domain::finder_tags::read_tags(std::path::Path::new(path)))
+            .collect()
+    })
+    .await
+    .map_err(|err| ApiError::Message(format!("Tag worker failed: {err}")))
+}
+
+#[tauri::command]
+pub async fn explorer_set_tag(paths: Vec<String>, name: String, enabled: bool) -> ApiResult<()> {
+    tokio::task::spawn_blocking(move || crate::domain::finder_tags::set_tag(&paths, &name, enabled))
+        .await
+        .map_err(|err| ApiError::Message(format!("Tag worker failed: {err}")))?
+}
+
+#[tauri::command]
+pub async fn explorer_volume_space(
+    path: String,
+) -> ApiResult<crate::infra::volume_space::VolumeSpace> {
+    tokio::task::spawn_blocking(move || crate::infra::volume_space::volume_space(&path))
+        .await
+        .map_err(|err| ApiError::Message(format!("Free space worker failed: {err}")))?
+}
+
+#[tauri::command]
+pub async fn explorer_put_back_items(
+    paths: Vec<String>,
+    state: State<'_, KuraRuntime>,
+) -> ApiResult<Vec<String>> {
+    state.explorer.put_back_items(paths).await
 }
 
 #[tauri::command]

@@ -93,9 +93,12 @@ impl ExplorerService {
 
     pub(super) async fn list_trash_virtual_directory(&self) -> ApiResult<DirectoryListing> {
         let trash_dir = self.trash_dir.clone();
-        let entries = tokio::task::spawn_blocking(move || trash_virtual_entries(&trash_dir))
-            .await
-            .map_err(|err| ApiError::Message(format!("Explorer trash worker failed: {err}")))??;
+        let ledger = self.trash_ledger.clone();
+        let entries = tokio::task::spawn_blocking(move || {
+            trash_virtual_entries(&trash_dir, &ledger.existing())
+        })
+        .await
+        .map_err(|err| ApiError::Message(format!("Explorer trash worker failed: {err}")))??;
         let total_count = entries.len();
         Ok(DirectoryListing {
             path: VIRTUAL_PATH_TRASH.to_string(),

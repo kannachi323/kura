@@ -245,6 +245,7 @@ export function createNavigationActions(
                 showLoadingSkeleton: false,
                 needsLoad: false,
                 error: userFacingErrorText(error),
+                errorPath: path,
               },
             },
           }));

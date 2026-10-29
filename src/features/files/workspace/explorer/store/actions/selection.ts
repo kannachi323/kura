@@ -8,7 +8,8 @@ import {
   useSettingsStore,
 } from "@/features/settings";
 import { userFacingErrorText } from "@/shared/lib/format";
-import { hasTauriInternals } from "@/shared/platform/tauri";
+import { isPackageEntry } from "@/features/file-ui";
+import { hasTauriInternals, isMacPlatform } from "@/shared/platform/tauri";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { ExplorerStore } from "../../model/interfaces/store/types";
 import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
@@ -101,6 +102,40 @@ export function createSelectionActions(
         };
       });
     },
+    setSelection: (paneId, entryIds) => {
+      set((state) => {
+        const pane = state.panes[paneId];
+        if (!pane?.listing) return state;
+        const path = pane.listing.path;
+        if (H.arraysEqual(pane.selectedIds, entryIds)) return state;
+        const panes = {
+          ...state.panes,
+          [paneId]: {
+            ...pane,
+            selectedIds: entryIds,
+            selectedIdsByPath: {
+              ...pane.selectedIdsByPath,
+              [path]: entryIds,
+            },
+          },
+        };
+        return {
+          panes,
+          inlineEdit: H.syncInlineRenameSelection(state.inlineEdit, panes),
+        };
+      });
+    },
+    invertSelection: (paneId) => {
+      const pane = get().panes[paneId];
+      if (!pane?.listing) return;
+      const selected = new Set(pane.selectedIds);
+      get().setSelection(
+        paneId,
+        pane.listing.entries
+          .filter((entry) => !selected.has(entry.id))
+          .map((entry) => entry.id),
+      );
+    },
     clearSelection: (paneId) => {
       set((state) => {
         const pane = state.panes[paneId];
@@ -130,6 +165,24 @@ export function createSelectionActions(
           operationError:
             "Trash items are deleted cache entries and cannot be opened from here yet.",
         });
+        return;
+      }
+      if (
+        entry.kind === "folder" &&
+        entry.location.kind === "local" &&
+        isMacPlatform() &&
+        isPackageEntry(entry)
+      ) {
+        // Apps and other packages open like files, as in Finder.
+        try {
+          set({ operationError: null });
+          await explorerOpenPath(entry.path);
+          void get().recordLibraryRecent(entry);
+        } catch (error) {
+          set({
+            operationError: `Unable to open ${entry.name}: ${userFacingErrorText(error)}`,
+          });
+        }
         return;
       }
       if (entry.kind === "folder") {

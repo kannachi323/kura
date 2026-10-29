@@ -64,6 +64,16 @@ pub fn run() {
             infra::devices::start_device_change_listener(app.handle().clone());
             Ok(())
         })
+        .on_window_event(|window, event| {
+            // A closed window stops watching the folders it had open.
+            if let tauri::WindowEvent::Destroyed = event {
+                if let Some(runtime) = window.try_state::<KuraRuntime>() {
+                    let _ = runtime
+                        .directory_watch
+                        .set_directories(window.label(), Vec::new());
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             app::cloud_commands::cloud_add_remote,
             app::cloud_commands::cloud_cancel_sign_in,
@@ -99,6 +109,7 @@ pub fn run() {
             app::commands::explorer_library_snapshot,
             app::commands::explorer_list_directory,
             app::commands::explorer_watch_directories,
+            app::commands::app_open_window,
             app::commands::explorer_open_association,
             app::commands::explorer_open_path,
             app::commands::explorer_open_with,
@@ -109,6 +120,11 @@ pub fn run() {
             app::commands::explorer_preview_item,
             app::commands::explorer_queue_create_item,
             app::commands::explorer_queue_delete_items,
+            app::commands::explorer_put_back_items,
+            app::commands::explorer_volume_space,
+            app::commands::explorer_set_tag,
+            app::commands::explorer_read_tags,
+            app::commands::explorer_share,
             app::commands::explorer_queue_paste_blob,
             app::commands::explorer_queue_paste_items,
             app::commands::explorer_queue_paste_text,

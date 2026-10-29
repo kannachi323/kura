@@ -4,6 +4,10 @@ import {
 } from "@/features/settings";
 import {
   explorerQueueCreateItem,
+  explorerListDirectory,
+  explorerPathIsDirectory,
+  explorerPutBackItems,
+  explorerSetTag,
   explorerQueueDeleteItems,
   explorerQueuePasteItems,
   explorerQueueRenameItem,
@@ -17,6 +21,8 @@ import type {
 import type { ExplorerGet, ExplorerSet } from "../../model/types/store/types";
 import * as H from "../helpers";
 import { explorerRuntime } from "../runtime";
+import { copyName, uniqueName } from "../../utils/copyName";
+import { forgetTags, tagsForPath } from "../finderTags";
 
 export function createMutationsActions(
   set: ExplorerSet,
@@ -170,6 +176,157 @@ export function createMutationsActions(
         return;
       }
       set({ dialog: { kind: "delete", paneId, paths, permanent } });
+    },
+
+    duplicateSelected: async (paneId) => {
+      const pane = get().panes[paneId];
+      const directory = pane?.listing?.path;
+      if (!pane?.listing || !directory || directory.startsWith("kura://"))
+        return;
+      const entries = H.selectedEntriesForPane(pane).filter(
+        (entry) => !entry.isDeleted && entry.location.kind === "local",
+      );
+      if (entries.length === 0) return;
+      const taken = new Set([
+        ...pane.listing.entries.map((entry) => entry.name.toLowerCase()),
+        ...reservedNames(directory),
+      ]);
+      try {
+        set({ operationError: null });
+        let lastName = "";
+        for (const entry of entries) {
+          const targetName = copyName(
+            entry.name,
+            entry.kind === "folder",
+            taken,
+          );
+          taken.add(targetName.toLowerCase());
+          reserveName(directory, targetName);
+          lastName = targetName;
+          await explorerQueuePasteItems({
+            sources: [H.pasteItemForEntry(entry)],
+            destinationDirectory: directory,
+            operation: "copy",
+            targetName,
+          });
+        }
+        H.refreshFileOperationState();
+        explorerRuntime.pendingSelections.set(paneId, {
+          path: joinPath(directory, lastName),
+          expiresAtMs: Date.now() + 10_000,
+        });
+        H.queuePaneRefresh(paneId, directory);
+      } catch (error) {
+        set({ operationError: userFacingErrorText(error) });
+      }
+    },
+
+    newFolderWithSelection: async (paneId) => {
+      const pane = get().panes[paneId];
+      const directory = pane?.listing?.path;
+      if (!pane?.listing || !directory || directory.startsWith("kura://"))
+        return;
+      const items = H.selectedPasteItemsForPane(pane);
+      if (items.length === 0) return;
+      const taken = new Set(
+        pane.listing.entries.map((entry) => entry.name.toLowerCase()),
+      );
+      const name = uniqueName("New Folder With Items", taken);
+      const folder = joinPath(directory, name);
+      try {
+        set({ operationError: null });
+        await explorerQueueCreateItem({ directory, name, kind: "folder" });
+        // The move needs the folder to exist; creates run in milliseconds.
+        const deadline = Date.now() + 5_000;
+        while (!(await explorerPathIsDirectory(folder))) {
+          if (Date.now() > deadline)
+            throw new Error(`Could not create “${name}”.`);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        await explorerQueuePasteItems({
+          sources: items,
+          destinationDirectory: folder,
+          operation: "move",
+        });
+        H.refreshFileOperationState();
+        explorerRuntime.pendingSelections.set(paneId, {
+          path: folder,
+          expiresAtMs: Date.now() + 10_000,
+        });
+        H.queuePaneRefresh(paneId, directory);
+      } catch (error) {
+        set({ operationError: userFacingErrorText(error) });
+      }
+    },
+
+    showInEnclosingFolder: async (paneId, entry) => {
+      const separator = Math.max(
+        entry.path.lastIndexOf("/"),
+        entry.path.lastIndexOf("\\"),
+      );
+      const parent = entry.path.slice(0, separator) || "/";
+      explorerRuntime.pendingSelections.set(paneId, {
+        path: entry.path,
+        expiresAtMs: Date.now() + 10_000,
+      });
+      await get().navigatePane(paneId, parent);
+    },
+
+    toggleTag: async (paneId, name) => {
+      const pane = get().panes[paneId];
+      const entries = H.selectedEntriesForPane(pane).filter(
+        (entry) => !entry.isDeleted && entry.location.kind === "local",
+      );
+      if (entries.length === 0) return;
+      // Like Finder: if every selected item has the tag, remove it.
+      const enabled = !entries.every((entry) =>
+        tagsForPath(entry.path).some((tag) => tag.name === name),
+      );
+      const paths = entries.map((entry) => entry.path);
+      try {
+        set({ operationError: null });
+        await explorerSetTag(paths, name, enabled);
+        forgetTags(paths);
+      } catch (error) {
+        set({ operationError: userFacingErrorText(error) });
+      }
+    },
+
+    putBackSelected: async (paneId) => {
+      const pane = get().panes[paneId];
+      const paths = H.selectedDeletePathsForPane(pane, true);
+      if (paths.length === 0) return;
+      try {
+        set({ operationError: null });
+        await explorerPutBackItems(paths);
+        get().pushNotification(
+          `Put back ${H.itemCountLabel(paths.length)}`,
+          "success",
+        );
+        get().clearSelection(paneId);
+        H.queuePaneRefresh(paneId, "kura://trash");
+      } catch (error) {
+        set({ operationError: userFacingErrorText(error) });
+      }
+    },
+
+    emptyTrash: async (paneId) => {
+      const listing = get().panes[paneId]?.listing;
+      let entries = listing?.path === "kura://trash" ? listing.entries : null;
+      try {
+        entries ??= (await explorerListDirectory({ path: "kura://trash" }))
+          .entries;
+      } catch (error) {
+        set({ operationError: userFacingErrorText(error) });
+        return;
+      }
+      const paths = entries.map((entry) => entry.path);
+      if (paths.length === 0) {
+        get().pushNotification("The Trash is empty.", "info", 3000);
+        return;
+      }
+      // Always confirmed, as in Finder: this can't be undone.
+      set({ dialog: { kind: "delete", paneId, paths, permanent: true } });
     },
 
     downloadSelected: async (paneId) => {
@@ -382,4 +539,34 @@ export function createMutationsActions(
         };
       }),
   };
+}
+
+function joinPath(directory: string, name: string): string {
+  const separator =
+    directory.includes("\\") && !directory.includes("/") ? "\\" : "/";
+  return directory.endsWith(separator)
+    ? `${directory}${name}`
+    : `${directory}${separator}${name}`;
+}
+
+/**
+ * Names chosen for copies that may not be in the listing yet. Without this a
+ * second Cmd+D before the refresh picks the same "copy" name, and the two
+ * queued copies race past the conflict check.
+ */
+const reservedCopyNames = new Map<string, Map<string, number>>();
+
+function reserveName(directory: string, name: string): void {
+  const names = reservedCopyNames.get(directory) ?? new Map<string, number>();
+  names.set(name.toLowerCase(), Date.now() + 10_000);
+  reservedCopyNames.set(directory, names);
+}
+
+function reservedNames(directory: string): string[] {
+  const names = reservedCopyNames.get(directory);
+  if (!names) return [];
+  const now = Date.now();
+  for (const [name, expiresAtMs] of names)
+    if (expiresAtMs < now) names.delete(name);
+  return [...names.keys()];
 }

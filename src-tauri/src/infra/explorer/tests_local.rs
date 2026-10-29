@@ -41,7 +41,7 @@ fn trash_virtual_entries_are_marked_deleted() {
     std::fs::create_dir_all(&root).unwrap();
     std::fs::write(&trashed, b"deleted").unwrap();
 
-    let entries = trash_virtual_entries(&root).unwrap();
+    let entries = trash_virtual_entries(&root, &[]).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].name, "deleted.txt");
     assert!(entries[0].is_deleted);

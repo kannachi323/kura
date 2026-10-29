@@ -19,8 +19,8 @@ Reminder list, not an essay. Numbers come from `scripts/bench.sh` on the owner's
   2. **Operation queue**: copy, move, rename, delete and trash become queued operations with concurrency limits (8 total, per-provider lanes), cooperative cancellation through an `AtomicBool` per operation, pause/resume, conflict policies, and an undo/redo stack backed by a SQLite transfer history.
   3. **Search index**: a Tantivy inverted index on file names (fuzzy, edit distance 2) plus a SQLite manifest of per-file signatures. Re-scans only rewrite what changed, and a new index is built in staging and swapped in atomically.
 - Folders open in panes are watched (FSEvents through `notify`), so they refresh live.
-- Data lives in `~/.kura`: config, a SQLite database, and a cache with the search index, thumbnails and Kura's own Trash.
-- What I'd do next: move the IPC payload from JSON to a binary or streamed format (it's now the biggest cost), use the system Trash, and add a recursive watcher so the index updates in real time.
+- Data lives in `~/.kura`: config, a SQLite database, a cache with the search index and thumbnails, and `trash.json`, which records where trashed items came from (items themselves go to the macOS Trash).
+- What I'd do next: move the IPC payload from JSON to a binary or streamed format (it's now the biggest cost), and add a recursive watcher so the index updates in real time.
 
 ---
 
@@ -39,7 +39,7 @@ Reminder list, not an essay. Numbers come from `scripts/bench.sh` on the owner's
 ┌───────────────────────────── Rust (tokio) ── KuraRuntime: one struct of services ──────────────────────┐
 │ app/commands.rs  (#[tauri::command] fns: thin, map to services)                                          │
 │ ExplorerService ── list_directory (domain/explorer.rs: read_dir + parallel lstat + sort)                 │
-│                 ── preview, thumbnails, trash (~/.kura/.cache/trash), cloud paths → kuragine crate       │
+│                 ── preview, thumbnails, system Trash + trash.json, cloud paths → kuragine crate       │
 │ OperationQueueService ── OperationQueue (domain): batches, lanes, max_concurrent=8, pause, conflicts     │
 │                       ── pump: take_ready() → tokio::spawn(execute) → finish → schedule_pump()           │
 │                       ── undo(token) / redo stack · TransferService (SQLite history, undo tokens)        │
@@ -150,7 +150,7 @@ Reminder list, not an essay. Numbers come from `scripts/bench.sh` on the owner's
 6. *How do you avoid two copies writing the same destination?* → Conflict policy at execution time (`resolve_target_conflict`). Ask parks the operation. KeepBoth finds a free name. Batches can preserve order.
 7. *What's a "lane"?* → A key per provider or remote. Each lane is capped at `max(2, max/2)` so one slow remote can't use all 8 slots.
 8. *How does undo know what to do?* → The transfer row stores source and destination. The undo token is the row id. Undo enqueues the inverse (rename back, or move back from Trash) as `from_undo` so it isn't undoable itself, then pushes the row to the redo stack.
-9. *Why isn't delete undoable?* → Permanent delete isn't. Trash is (Kura's own Trash dir), and the confirmation dialog is only for permanent deletes.
+9. *Why isn't delete undoable?* → Permanent delete isn't. Trash is: on macOS `NSFileManager trashItemAtURL` returns where the item landed in the system Trash, and Kura records that for Undo and Put Back. The confirmation dialog is only for permanent deletes.
 10. *Explain the search index.* → An inverted index: term → posting list of document ids. Fuzzy uses a Levenshtein automaton over the term dictionary (an FST) in Tantivy. Results are re-ranked in Rust.
 11. *How is it incremental?* → A SQLite manifest of signatures. Unchanged items are skipped, changed ones are deleted and re-added, and missing ones are removed after a full walk. Staging plus an atomic swap.
 12. *What happens if the app crashes mid-index?* → The staging directory is discarded, the live index is untouched, and `recover_interrupted_publish` handles a half-finished swap.
@@ -176,7 +176,7 @@ Reminder list, not an essay. Numbers come from `scripts/bench.sh` on the owner's
 
 **What would you do differently**
 28. → Benchmark before claiming, and keep the before/after in the repo (that's why `scripts/bench.sh` exists now).
-29. → Use the system Trash (`trash` crate, NSFileManager `trashItem`) instead of a private one.
+29. → Done since: the system Trash via NSFileManager `trashItem`, with a small ledger because `~/.Trash` can't be listed without Full Disk Access.
 30. → A binary or streamed IPC for listings, and sorting in Rust only.
 31. → Fewer features, more polish: tonight's bugs were in core flows (search, undo, create).
 32. → Smaller commits from day one. The history is one squashed commit, which made claims hard to prove.
@@ -214,11 +214,11 @@ Ranked. Done means fixed on this branch.
 5. Create and rename that keep focus and selection. **Done.**
 6. Readable selection; light and dark that follow the system. **Done.**
 7. Fast large folders (Finder stalls on 100k; Dolphin is fast). **Done**: 91 ms backend.
-8. Use the system Trash so items show in Finder's Trash and "Put Back" works. **Not done**: Kura uses `~/.kura/.cache/trash`.
+8. Use the system Trash so items show in Finder's Trash and "Put Back" works. **Done later** (see `docs/audit/file-manager-gaps.md`).
 9. Drag and drop to and from other apps. **Not verified overnight** (the code exists).
 
 **Nice to have**
-- Column view (Finder), dual-pane sync browsing (ForkLift), a terminal panel (Dolphin), tags (Finder), Get Info (Cmd+I), Duplicate (Cmd+D), type-to-select by name, friendlier Kind labels ("CSV document" instead of `csv`), a binary IPC for 1M+ folders.
+- Dual-pane sync browsing (ForkLift), a terminal panel (Dolphin), a binary IPC for 1M+ folders. (Column view, tags, Get Info, Duplicate, type-to-select and Kind labels were done in the follow-up audit.)
 
 **Look**
 - Kura's dark palette is quiet and consistent. Tonight: denser rows (40 px, 32 px compact), an accent selection, a light theme, and the long path bar keeps the current folder visible.
@@ -234,7 +234,7 @@ Ranked. Done means fixed on this branch.
 - Changed Finder-convention shortcuts on macOS: Trash is Cmd+Delete (the old "Delete" binding never fired on laptops), search is Cmd+F (Cmd+Shift+F still works), Return renames (Enter still opens on Windows and Linux). Shift-click now keeps its anchor, like Finder.
 - Default list rows went from 50 to 40 px (32 px with Compact rows, which list view previously ignored).
 - Light theme follows the system by default; Settings → Appearance can pin Light or Dark.
-- Trash still uses Kura's own folder. Switching to the system Trash is a bigger change, so it's listed as the top remaining gap.
+- Trash used Kura's own folder overnight; the follow-up audit (`docs/audit/file-manager-gaps.md`) switched it to the system Trash with Put Back, and added column view, tags, Get Info, Duplicate, type-to-select, Kind labels and New Window.
 - Auto-indexing now keeps an existing index current: 30 s after launch, then on the chosen interval (the setting already defaulted to on but did nothing). The first build of the index waits for "Build index" in search, so launching Kura never starts a crawl of the whole home folder on its own.
 - UI testing: computer-use couldn't target the unbundled dev binary without the owner approving a dialog, so I relayed IPC from the built-in browser through the running Tauri webview with a temporary, uncommitted Vite plugin. Tested: browse, path bar, breadcrumbs, selection and keyboard, rename, undo/redo, trash and undo, new folder, copy/paste, preview, grid view, settings, light and dark, live refresh, and the search palette UI.
 - **Not tested in the UI:** tabs, split panes, drag and drop, opening files in other apps, search results against a built index (the backend was benchmarked instead), cold start. A late request said the owner's Mac was overheating, so I stopped the dev app, avoided more heavy builds, and deleted the benchmark fixtures.

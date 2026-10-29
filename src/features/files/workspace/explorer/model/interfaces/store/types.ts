@@ -50,6 +50,8 @@ export interface PaneExplorerState {
   showLoadingSkeleton: boolean;
   needsLoad: boolean;
   error: string | null;
+  /** The folder that failed to load, when `error` is set. */
+  errorPath?: string | null;
 }
 
 export interface LoadPaneOptions {
@@ -158,6 +160,9 @@ export interface ExplorerStore {
     entryId: string,
     options?: { toggle?: boolean; range?: boolean; visibleEntryIds?: string[] },
   ) => void;
+  /** Replaces the pane's selection; the anchor stays where it was. */
+  setSelection: (paneId: string, entryIds: string[]) => void;
+  invertSelection: (paneId: string) => void;
   clearSelection: (paneId: string) => void;
   openEntry: (paneId: string, entry: FileEntry) => Promise<void>;
   openWithSelected: (paneId: string) => Promise<void>;
@@ -170,6 +175,14 @@ export interface ExplorerStore {
   renameSelected: (paneId: string, name?: string) => Promise<void>;
   openBatchRenameDialog: (paneId: string) => void;
   deleteSelected: (paneId: string, mode?: ExplorerDeleteMode) => Promise<void>;
+  putBackSelected: (paneId: string) => Promise<void>;
+  /** Adds a Finder tag to the selection, or removes it if all have it. */
+  toggleTag: (paneId: string, name: string) => Promise<void>;
+  /** Opens the folder that holds `entry` and selects it. */
+  showInEnclosingFolder: (paneId: string, entry: FileEntry) => Promise<void>;
+  duplicateSelected: (paneId: string) => Promise<void>;
+  newFolderWithSelection: (paneId: string) => Promise<void>;
+  emptyTrash: (paneId: string) => Promise<void>;
   downloadSelected: (paneId: string) => Promise<void>;
   copySelected: (paneId: string) => void;
   cutSelected: (paneId: string) => void;

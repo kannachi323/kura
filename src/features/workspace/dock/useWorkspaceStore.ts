@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { secondaryWindow } from "@/shared/platform/tauri";
 import {
   collapseEmptyDockLeaves,
   createDockId,
@@ -696,7 +697,11 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
     {
       name: "kura:workspace-layout",
       version: 1,
-      storage: createJSONStorage(() => localStorage),
+      // Extra windows keep their layout in memory so they never overwrite
+      // the main window's saved workspace.
+      storage: createJSONStorage(() =>
+        secondaryWindow() ? memoryStorage : localStorage,
+      ),
       partialize: (state) => ({
         layout: state.layout,
         // The active workspace's layout is already saved as `layout`.
@@ -714,3 +719,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
     },
   ),
 );
+
+const memoryValues = new Map<string, string>();
+const memoryStorage = {
+  getItem: (name: string) => memoryValues.get(name) ?? null,
+  setItem: (name: string, value: string) => void memoryValues.set(name, value),
+  removeItem: (name: string) => void memoryValues.delete(name),
+};

@@ -127,6 +127,11 @@ export interface FileEntry {
   isDeleted?: boolean;
   location: ExplorerLocation;
 }
+export interface FinderTag {
+  name: string;
+  /** 0 none, 1 grey, 2 green, 3 purple, 4 blue, 5 yellow, 6 red, 7 orange. */
+  color: number;
+}
 export interface DirectorySizeRecord {
   path: string;
   sizeBytes: number | null;

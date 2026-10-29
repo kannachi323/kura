@@ -152,6 +152,13 @@ export const FileBrowserView = memo(function FileBrowserView(
         <div className={fileBrowserStyles.footerGroup}>
           <span className={fileBrowserStyles.footerItem}>{selectionLabel}</span>
         </div>
+        {props.statusDetail ? (
+          <div className={fileBrowserStyles.footerGroup}>
+            <span className={fileBrowserStyles.footerItem}>
+              {props.statusDetail}
+            </span>
+          </div>
+        ) : null}
       </footer>
     </section>
   );

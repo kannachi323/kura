@@ -30,3 +30,18 @@ export function isMacPlatform(): boolean {
     /mac/i.test(navigator.platform || navigator.userAgent)
   );
 }
+
+/**
+ * Extra windows (New Window) load with `?window=<label>&path=<folder>`.
+ * Only the main window restores and saves the workspace layout; an extra
+ * window starts at `path` and is forgotten when closed.
+ */
+export function secondaryWindow(): {
+  label: string;
+  path: string | null;
+} | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const label = params.get("window");
+  return label ? { label, path: params.get("path") } : null;
+}

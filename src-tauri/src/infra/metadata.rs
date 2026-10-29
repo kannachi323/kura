@@ -64,15 +64,23 @@ fn metadata_snapshot_blocking(path: PathBuf) -> ApiResult<FileMetadataSnapshot> 
         "other"
     };
     let mut fields = Vec::new();
-    fields.push(FileMetadataField {
-        label: "Filesystem".to_owned(),
-        value: filesystem_label(&path),
-    });
     #[cfg(unix)]
-    fields.push(FileMetadataField {
-        label: "Unix Mode".to_owned(),
-        value: unix_mode(&metadata),
-    });
+    {
+        if let Some(owner) = owner_name(&metadata) {
+            fields.push(FileMetadataField {
+                label: "Owner".to_owned(),
+                value: owner,
+            });
+        }
+        fields.push(FileMetadataField {
+            label: "Permissions".to_owned(),
+            value: format!(
+                "{} ({})",
+                permission_string(&metadata),
+                unix_mode(&metadata)
+            ),
+        });
+    }
     if file_type.is_symlink() {
         if let Ok(target) = fs::read_link(&path) {
             fields.push(FileMetadataField {
@@ -317,11 +325,46 @@ fn read_24_le(bytes: &[u8]) -> u32 {
     bytes[0] as u32 | ((bytes[1] as u32) << 8) | ((bytes[2] as u32) << 16)
 }
 
-fn filesystem_label(path: &Path) -> String {
-    path.components()
-        .next()
-        .map(|component| format!("{component:?}"))
-        .unwrap_or_else(|| "Unknown".to_owned())
+/// The owning user's name, as `ls -l` shows it.
+#[cfg(unix)]
+fn owner_name(metadata: &fs::Metadata) -> Option<String> {
+    use std::os::unix::fs::MetadataExt;
+    let uid = metadata.uid();
+    let mut buffer = vec![0 as libc::c_char; 1024];
+    let mut record = std::mem::MaybeUninit::<libc::passwd>::uninit();
+    let mut result: *mut libc::passwd = std::ptr::null_mut();
+    // SAFETY: every pointer is valid for the call; `result` is null or
+    // points at `record`, whose strings live in `buffer`.
+    let status = unsafe {
+        libc::getpwuid_r(
+            uid,
+            record.as_mut_ptr(),
+            buffer.as_mut_ptr(),
+            buffer.len(),
+            &mut result,
+        )
+    };
+    if status != 0 || result.is_null() {
+        return Some(uid.to_string());
+    }
+    // SAFETY: getpwuid_r succeeded, so `pw_name` is a NUL-terminated string
+    // inside `buffer`.
+    let name = unsafe { std::ffi::CStr::from_ptr((*result).pw_name) };
+    Some(name.to_string_lossy().into_owned())
+}
+
+/// "rwxr-xr-x", as `ls -l` shows it.
+#[cfg(unix)]
+fn permission_string(metadata: &fs::Metadata) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = metadata.permissions().mode();
+    [
+        0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001,
+    ]
+    .iter()
+    .zip("rwxrwxrwx".chars())
+    .map(|(bit, letter)| if mode & bit != 0 { letter } else { '-' })
+    .collect()
 }
 
 #[cfg(unix)]

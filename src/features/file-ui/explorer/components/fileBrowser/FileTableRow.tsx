@@ -1,5 +1,6 @@
 import type { DirectorySizeRecord, FileEntry } from "@/native/ipc";
 import { CloudStateIcon } from "../CloudStateIcon";
+import { EntryTagDots } from "./TagDots";
 import { TableCell, TableRow } from "@/shared/ui";
 import type { MouseEvent } from "react";
 import { memo, useMemo } from "react";
@@ -8,6 +9,7 @@ import {
   useExplorerDropZone,
 } from "../../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../../drag/operations";
+import { isPackageEntry, kindLabel } from "../../utils/kindLabel";
 import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
 import type {
   ExplorerDragModifiers,
@@ -55,7 +57,8 @@ export const FileTableRow = memo(function FileTableRow(props: {
       priority: 20,
       accepts: (payload: ExplorerDragPayload) =>
         transferDropAcceptance(payload, entry.path, {
-          folder: entry.kind === "folder",
+          // Dropping onto an app would move files inside its bundle.
+          folder: entry.kind === "folder" && !isPackageEntry(entry),
           writable: !entry.readonly && !entry.isDeleted,
         }),
       onDrop: (
@@ -69,8 +72,10 @@ export const FileTableRow = memo(function FileTableRow(props: {
           modifiers,
         ),
       onSpringLoad:
-        entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
-      springLoad: entry.kind === "folder",
+        entry.kind === "folder" && !isPackageEntry(entry)
+          ? () => props.onOpen(entry)
+          : undefined,
+      springLoad: entry.kind === "folder" && !isPackageEntry(entry),
     }),
     [entry, props],
   );
@@ -94,8 +99,13 @@ export const FileTableRow = memo(function FileTableRow(props: {
       tabIndex={entry.isDeleted ? -1 : 0}
       onPointerDown={source.onPointerDown}
       onClick={(event) => props.onSelect(entry.id, event)}
-      onDoubleClick={() => {
-        if (!entry.isDeleted) props.onOpen(entry);
+      onDoubleClick={(event) => {
+        if (!entry.isDeleted)
+          props.onOpen(entry, { newTab: event.metaKey || event.ctrlKey });
+      }}
+      onAuxClick={(event) => {
+        if (event.button === 1 && entry.kind === "folder" && !entry.isDeleted)
+          props.onOpen(entry, { newTab: true });
       }}
       onKeyDown={(event) => {
         // In the Explorer the pane handles Enter (rename on macOS); pickers open.
@@ -176,6 +186,7 @@ function FileTableCell(props: {
                 <span className={fileBrowserStyles.tableNameText}>
                   {props.entry.name}
                 </span>
+                <EntryTagDots entry={props.entry} />
                 <CloudStateIcon state={props.entry.location.cloudState} />
               </>
             )}
@@ -215,13 +226,7 @@ function FileTableCell(props: {
           className={fileBrowserStyles.tableCell}
           style={{ height: props.rowHeight }}
         >
-          <span>
-            {props.entry.kind === "folder"
-              ? "Folder"
-              : props.entry.mimeType ||
-                props.entry.extension ||
-                props.entry.kind}
-          </span>
+          <span className="block truncate">{kindLabel(props.entry)}</span>
         </TableCell>
       );
   }

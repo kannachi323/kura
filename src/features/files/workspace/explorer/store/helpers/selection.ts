@@ -321,7 +321,7 @@ export function selectedDeletePathsForPane(
       if (!selected.has(entry.id)) return false;
       if (entry.readonly) return false;
       if (inTrash) return permanent && entry.isDeleted;
-      // Trash listings come from Kura's own Trash folder; cloud items go to
+      // Local items go to the system Trash; cloud items go to
       // their provider's trash.
       const hasTrash =
         entry.location.kind === "local" ||

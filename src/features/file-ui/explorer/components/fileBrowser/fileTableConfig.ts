@@ -24,7 +24,7 @@ export const fileTableColumnLabels: Record<FileTableColumn, string> = {
   name: "Name",
   modified: "Modified",
   size: "Size",
-  type: "Type",
+  type: "Kind",
 };
 
 export const defaultColumnWidths: FileTableColumnWidths = {

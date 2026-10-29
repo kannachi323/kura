@@ -71,6 +71,7 @@ pub struct ExplorerService {
     clipboard_text_cache_dir: PathBuf,
     clipboard_blob_cache_dir: PathBuf,
     trash_dir: PathBuf,
+    trash_ledger: system_trash::TrashLedger,
     image_thumbnail_cache_dir: PathBuf,
 }
 
@@ -93,6 +94,7 @@ impl ExplorerService {
             clipboard_text_cache_dir: cache_dir.join("clipboard-paste").join("text"),
             clipboard_blob_cache_dir: cache_dir.join("clipboard-paste").join("blob"),
             trash_dir: cache_dir.join("trash"),
+            trash_ledger: system_trash::TrashLedger::new(environment.kura_dir().join("trash.json")),
             image_thumbnail_cache_dir: cache_dir.join("thumbnails"),
         }
     }
@@ -111,6 +113,7 @@ mod path_helpers;
 mod preview;
 mod preview_render;
 mod preview_types;
+mod system_trash;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]

@@ -1,3 +1,4 @@
+import type { ExplorerViewMode } from "../model/types/store/types";
 import { useOperationQueueStore } from "../store/useOperationQueueStore";
 import { useMultiPanelStore } from "@/features/workspace";
 import type { FileEntry } from "@/native/ipc";
@@ -135,7 +136,7 @@ export const ConnectedExplorerToolbar = memo(
       [props.paneId],
     );
     const onViewMode = useCallback(
-      (mode: "grid" | "list") => {
+      (mode: ExplorerViewMode) => {
         useExplorerStore.getState().setViewMode(mode, props.paneId);
       },
       [props.paneId],
@@ -283,7 +284,7 @@ const ConnectedExplorerToolbarActions = memo(
       }),
     );
     const onViewMode = useCallback(
-      (mode: "grid" | "list") => {
+      (mode: ExplorerViewMode) => {
         useExplorerStore.getState().setViewMode(mode, props.paneId);
       },
       [props.paneId],

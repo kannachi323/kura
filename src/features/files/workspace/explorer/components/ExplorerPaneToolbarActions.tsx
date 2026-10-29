@@ -18,6 +18,7 @@ import {
 import {
   AppWindow,
   Check,
+  Columns3,
   Copy,
   Download,
   Eye,
@@ -73,6 +74,18 @@ export const ExplorerPaneToolbarActions = memo(
             onClick={() => props.onViewMode("list")}
           >
             <List size={15} />
+          </IconButton>
+          <IconButton
+            label="View as columns"
+            className={cx(
+              paneToolbarActionStyles.button,
+              props.viewMode === "columns" &&
+                paneToolbarActionStyles.buttonActive,
+            )}
+            aria-pressed={props.viewMode === "columns"}
+            onClick={() => props.onViewMode("columns")}
+          >
+            <Columns3 size={15} />
           </IconButton>
         </div>
         <div

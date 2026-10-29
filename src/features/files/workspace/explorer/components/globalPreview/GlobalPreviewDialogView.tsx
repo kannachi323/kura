@@ -15,12 +15,12 @@ import {
   type GlobalPreviewSource,
   formatBytes,
   formatDate,
+  kindLabel,
   type PreviewRuntime,
 } from "@/features/file-ui";
 import { PreviewBodyView } from "./PreviewBodyView";
 import {
   fileName,
-  friendlyType,
   imageOutputMimeType,
   sourceExtension,
   InspectorDetail,
@@ -168,7 +168,12 @@ export function GlobalPreviewDialogView(props: {
                 {props.source.name}
               </DialogTitle>
               <span className="block truncate text-[11px] text-cream-muted">
-                {friendlyType(extension, props.source.mimeType)}
+                {kindLabel({
+                  kind: "file",
+                  extension,
+                  mimeType: props.source.mimeType,
+                  name: props.source.name,
+                })}
               </span>
             </div>
             <span />
@@ -275,10 +280,12 @@ export function GlobalPreviewDialogView(props: {
                 <dl className="m-0 grid gap-4">
                   <InspectorDetail
                     label="Kind"
-                    value={friendlyType(
+                    value={kindLabel({
+                      kind: "file",
                       extension,
-                      resource?.mimeType ?? props.source.mimeType,
-                    )}
+                      mimeType: resource?.mimeType ?? props.source.mimeType,
+                      name: props.source.name,
+                    })}
                   />
                   <InspectorDetail
                     label="Size"

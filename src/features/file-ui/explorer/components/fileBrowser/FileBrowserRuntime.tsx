@@ -1,5 +1,5 @@
 import { createContext, useContext, type ComponentType } from "react";
-import type { FileEntry } from "@/native/ipc";
+import type { FileEntry, FinderTag } from "@/native/ipc";
 
 export interface FileBrowserRuntime {
   thumbnailPreviewsEnabled: boolean;
@@ -11,6 +11,8 @@ export interface FileBrowserRuntime {
     subscriber: (url: string | null) => void,
   ): () => void;
   Error: ComponentType<{ error: string; paneId: string }>;
+  /** Finder tags for a row, loaded on demand. Optional: pickers omit it. */
+  useEntryTags?(entry: FileEntry): FinderTag[] | undefined;
 }
 
 const Runtime = createContext<FileBrowserRuntime | null>(null);

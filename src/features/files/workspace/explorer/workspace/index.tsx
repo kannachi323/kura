@@ -9,10 +9,13 @@ import {
   useSettingsStore,
 } from "@/features/settings";
 import { useTransientScrollbars } from "@/shared/hooks/useTransientScrollbars";
+import { secondaryWindow } from "@/shared/platform/tauri";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { ExplorerLoadingShell } from "../components/ExplorerLoadingShell";
 import { ExplorerPane } from "../components/ExplorerPane";
+import { openInNewTabEvent } from "../components/fileListKeyboard";
+import { QuickLookHost } from "../components/QuickLookHost";
 import { ExplorerSidebar } from "../components/ExplorerSidebar";
 import { ExplorerDragProvider } from "../drag/ExplorerDragContext";
 import { useExplorerStore } from "../store";
@@ -191,6 +194,24 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     },
     [embeddedOpenInNewTab, multiPanelStore, props.embedded],
   );
+
+  useEffect(() => {
+    const open = (event: Event) => {
+      const { path } = (event as CustomEvent<{ path: string }>).detail;
+      openSidebarPathInNewTab(path);
+    };
+    window.addEventListener(openInNewTabEvent, open);
+    return () => window.removeEventListener(openInNewTabEvent, open);
+  }, [openSidebarPathInNewTab]);
+
+  // A window opened with New Window starts at the folder it was opened for.
+  const startPathApplied = useRef(false);
+  useEffect(() => {
+    const startPath = secondaryWindow()?.path;
+    if (startPathApplied.current || !startPath || !activePaneId) return;
+    startPathApplied.current = true;
+    void useExplorerStore.getState().navigatePane(activePaneId, startPath);
+  }, [activePaneId]);
 
   // Restore retired extension tabs to the built-in file browser.
   useLegacyPluginTabMigration({
@@ -388,7 +409,10 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
         </main>
         {workspaceFocused ? <FileOperationConflictDialog /> : null}
         {workspaceFocused ? (
-          <SearchPalette fallbackPaneId={activePaneId} />
+          <>
+            <SearchPalette fallbackPaneId={activePaneId} />
+            <QuickLookHost />
+          </>
         ) : null}
         {inlineEdit && ownsPane(inlineEdit.paneId) ? (
           <ExplorerRenameStatus edit={inlineEdit} />

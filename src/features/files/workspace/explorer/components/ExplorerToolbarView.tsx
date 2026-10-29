@@ -37,6 +37,7 @@ import type { ExplorerToolbarRuntime } from "./ExplorerToolbarRuntime";
 import type { ExplorerToolbarProps } from "../model/interfaces/components/ExplorerToolbarModel";
 import { breadcrumbSegments, cx, toolbarStyles } from "@/features/file-ui";
 import { ExplorerToolbarDragNavigationView } from "./ExplorerToolbarDragNavigationView";
+import { goToFolderEvent } from "./fileListKeyboard";
 
 export { ExplorerPaneToolbarActions } from "./ExplorerPaneToolbarActions";
 
@@ -74,6 +75,15 @@ export const ExplorerToolbarView = memo(function ExplorerToolbarView(
     setPathDraft(props.displayPath ?? props.path);
     setPathEditing(true);
   }, [props.path, props.displayPath]);
+
+  useEffect(() => {
+    const goToFolder = (event: Event) => {
+      const detail = (event as CustomEvent<{ paneId: string }>).detail;
+      if (detail.paneId === props.paneId) beginPathEdit();
+    };
+    window.addEventListener(goToFolderEvent, goToFolder);
+    return () => window.removeEventListener(goToFolderEvent, goToFolder);
+  }, [beginPathEdit, props.paneId]);
 
   const submitPathEdit = useCallback(() => {
     const target = pathDraft.trim();

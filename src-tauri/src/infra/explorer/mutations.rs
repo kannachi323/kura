@@ -198,12 +198,9 @@ impl ExplorerService {
             let local_result = if permanent {
                 delete_local_path_cancellable(Path::new(&local_path), cancellation).await
             } else {
-                match trash_local_path_cancellable(
-                    Path::new(&local_path),
-                    &self.trash_dir,
-                    cancellation,
-                )
-                .await
+                match self
+                    .move_to_trash(Path::new(&local_path), cancellation)
+                    .await
                 {
                     Ok(destination) => {
                         if let Some(transfer_id) = transfer_id {

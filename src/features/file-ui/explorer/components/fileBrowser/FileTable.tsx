@@ -39,6 +39,8 @@ import {
 } from "./fileTableConfig";
 import { useFileBrowserRuntime } from "./FileBrowserRuntime";
 import { useRevealEntry } from "./revealEntry";
+import { MarqueeBox } from "./MarqueeBox";
+import { useMarqueeSelection } from "./useMarqueeSelection";
 import { FileTableRow } from "./FileTableRow";
 import { SortableHeader } from "./SortableHeader";
 
@@ -259,6 +261,22 @@ export function FileTable(
     [props, visibleEntryIds],
   );
 
+  const marquee = useMarqueeSelection({
+    scrollRef,
+    enabled: !props.selectionOnly && !props.inlineEdit,
+    selectedIds: props.selectedIds,
+    onSelectIds: props.onSelectIds,
+    hitTest: (rect) => {
+      const entries = props.listing.entries;
+      const first = Math.max(0, Math.floor(rect.top / rowHeight));
+      const last = Math.min(
+        entries.length - 1,
+        Math.floor(rect.bottom / rowHeight),
+      );
+      return entries.slice(first, last + 1).map((entry) => entry.id);
+    },
+  });
+
   return (
     <div className={`${fileBrowserStyles.tableWrap} relative`}>
       {columnsDirty ? (
@@ -315,7 +333,9 @@ export function FileTable(
         className={fileBrowserStyles.tableScroll}
         onScroll={handleScroll}
         data-explorer-scroll-container
+        {...marquee.handlers}
       >
+        {marquee.box ? <MarqueeBox rect={marquee.box} /> : null}
         <Table
           unwrapped
           className={fileBrowserStyles.table}

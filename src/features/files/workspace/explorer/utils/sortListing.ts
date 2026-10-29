@@ -5,7 +5,7 @@ import type {
 } from "@/native/ipc";
 import type { ExplorerSortState } from "../model/interfaces/store/types";
 import type { ExplorerSortColumn } from "../model/types/store/types";
-import { entrySizeBytes } from "@/features/file-ui";
+import { entrySizeBytes, kindLabel } from "@/features/file-ui";
 export function sortListing(
   listing: DirectoryListing,
   sort: ExplorerSortState,
@@ -73,7 +73,5 @@ export function compareText(left: string | null, right: string | null): number {
 }
 
 export function typeLabel(entry: FileEntry): string {
-  return entry.kind === "folder"
-    ? "Folder"
-    : entry.mimeType || entry.extension || entry.kind;
+  return kindLabel(entry);
 }

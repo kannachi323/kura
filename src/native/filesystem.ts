@@ -5,6 +5,7 @@ import type {
   DeviceSnapshot,
   DirectoryListing,
   DirectorySizeRecord,
+  FinderTag,
   DirectorySizeRequest,
   ExplorerLibraryItem,
   ExplorerLibrarySnapshot,
@@ -65,7 +66,11 @@ export function explorerListDirectory(
     request,
   });
 }
-/** Replaces the set of folders watched for outside changes. */
+/** Opens another Kura window, at `path` when given. */
+export function appOpenWindow(path?: string | null): Promise<void> {
+  return invoke("app_open_window", { path: path ?? null });
+}
+/** Replaces the set of folders this window watches for outside changes. */
 export function explorerWatchDirectories(paths: string[]): Promise<void> {
   return invoke("explorer_watch_directories", { paths });
 }
@@ -270,6 +275,38 @@ export function explorerQueueRenameItems(
   return invoke("explorer_queue_rename_items", {
     request,
   });
+}
+export interface VolumeSpace {
+  availableBytes: number;
+  totalBytes: number;
+}
+/** Free and total space on the volume holding `path`. */
+export function explorerVolumeSpace(path: string): Promise<VolumeSpace> {
+  return invoke("explorer_volume_space", { path });
+}
+export type ShareService = "airdrop" | "mail" | "messages";
+/** Shares local files through a macOS sharing service. */
+export function explorerShare(
+  paths: string[],
+  service: ShareService,
+): Promise<void> {
+  return invoke("explorer_share", { paths, service });
+}
+/** Finder tags for each of `paths`, in the same order. */
+export function explorerReadTags(paths: string[]): Promise<FinderTag[][]> {
+  return invoke("explorer_read_tags", { paths });
+}
+/** Adds or removes the Finder tag `name` on each of `paths`. */
+export function explorerSetTag(
+  paths: string[],
+  name: string,
+  enabled: boolean,
+): Promise<void> {
+  return invoke("explorer_set_tag", { paths, name, enabled });
+}
+/** Puts trashed items back where they came from; returns changed folders. */
+export function explorerPutBackItems(paths: string[]): Promise<string[]> {
+  return invoke("explorer_put_back_items", { paths });
 }
 export function explorerQueueDeleteItems(
   request: DeleteItemsRequest,

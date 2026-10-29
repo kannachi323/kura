@@ -5,7 +5,7 @@ import type {
   ExplorerStore,
 } from "../../interfaces/store/types";
 
-export type ExplorerViewMode = "list" | "grid";
+export type ExplorerViewMode = "list" | "grid" | "columns";
 
 export type ExplorerCommandQueryMode = "search" | "filter";
 

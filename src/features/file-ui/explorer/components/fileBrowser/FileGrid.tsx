@@ -1,5 +1,7 @@
 import { useFileBrowserRuntime } from "./FileBrowserRuntime";
 import { useRevealEntry } from "./revealEntry";
+import { MarqueeBox } from "./MarqueeBox";
+import { useMarqueeSelection } from "./useMarqueeSelection";
 import type { DirectoryListing, FileEntry } from "@/native/ipc";
 import type { CSSProperties, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -226,17 +228,51 @@ export function FileGrid(
     [props, visibleEntryIds],
   );
 
+  const marquee = useMarqueeSelection({
+    scrollRef,
+    enabled: !props.selectionOnly && !props.inlineEdit,
+    selectedIds: props.selectedIds,
+    onSelectIds: props.onSelectIds,
+    hitTest: (rect) => {
+      const entries = props.listing.entries;
+      const columnStride = columnWidth + gridGap;
+      const firstRow = Math.max(
+        0,
+        Math.floor((rect.top - gridPadding - gridItemHeight) / rowStride) + 1,
+      );
+      const lastRow = Math.floor((rect.bottom - gridPadding) / rowStride);
+      const firstColumn = Math.max(
+        0,
+        Math.floor((rect.left - gridPadding - columnWidth) / columnStride) + 1,
+      );
+      const lastColumn = Math.min(
+        columns - 1,
+        Math.floor((rect.right - gridPadding) / columnStride),
+      );
+      const ids: string[] = [];
+      for (let row = firstRow; row <= lastRow; row += 1) {
+        for (let column = firstColumn; column <= lastColumn; column += 1) {
+          const entry = entries[row * columns + column];
+          if (entry) ids.push(entry.id);
+        }
+      }
+      return ids;
+    },
+  });
+
   return (
     <div
       ref={scrollRef}
       className={fileBrowserStyles.gridScroll}
       onScroll={handleScroll}
       data-explorer-scroll-container
+      {...marquee.handlers}
     >
       <div
         className={fileBrowserStyles.gridSizer}
         style={{ height: totalHeight }}
       >
+        {marquee.box ? <MarqueeBox rect={marquee.box} /> : null}
         <div
           className={fileBrowserStyles.grid}
           data-grid-columns={columns}

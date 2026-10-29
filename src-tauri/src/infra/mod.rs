@@ -19,4 +19,6 @@ pub mod paths;
 pub mod power_pack;
 pub mod search;
 pub mod settings;
+pub mod share;
 pub mod transfers;
+pub mod volume_space;

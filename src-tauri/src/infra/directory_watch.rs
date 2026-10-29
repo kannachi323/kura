@@ -5,7 +5,7 @@
 //! folder so a large copy into an open folder costs one refresh, not thousands.
 
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{mpsc, Arc, Mutex},
     time::{Duration, Instant},
@@ -30,6 +30,8 @@ pub struct DirectoryWatchService {
 struct WatchState {
     watcher: RecommendedWatcher,
     watched: HashSet<PathBuf>,
+    /// The folders each window has open; the watcher covers their union.
+    wanted_by: HashMap<String, HashSet<PathBuf>>,
 }
 
 impl DirectoryWatchService {
@@ -65,22 +67,29 @@ impl DirectoryWatchService {
         *self.lock()? = Some(WatchState {
             watcher,
             watched: HashSet::new(),
+            wanted_by: HashMap::new(),
         });
         Ok(())
     }
 
-    /// Replaces the watched set with `paths`. Paths that are not local
-    /// folders (virtual or cloud locations) are ignored.
-    pub fn set_directories(&self, paths: Vec<String>) -> ApiResult<()> {
+    /// Replaces the folders `owner` (a window) has open with `paths`. Paths
+    /// that are not local folders (virtual or cloud locations) are ignored.
+    pub fn set_directories(&self, owner: &str, paths: Vec<String>) -> ApiResult<()> {
         let mut guard = self.lock()?;
         let Some(state) = guard.as_mut() else {
             return Ok(());
         };
-        let wanted: HashSet<PathBuf> = paths
+        let owned: HashSet<PathBuf> = paths
             .into_iter()
             .map(PathBuf::from)
             .filter(|path| path.is_absolute() && path.is_dir())
             .collect();
+        if owned.is_empty() {
+            state.wanted_by.remove(owner);
+        } else {
+            state.wanted_by.insert(owner.to_owned(), owned);
+        }
+        let wanted: HashSet<PathBuf> = state.wanted_by.values().flatten().cloned().collect();
         for path in state
             .watched
             .difference(&wanted)
@@ -157,7 +166,7 @@ mod tests {
             })
             .expect("start watcher");
         service
-            .set_directories(vec![root.display().to_string()])
+            .set_directories("main", vec![root.display().to_string()])
             .expect("watch");
         // FSEvents can take a moment to start delivering.
         std::thread::sleep(Duration::from_millis(300));
@@ -177,5 +186,36 @@ mod tests {
         }
         assert!(saw_root, "the watched folder was not reported");
         assert!(batches <= 3, "20 writes produced {batches} batches");
+    }
+
+    #[test]
+    fn a_folder_stays_watched_while_any_window_has_it_open() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let root = dir.path().canonicalize().expect("canonical temp dir");
+        let service = DirectoryWatchService::new();
+        service.start(|_| {}).expect("start watcher");
+        let path = vec![root.display().to_string()];
+        service
+            .set_directories("main", path.clone())
+            .expect("watch");
+        service.set_directories("files-1", path).expect("watch");
+        let watched = |service: &DirectoryWatchService| {
+            service
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .watched
+                .contains(&root)
+        };
+
+        service
+            .set_directories("main", Vec::new())
+            .expect("unwatch");
+        assert!(watched(&service), "the other window still has it open");
+        service
+            .set_directories("files-1", Vec::new())
+            .expect("unwatch");
+        assert!(!watched(&service));
     }
 }

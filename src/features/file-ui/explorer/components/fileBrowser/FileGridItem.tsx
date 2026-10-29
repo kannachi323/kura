@@ -7,6 +7,8 @@ import {
   useExplorerDropZone,
 } from "../../drag/ExplorerDragHooks";
 import { storageIdForPath } from "../../drag/operations";
+import { isPackageEntry } from "../../utils/kindLabel";
+import { EntryTagDots } from "./TagDots";
 import type { FileBrowserProps } from "../../model/interfaces/components/FileBrowser";
 import type {
   ExplorerDragModifiers,
@@ -49,7 +51,8 @@ export const FileGridItem = memo(function FileGridItem(props: {
       priority: 20,
       accepts: (payload: ExplorerDragPayload) =>
         transferDropAcceptance(payload, entry.path, {
-          folder: entry.kind === "folder",
+          // Dropping onto an app would move files inside its bundle.
+          folder: entry.kind === "folder" && !isPackageEntry(entry),
           writable: !entry.readonly && !entry.isDeleted,
         }),
       onDrop: (
@@ -63,8 +66,10 @@ export const FileGridItem = memo(function FileGridItem(props: {
           modifiers,
         ),
       onSpringLoad:
-        entry.kind === "folder" ? () => props.onOpen(entry) : undefined,
-      springLoad: entry.kind === "folder",
+        entry.kind === "folder" && !isPackageEntry(entry)
+          ? () => props.onOpen(entry)
+          : undefined,
+      springLoad: entry.kind === "folder" && !isPackageEntry(entry),
     }),
     [entry, props],
   );
@@ -88,8 +93,13 @@ export const FileGridItem = memo(function FileGridItem(props: {
       tabIndex={entry.isDeleted ? -1 : 0}
       onPointerDown={source.onPointerDown}
       onClick={(event) => props.onSelect(entry.id, event)}
-      onDoubleClick={() => {
-        if (!entry.isDeleted) props.onOpen(entry);
+      onDoubleClick={(event) => {
+        if (!entry.isDeleted)
+          props.onOpen(entry, { newTab: event.metaKey || event.ctrlKey });
+      }}
+      onAuxClick={(event) => {
+        if (event.button === 1 && entry.kind === "folder" && !entry.isDeleted)
+          props.onOpen(entry, { newTab: true });
       }}
       onKeyDown={(event) => {
         // In the Explorer the pane handles Enter (rename on macOS); pickers open.
@@ -120,6 +130,7 @@ export const FileGridItem = memo(function FileGridItem(props: {
       ) : (
         <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1">
           <span className={fileBrowserStyles.gridNameText}>{entry.name}</span>
+          <EntryTagDots entry={entry} />
           <CloudStateIcon state={entry.location.cloudState} />
         </span>
       )}
