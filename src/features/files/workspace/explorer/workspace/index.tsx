@@ -10,6 +10,7 @@ import {
 } from "@/features/settings";
 import { useTransientScrollbars } from "@/shared/hooks/useTransientScrollbars";
 import { secondaryWindow } from "@/shared/platform/tauri";
+import { appWindowSetFolder } from "../../native";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { ExplorerLoadingShell } from "../components/ExplorerLoadingShell";
@@ -212,6 +213,12 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     startPathApplied.current = true;
     void useExplorerStore.getState().navigatePane(activePaneId, startPath);
   }, [activePaneId]);
+
+  // An extra window reopens at its folder after a restart.
+  useEffect(() => {
+    if (secondaryWindow() && activePath)
+      void appWindowSetFolder(activePath).catch(() => undefined);
+  }, [activePath]);
 
   // Restore retired extension tabs to the built-in file browser.
   useLegacyPluginTabMigration({

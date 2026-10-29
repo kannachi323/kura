@@ -26,6 +26,7 @@ pub struct KuraRuntime {
     pub devices: DeviceService,
     pub directory_size: DirectorySizeService,
     pub directory_watch: DirectoryWatchService,
+    pub extra_windows: crate::infra::extra_windows::ExtraWindowsService,
     pub metadata: MetadataService,
     pub power_pack: PowerPackService,
     pub search: SearchService,
@@ -77,6 +78,9 @@ impl KuraRuntime {
             sync_pairs.clone(),
         );
 
+        let extra_windows = crate::infra::extra_windows::ExtraWindowsService::new(
+            environment.config_dir().join("windows.json"),
+        );
         Self {
             navigation_names: NavigationNamesService::new(
                 environment.config_dir().join("navigation.json"),
@@ -90,6 +94,7 @@ impl KuraRuntime {
             devices,
             directory_size,
             directory_watch: DirectoryWatchService::new(),
+            extra_windows,
             metadata,
             power_pack,
             search,

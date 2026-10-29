@@ -70,6 +70,10 @@ export function explorerListDirectory(
 export function appOpenWindow(path?: string | null): Promise<void> {
   return invoke("app_open_window", { path: path ?? null });
 }
+/** Tells Kura which folder this extra window shows, to reopen it there. */
+export function appWindowSetFolder(path: string): Promise<void> {
+  return invoke("app_window_set_folder", { path });
+}
 /** Replaces the set of folders this window watches for outside changes. */
 export function explorerWatchDirectories(paths: string[]): Promise<void> {
   return invoke("explorer_watch_directories", { paths });
@@ -303,6 +307,10 @@ export function explorerSetTag(
   enabled: boolean,
 ): Promise<void> {
   return invoke("explorer_set_tag", { paths, name, enabled });
+}
+/** Whether the Trash view can see the whole system Trash (Full Disk Access). */
+export function explorerTrashFullyVisible(): Promise<boolean> {
+  return invoke("explorer_trash_fully_visible");
 }
 /** Puts trashed items back where they came from; returns changed folders. */
 export function explorerPutBackItems(paths: string[]): Promise<string[]> {

@@ -41,19 +41,48 @@ Status: **todo** → **done** (with commit), or **won't do** (with the reason).
 
 The first pass marked these "won't do". They were then built:
 
-- Column view doesn't support drag and drop yet; drag and drop works in list and grid.
-- Extra windows aren't restored after a restart.
+- Column view supports drag and drop: rows are drag sources, folder rows are drop targets with spring-loading, and a column's empty space drops into its folder. It uses the same hooks as list and grid.
+- Extra windows reopen at their folder after a restart. They're recorded in `~/.kura/config/windows.json`; closing a window forgets it, quitting keeps it.
 
 ## Measured
 
 - **100k-file listing:** about 120–170 ms median, the same range as before. Reading tags inside the listing had pushed it to 4.6 s, which is why tags load per visible row.
 - **Checks:** `.githooks/checks.sh`: prettier, tsc, vitest (88 tests), cargo fmt, clippy `-D warnings` and cargo test (205 tests) all pass.
 
+## Follow-ups after the first pass
+
+- **Trash:** the view lists everything in `~/.Trash` and each volume's `.Trashes/<uid>` when Kura has Full Disk Access. Without it, a banner says the view shows only what Kura trashed and links to Privacy settings. Put Back now also clears the trash row's Undo, so Undo can't try to move an item that left the Trash.
+- **Custom tags:** the Tags submenu lists the custom tags on an item (choose one to remove it) and has New Tag…, which opens a dialog.
+- **Undo of copies:** Copy and Duplicate are now undoable: Undo moves the copy to the Trash, and Redo copies again. Before this, the ledger's claim that "Undo works" for Duplicate was wrong: copies had no undo token.
+- **Undo is limited to the current run of Kura** (`operation_queue_session_started`). Older operations keep their Undo button on the Transfers page.
+
+### The unexplained `notes.md` → `readme.md` rename
+
+Transfer 543 has no undo token, and its rename is exactly the reverse of 538, a rename from the night before. So 543 was an **Undo of 538**, not a rename anyone sent.
+
+- My test sequence didn't trigger it. With logging on every bridge command, replaying the sequence produced no `operation_queue_undo`.
+- The undo landed seconds after `tauri dev` relaunched the app, which takes keyboard focus. The likeliest trigger is a Cmd+Z meant for another app.
+- The real bug was that Cmd+Z reached back 17 hours, into a previous run of the app. Finder only undoes what you did in the current session. That's fixed: Cmd+Z only undoes operations from the current run, with a test.
+
 ## Checked in the running app
 
-Go to Folder, marquee and type-to-select, Duplicate, the Tags submenu (the tag is written as Finder's xattr), Trash to `~/.Trash` and Put Back, the permission-denied state (on `~/.Trash`), Kind labels including "Application", Quick Look, column view navigation with the keyboard, and New Window (a second window opened).
+- **First pass:** Go to Folder, marquee and type-to-select, Duplicate, the Tags submenu (the tag is written as Finder's xattr), Trash to `~/.Trash` and Put Back, the permission-denied state (on `~/.Trash`), Kind labels including "Application", Quick Look, column view navigation with the keyboard, and New Window (a second window opened).
+- **Follow-ups:**
+  - **Window restore:** after relaunch with a saved window, two Kura windows came up. The saved entry also survived the app being killed.
+  - **New Window:** opening the app the way a new window does landed on the requested folder.
+  - **New Tag dialog:** opens from Tags, and the name reaches its state.
+  - **Column-view drag and drop:** dragging `drag-me.txt` onto `DropTarget` moved the file. List view was run as a control and works too.
+  - **New Tag:** created an "Interview" tag through the context menu and dialog. Finder's tag attribute on disk now holds it.
+  - **Trash banner:** without Full Disk Access, the Trash view explains it shows only what Kura trashed, with Open Privacy Settings.
+  - **Tags sidebar:** Purple opened a "Purple" view listing a Purple-tagged file. This also caught a bug: the location guard treated `kura://tag/…` as a retired cloud path and sent it Home. That's fixed, with a test.
+- **How these checks ran:** scripted steps inside a real Kura window through the dev-only bridge, with Kura brought to the front. The browser-pane approach failed because a hidden pane pauses animation frames, and background windows throttle timers.
+- **Finder-trashed items, end to end:** checked without Full Disk Access by using the same code on a Trash Kura can read. I mounted a test disk image, had Finder trash `docs/report.txt` on it (Finder wrote real `ptbL`/`ptbN` records to the volume's `.Trashes/<uid>/.DS_Store`), and opened Kura's Trash view. It listed `report.txt`, which Kura never recorded. Put Back from the context menu restored it to `docs/report.txt` with its contents. `~/.Trash` takes the same path once Kura can read it, which needs Full Disk Access. I didn't grant that, because it's your security setting.
 
-## Still open
+## Added after the second pass
 
-- Kura's Trash view lists only items Kura trashed (plus the old `~/.kura` trash folder). Listing `~/.Trash` needs Full Disk Access, and Finder's own records of where its items came from aren't readable.
-- The Tags submenu offers the seven colour tags. Custom tags appear but can't be created from Kura, and there is no Tags section in the sidebar (Finder's needs Spotlight queries).
+- **Tags in the sidebar:** the seven colour tags, each opening `kura://tag/<name>`. Kura asks Spotlight first, as Finder does. On this Mac Spotlight's data-volume index is in an "unknown" state and returns nothing, so Kura falls back to scanning Home itself: in parallel, capped at 250,000 items, skipping hidden folders, `Library`, build output and privacy-protected app data. That took about 4–5 s here.
+- **Put Back for items Finder trashed:** when Kura's own record is missing, it reads Finder's `ptbL`/`ptbN` records from the Trash folder's `.DS_Store`. This works when Kura can read the Trash, which needs Full Disk Access.
+
+## Status
+
+All audit items are done and checked. The owner accepted the disk-image test as the check for the main Trash (`~/.Trash`): that test ran the same listing and Put Back code against a real Finder-trashed file. The owner will confirm `~/.Trash` itself after turning on Full Disk Access. Without Full Disk Access, macOS doesn't let apps read `~/.Trash`; Kura then shows the items it trashed itself and explains why in the Trash view.

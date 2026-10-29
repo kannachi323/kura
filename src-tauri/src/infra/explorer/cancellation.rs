@@ -81,11 +81,12 @@ pub(super) async fn remove_local_path(path: &Path, is_directory: bool) -> ApiRes
         .map_err(|error| ApiError::Message(format!("Failed to remove {}: {error}", path.display())))
 }
 
-/// Lists Kura's Trash: items in the legacy `trash_dir` plus `recorded` items
-/// Kura moved to the system Trash (which it cannot list without Full Disk
-/// Access, but can still read by path).
+/// Lists Kura's Trash: items in the legacy `trash_dir`, everything in the
+/// readable `system_dirs` (the system Trash needs Full Disk Access), and
+/// the `recorded` items Kura trashed, which it can read by path either way.
 pub(super) fn trash_virtual_entries(
     trash_dir: &Path,
+    system_dirs: &[PathBuf],
     recorded: &[PathBuf],
 ) -> ApiResult<Vec<FileEntry>> {
     let mut paths: Vec<PathBuf> = match std::fs::read_dir(trash_dir) {
@@ -98,6 +99,17 @@ pub(super) fn trash_virtual_entries(
             )))
         }
     };
+    for dir in system_dirs {
+        if let Ok(read_dir) = std::fs::read_dir(dir) {
+            paths.extend(read_dir.flatten().map(|item| item.path()).filter(|path| {
+                // Finder's own bookkeeping, not trashed items.
+                !matches!(
+                    path.file_name().and_then(|name| name.to_str()),
+                    Some(".DS_Store" | ".localized")
+                )
+            }));
+        }
+    }
     for path in recorded {
         if !paths.contains(path) {
             paths.push(path.clone());
@@ -113,6 +125,12 @@ pub(super) fn trash_virtual_entries(
 }
 
 fn trash_entry(path: &Path) -> Option<FileEntry> {
+    path_entry(path, true)
+}
+
+/// A listing entry for one path, read with lstat. Used by virtual folders
+/// (Trash, tags) whose items live in different places.
+pub(super) fn path_entry(path: &Path, is_deleted: bool) -> Option<FileEntry> {
     let metadata = std::fs::symlink_metadata(path).ok()?;
     let name = path.file_name()?.to_string_lossy().to_string();
     let file_type = metadata.file_type();
@@ -146,7 +164,7 @@ fn trash_entry(path: &Path) -> Option<FileEntry> {
         created_ms: metadata.created().ok().and_then(service_system_time_ms),
         readonly: metadata.permissions().readonly(),
         hidden: name.starts_with('.'),
-        is_deleted: true,
+        is_deleted,
         location: ExplorerLocation::local(),
     })
 }

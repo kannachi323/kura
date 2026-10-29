@@ -41,6 +41,10 @@ pub struct OperationQueueService {
     cancellations: Arc<Mutex<HashMap<u64, Arc<AtomicBool>>>>,
     pause_requests: Arc<Mutex<HashSet<u64>>>,
     redo_stack: Arc<Mutex<Vec<FileTransferRecord>>>,
+    /// When this run of Kura started. Edit > Undo only reaches operations
+    /// queued after it, like Finder: an older rename stays in the Transfers
+    /// history (with its own Undo button) but Cmd+Z won't silently revert it.
+    session_started_ms: i64,
     pumping: Arc<AtomicBool>,
 }
 
@@ -74,7 +78,12 @@ impl OperationQueueService {
             pause_requests: Arc::new(Mutex::new(HashSet::new())),
             redo_stack: Arc::new(Mutex::new(Vec::new())),
             pumping: Arc::new(AtomicBool::new(false)),
+            session_started_ms: crate::domain::file_transfer::now_epoch_ms(),
         }
+    }
+
+    pub fn session_started_ms(&self) -> i64 {
+        self.session_started_ms
     }
 
     /// Like `ExplorerService::item_is_directory`, for local and connected-device paths.
@@ -830,6 +839,11 @@ impl OperationQueueService {
 
         let snapshot = match row.transfer_type {
             FileTransferType::Rename => self.enqueue_undo_rename(&row).await?,
+            // Undoing a copy (or Duplicate) moves the copy to the Trash.
+            FileTransferType::Copy => {
+                self.enqueue_trash_path(row.local_dest_path.clone(), OperationOrigin::Undo)
+                    .await?
+            }
             // Trash keeps the item's Trash path as its destination.
             FileTransferType::Move | FileTransferType::Delete => {
                 self.enqueue_undo_move(&row).await?
@@ -961,7 +975,8 @@ impl OperationQueueService {
     ) -> ApiResult<OperationQueueSnapshot> {
         match row.transfer_type {
             FileTransferType::Rename => self.enqueue_redo_rename(row).await,
-            FileTransferType::Move => self.enqueue_redo_move(row).await,
+            FileTransferType::Move => self.enqueue_redo_paste(row, ClipboardOperation::Move).await,
+            FileTransferType::Copy => self.enqueue_redo_paste(row, ClipboardOperation::Copy).await,
             FileTransferType::Delete => self.enqueue_redo_trash(row).await,
             _ => Err(ApiError::Message(format!(
                 "Transfer {} does not support redo.",
@@ -1143,9 +1158,11 @@ impl OperationQueueService {
         .await
     }
 
-    async fn enqueue_redo_move(
+    /// Redoes a move or copy: the source goes to the recorded destination.
+    async fn enqueue_redo_paste(
         &self,
         row: &FileTransferRecord,
+        operation: ClipboardOperation,
     ) -> ApiResult<OperationQueueSnapshot> {
         if row.item_type == FileTransferItemType::Remote {
             return Err(ApiError::Message(
@@ -1155,7 +1172,7 @@ impl OperationQueueService {
 
         if row.local_source_path.is_empty() || row.local_dest_path.is_empty() {
             return Err(ApiError::Message(
-                "Local move redo is missing source or destination metadata.".to_string(),
+                "Local redo is missing source or destination metadata.".to_string(),
             ));
         }
         let redone_name = file_name_for_path(&row.local_dest_path)?;
@@ -1173,7 +1190,7 @@ impl OperationQueueService {
                     remote_modified: None,
                 }],
                 destination_directory: redone_parent,
-                operation: ClipboardOperation::Move,
+                operation,
                 target_name: Some(redone_name),
             },
             OperationOrigin::Redo,
@@ -1190,7 +1207,20 @@ impl OperationQueueService {
                 "Trash redo is missing the original path.".to_string(),
             ));
         }
-        let path = row.local_source_path.clone();
+        self.enqueue_trash_path(row.local_source_path.clone(), OperationOrigin::Redo)
+            .await
+    }
+
+    async fn enqueue_trash_path(
+        &self,
+        path: String,
+        origin: OperationOrigin,
+    ) -> ApiResult<OperationQueueSnapshot> {
+        if path.is_empty() {
+            return Err(ApiError::Message(
+                "Nothing to move to the Trash.".to_string(),
+            ));
+        }
         let name = leaf_name(&path).unwrap_or_else(|| path.clone());
         self.enqueue_with_origin(
             "Move items to Trash",
@@ -1204,7 +1234,7 @@ impl OperationQueueService {
                 paths: vec![path],
                 permanent: false,
             })],
-            OperationOrigin::Redo,
+            origin,
         )
         .await
     }
@@ -3465,6 +3495,60 @@ mod tests {
         )
         .await;
         assert!(!file.exists());
+        let _ = tokio::fs::remove_dir_all(&root).await;
+    }
+
+    #[tokio::test]
+    async fn a_copy_can_be_undone_and_redone() {
+        let service = test_operation_queue_service();
+        let root = unique_test_dir("copy-undo");
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let file = root.join("notes.md");
+        let copy = root.join("notes copy.md");
+        tokio::fs::write(&file, b"notes").await.unwrap();
+
+        let snapshot = service
+            .enqueue_paste_items(PasteItemsRequest {
+                sources: vec![PasteItem {
+                    path: file.to_string_lossy().to_string(),
+                    is_directory: false,
+                    size_bytes: None,
+                    remote_modified: None,
+                }],
+                destination_directory: root.to_string_lossy().to_string(),
+                operation: ClipboardOperation::Copy,
+                target_name: Some("notes copy.md".to_string()),
+            })
+            .await
+            .unwrap();
+        let copy_operation = newest_operation_id(&snapshot);
+        wait_for_operation_status(&service, copy_operation, OperationStatus::Completed).await;
+        assert!(copy.is_file());
+        let row = service
+            .transfers
+            .transfer_by_id(transfer_id_of(&service.snapshot().await, copy_operation))
+            .await
+            .unwrap();
+        assert!(row.undoable, "a copy should be undoable");
+
+        let undo = service.undo(row.undo_token_id).await.unwrap();
+        wait_for_operation_status(
+            &service,
+            newest_operation_id(&undo),
+            OperationStatus::Completed,
+        )
+        .await;
+        assert!(!copy.exists(), "undo moves the copy to the Trash");
+        assert!(file.is_file(), "the original stays");
+
+        let redo = service.redo().await.unwrap();
+        wait_for_operation_status(
+            &service,
+            newest_operation_id(&redo),
+            OperationStatus::Completed,
+        )
+        .await;
+        assert_eq!(tokio::fs::read(&copy).await.unwrap(), b"notes");
         let _ = tokio::fs::remove_dir_all(&root).await;
     }
 

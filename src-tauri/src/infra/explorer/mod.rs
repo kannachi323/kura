@@ -46,6 +46,8 @@ use crate::infra::{
 const VIRTUAL_PATH_RECENT: &str = "kura://recent";
 const VIRTUAL_PATH_STARRED: &str = "kura://starred";
 const VIRTUAL_PATH_TRASH: &str = "kura://trash";
+/// `kura://tag/<name>`: items with a Finder tag.
+const VIRTUAL_PATH_TAG_PREFIX: &str = "kura://tag/";
 const VIRTUAL_PATH_LIBRARY: &str = "kura://library";
 
 const MAX_IMAGE_PREVIEW_DIMENSION: u32 = 1600;

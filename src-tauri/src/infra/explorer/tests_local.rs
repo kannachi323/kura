@@ -41,11 +41,29 @@ fn trash_virtual_entries_are_marked_deleted() {
     std::fs::create_dir_all(&root).unwrap();
     std::fs::write(&trashed, b"deleted").unwrap();
 
-    let entries = trash_virtual_entries(&root, &[]).unwrap();
+    let entries = trash_virtual_entries(&root, &[], &[]).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].name, "deleted.txt");
     assert!(entries[0].is_deleted);
     assert!(matches!(entries[0].kind, FileKind::File));
+
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn trash_lists_readable_system_trash_without_finder_bookkeeping() {
+    let root = unique_test_dir("trash-system");
+    let legacy = root.join("legacy");
+    let system = root.join("system");
+    std::fs::create_dir_all(&system).unwrap();
+    std::fs::write(system.join("photo.jpg"), b"x").unwrap();
+    std::fs::write(system.join(".DS_Store"), b"x").unwrap();
+    let recorded = system.join("photo.jpg");
+
+    let entries =
+        trash_virtual_entries(&legacy, std::slice::from_ref(&system), &[recorded]).unwrap();
+    let names: Vec<_> = entries.iter().map(|entry| entry.name.as_str()).collect();
+    assert_eq!(names, vec!["photo.jpg"], "listed once, without .DS_Store");
 
     let _ = std::fs::remove_dir_all(&root);
 }

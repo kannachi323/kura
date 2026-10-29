@@ -176,8 +176,11 @@ export interface ExplorerStore {
   openBatchRenameDialog: (paneId: string) => void;
   deleteSelected: (paneId: string, mode?: ExplorerDeleteMode) => Promise<void>;
   putBackSelected: (paneId: string) => Promise<void>;
-  /** Adds a Finder tag to the selection, or removes it if all have it. */
-  toggleTag: (paneId: string, name: string) => Promise<void>;
+  /**
+   * Adds a Finder tag to the selection, or removes it if all have it;
+   * `enabled` forces adding or removing.
+   */
+  toggleTag: (paneId: string, name: string, enabled?: boolean) => Promise<void>;
   /** Opens the folder that holds `entry` and selects it. */
   showInEnclosingFolder: (paneId: string, entry: FileEntry) => Promise<void>;
   duplicateSelected: (paneId: string) => Promise<void>;

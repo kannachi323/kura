@@ -9,6 +9,7 @@ import {
 import { useExplorerStore } from "../store";
 import { useAppStore } from "@/features/app-shell";
 import { ColumnView } from "./ColumnView";
+import { TrashNotice } from "./TrashNotice";
 import { FileBrowser } from "./FileBrowser";
 import { handleFileListKey, openInNewTab } from "./fileListKeyboard";
 import { useVolumeSpaceLabel } from "./useVolumeSpaceLabel";
@@ -155,7 +156,13 @@ export const ExplorerPane = memo(function ExplorerPane(
       className={`${paneStyles.shell} ${props.isActive === false ? paneStyles.shellInactive : ""}`}
       data-explorer-pane-id={props.paneId}
       onKeyDown={(event) => handleFileListKey(event, props.paneId)}
+      style={
+        listing?.path === "kura://trash"
+          ? { gridTemplateRows: "auto minmax(0, 1fr)" }
+          : undefined
+      }
     >
+      {listing?.path === "kura://trash" ? <TrashNotice /> : null}
       {viewMode === "columns" &&
       listing &&
       !pane?.error &&
@@ -168,6 +175,7 @@ export const ExplorerPane = memo(function ExplorerPane(
           selectedIds={pane?.selectedIds ?? emptySelectedIds}
           inlineEdit={inlineEdit}
           statusDetail={volumeSpaceLabel}
+          onDropItems={handleDropItems}
           onContextMenu={(event, entry) =>
             entry
               ? handleContextMenu(event, entry)

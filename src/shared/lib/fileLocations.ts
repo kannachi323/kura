@@ -6,6 +6,8 @@
 export function isRetiredCloudLocation(path: string): boolean {
   const normalized = path.trim().replace(/\\/g, "/").replace(/\/+$/, "");
   if (normalized.startsWith("kura://device/")) return false;
+  // Items with a Finder tag (the sidebar's Tags section).
+  if (normalized.startsWith("kura://tag/")) return false;
   if (normalized.startsWith("kura-remotes://")) return true;
   if (
     normalized.includes("://") &&

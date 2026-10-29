@@ -1,10 +1,23 @@
-import { FileIcon, isPackageEntry, kindLabel } from "@/features/file-ui";
+import {
+  dragItemsForEntry,
+  FileIcon,
+  isPackageEntry,
+  kindLabel,
+  storageIdForPath,
+  transferDropAcceptance,
+  useExplorerDragSource,
+  useExplorerDropZone,
+  type ExplorerDragModifiers,
+  type ExplorerDragPayload,
+  type FileBrowserProps,
+} from "@/features/file-ui";
 import { InlineNameEditor } from "@/features/file-ui/explorer/components/FileBrowserInline";
 import type { DirectoryListing, FileEntry } from "@/native/ipc";
 import { ChevronRight } from "lucide-react";
 import {
   memo,
   useEffect,
+  useMemo,
   useLayoutEffect,
   useRef,
   useState,
@@ -33,6 +46,7 @@ export const ColumnView = memo(function ColumnView(props: {
   inlineEdit: ExplorerInlineEditState | null;
   statusDetail: string | null;
   onContextMenu: (event: MouseEvent, entry: FileEntry | null) => void;
+  onDropItems: FileBrowserProps["onDropItems"];
 }) {
   const ancestors = ancestorPaths(props.listing.path, props.homePath);
   const parentListings = useAncestorListings(
@@ -84,6 +98,8 @@ export const ColumnView = memo(function ColumnView(props: {
           return (
             <Column
               key={path}
+              folderPath={path}
+              onDropItems={props.onDropItems}
               entries={parentListings[path] ?? null}
               highlightedPath={childPath}
               dimHighlight
@@ -96,6 +112,8 @@ export const ColumnView = memo(function ColumnView(props: {
         })}
         <Column
           key={props.listing.path}
+          folderPath={props.listing.path}
+          onDropItems={props.onDropItems}
           entries={props.listing.entries}
           selected={selected}
           paneId={props.paneId}
@@ -128,7 +146,9 @@ export const ColumnView = memo(function ColumnView(props: {
 });
 
 function Column(props: {
+  folderPath: string;
   entries: FileEntry[] | null;
+  onDropItems: FileBrowserProps["onDropItems"];
   highlightedPath?: string;
   dimHighlight?: boolean;
   selected?: Set<string>;
@@ -142,6 +162,32 @@ function Column(props: {
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
+  // Dropping on a column's empty space drops into that column's folder.
+  const { folderPath, onDropItems } = props;
+  const dropSpec = useMemo(
+    () => ({
+      id: `column:${folderPath}`,
+      priority: 10,
+      accepts: (payload: ExplorerDragPayload) =>
+        transferDropAcceptance(payload, folderPath, { folder: true }),
+      onDrop: (
+        payload: ExplorerDragPayload,
+        modifiers: ExplorerDragModifiers,
+      ) =>
+        onDropItems(
+          payload,
+          folderPath,
+          storageIdForPath(folderPath, null),
+          modifiers,
+        ),
+    }),
+    [folderPath, onDropItems],
+  );
+  const drop = useExplorerDropZone(dropSpec);
+  const setScrollElement = (element: HTMLDivElement | null) => {
+    scrollRef.current = element;
+    drop.ref(element);
+  };
   const [height, setHeight] = useState(600);
   const entries = props.entries ?? [];
   useLayoutEffect(() => {
@@ -182,7 +228,7 @@ function Column(props: {
   );
   return (
     <div
-      ref={scrollRef}
+      ref={setScrollElement}
       role="listbox"
       aria-multiselectable={props.selected ? true : undefined}
       // The current column takes focus so the pane's keys (arrows, Return,
@@ -219,67 +265,132 @@ function Column(props: {
       <div
         style={{ height: entries.length * ROW_HEIGHT, position: "relative" }}
       >
-        {entries.slice(first, last).map((entry, offset) => {
-          const index = first + offset;
-          const isSelected = props.selected?.has(entry.id) ?? false;
-          const highlighted = entry.path === props.highlightedPath;
-          const editing =
-            props.inlineEdit?.kind === "rename" &&
-            props.inlineEdit.entryId === entry.id;
-          const folder = entry.kind === "folder" && !isPackageEntry(entry);
-          return (
-            <div
-              key={entry.id}
-              role="option"
-              aria-selected={isSelected || highlighted}
-              data-entry-id={props.selected ? entry.id : undefined}
-              title={`${entry.name} — ${kindLabel(entry)}`}
-              className={[
-                "absolute inset-x-1 flex cursor-default items-center gap-2 rounded-md px-2 text-[13px]",
-                isSelected
-                  ? "bg-selection text-cream"
-                  : highlighted
-                    ? props.dimHighlight
-                      ? "bg-charcoal-hover text-cream"
-                      : "bg-selection text-cream"
-                    : "text-cream hover:bg-charcoal-card",
-                entry.hidden ? "opacity-60" : "",
-              ].join(" ")}
-              style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT - 2 }}
-              onClick={(event) => {
-                if (props.selected)
-                  scrollRef.current?.focus({ preventScroll: true });
-                props.onEntryClick(entry, event);
-              }}
-              onDoubleClick={() => props.onEntryDoubleClick(entry)}
-              onContextMenu={(event) => {
-                if (!props.onEntryContextMenu) return;
-                event.preventDefault();
-                event.stopPropagation();
-                props.onEntryContextMenu(event, entry);
-              }}
-            >
-              <FileIcon entry={entry} size={16} variant="table" />
-              {editing && props.inlineEdit ? (
-                <InlineNameEditor
-                  edit={props.inlineEdit}
-                  variant="table"
-                  onChange={useExplorerStore.getState().setInlineEditValue}
-                  onCommit={() =>
-                    void useExplorerStore.getState().commitInlineEdit()
-                  }
-                  onCancel={useExplorerStore.getState().cancelInlineEdit}
-                />
-              ) : (
-                <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-              )}
-              {folder ? (
-                <ChevronRight size={14} className="flex-none opacity-60" />
-              ) : null}
-            </div>
-          );
-        })}
+        {entries.slice(first, last).map((entry, offset) => (
+          <ColumnRow
+            key={entry.id}
+            entry={entry}
+            top={(first + offset) * ROW_HEIGHT}
+            entries={entries}
+            selected={props.selected}
+            highlighted={entry.path === props.highlightedPath}
+            dimHighlight={props.dimHighlight}
+            inlineEdit={
+              props.inlineEdit?.kind === "rename" &&
+              props.inlineEdit.entryId === entry.id
+                ? props.inlineEdit
+                : null
+            }
+            onDropItems={props.onDropItems}
+            onClick={(event) => {
+              if (props.selected)
+                scrollRef.current?.focus({ preventScroll: true });
+              props.onEntryClick(entry, event);
+            }}
+            onDoubleClick={() => props.onEntryDoubleClick(entry)}
+            onContextMenu={
+              props.onEntryContextMenu
+                ? (event) => props.onEntryContextMenu?.(event, entry)
+                : undefined
+            }
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+/** One row: a drag source, and a drop target when it is a folder. */
+function ColumnRow(props: {
+  entry: FileEntry;
+  top: number;
+  entries: FileEntry[];
+  selected?: Set<string>;
+  highlighted: boolean;
+  dimHighlight?: boolean;
+  inlineEdit: ExplorerInlineEditState | null;
+  onDropItems: FileBrowserProps["onDropItems"];
+  onClick: (event: MouseEvent) => void;
+  onDoubleClick: () => void;
+  onContextMenu?: (event: MouseEvent) => void;
+}) {
+  const { entry } = props;
+  const isSelected = props.selected?.has(entry.id) ?? false;
+  const folder = entry.kind === "folder" && !isPackageEntry(entry);
+  // Earlier columns have no selection; dragging there drags just that row.
+  const dragSelection = props.selected ?? new Set([entry.id]);
+  const source = useExplorerDragSource(
+    entry.isDeleted
+      ? []
+      : dragItemsForEntry(entry, props.entries, dragSelection),
+  );
+  const dropSpec = useMemo(
+    () => ({
+      id: `column-entry:${entry.id}`,
+      priority: 20,
+      accepts: (payload: ExplorerDragPayload) =>
+        transferDropAcceptance(payload, entry.path, {
+          folder,
+          writable: !entry.readonly && !entry.isDeleted,
+        }),
+      onDrop: (
+        payload: ExplorerDragPayload,
+        modifiers: ExplorerDragModifiers,
+      ) =>
+        props.onDropItems(
+          payload,
+          entry.path,
+          storageIdForPath(entry.path, entry.location.remoteName),
+          modifiers,
+        ),
+      springLoad: folder,
+    }),
+    [entry, folder, props],
+  );
+  const drop = useExplorerDropZone(dropSpec);
+  return (
+    <div
+      ref={drop.ref}
+      role="option"
+      aria-selected={isSelected || props.highlighted}
+      data-entry-id={props.selected ? entry.id : undefined}
+      title={`${entry.name} — ${kindLabel(entry)}`}
+      className={[
+        "absolute inset-x-1 flex cursor-default items-center gap-2 rounded-md px-2 text-[13px]",
+        isSelected
+          ? "bg-selection text-cream"
+          : props.highlighted
+            ? props.dimHighlight
+              ? "bg-charcoal-hover text-cream"
+              : "bg-selection text-cream"
+            : "text-cream hover:bg-charcoal-card",
+        entry.hidden || source.dragging ? "opacity-60" : "",
+      ].join(" ")}
+      style={{ top: props.top, height: ROW_HEIGHT - 2 }}
+      onPointerDown={source.onPointerDown}
+      onClick={props.onClick}
+      onDoubleClick={props.onDoubleClick}
+      onContextMenu={(event) => {
+        if (!props.onContextMenu) return;
+        event.preventDefault();
+        event.stopPropagation();
+        props.onContextMenu(event);
+      }}
+    >
+      <FileIcon entry={entry} size={16} variant="table" />
+      {props.inlineEdit ? (
+        <InlineNameEditor
+          edit={props.inlineEdit}
+          variant="table"
+          onChange={useExplorerStore.getState().setInlineEditValue}
+          onCommit={() => void useExplorerStore.getState().commitInlineEdit()}
+          onCancel={useExplorerStore.getState().cancelInlineEdit}
+        />
+      ) : (
+        <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+      )}
+      {folder ? (
+        <ChevronRight size={14} className="flex-none opacity-60" />
+      ) : null}
     </div>
   );
 }

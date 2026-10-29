@@ -1,4 +1,5 @@
 pub mod clipboard;
+pub mod ds_store;
 pub mod explorer;
 pub mod file_master;
 pub mod file_sync;

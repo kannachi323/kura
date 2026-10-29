@@ -272,16 +272,18 @@ export function createMutationsActions(
       await get().navigatePane(paneId, parent);
     },
 
-    toggleTag: async (paneId, name) => {
+    toggleTag: async (paneId, name, force) => {
       const pane = get().panes[paneId];
       const entries = H.selectedEntriesForPane(pane).filter(
         (entry) => !entry.isDeleted && entry.location.kind === "local",
       );
       if (entries.length === 0) return;
       // Like Finder: if every selected item has the tag, remove it.
-      const enabled = !entries.every((entry) =>
-        tagsForPath(entry.path).some((tag) => tag.name === name),
-      );
+      const enabled =
+        force ??
+        !entries.every((entry) =>
+          tagsForPath(entry.path).some((tag) => tag.name === name),
+        );
       const paths = entries.map((entry) => entry.path);
       try {
         set({ operationError: null });
@@ -385,6 +387,8 @@ export function createMutationsActions(
         return;
       }
 
+      // The New Tag dialog applies its own result.
+      if (dialog.kind !== "batchRename") return;
       const validatedItems = H.validateBatchRenameItems(dialog.items);
       const items = validatedItems
         .map((item) => ({

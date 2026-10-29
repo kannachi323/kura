@@ -10,6 +10,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   appOpenWindow,
   operationQueueRedo,
+  operationQueueSessionStarted,
   operationQueueUndo,
   transfersSnapshot,
 } from "../../native";
@@ -264,11 +265,14 @@ function openDeepSearch(paneId: string): void {
   void useSearchStore.getState().openSearch(currentPath, paneId);
 }
 
+let sessionStartedMs: number | undefined;
+
 export async function undoLatestTransferOperation(): Promise<void> {
   const explorer = useExplorerStore.getState();
   try {
     const rows = (await transfersSnapshot({ limit: 500 })).rows;
-    const latest = newestUndoableTransfer(rows);
+    sessionStartedMs ??= await operationQueueSessionStarted();
+    const latest = newestUndoableTransfer(rows, sessionStartedMs);
     if (!latest) {
       explorer.pushNotification("Nothing to undo.", "info", 3500);
       return;

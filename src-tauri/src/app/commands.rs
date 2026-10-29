@@ -216,23 +216,40 @@ pub fn explorer_watch_directories(
 }
 
 /// Opens another Kura window, at `path` when given. Extra windows are
-/// labelled `files-…`; only the main window restores its workspace.
+/// labelled `files-…`; only the main window restores its workspace layout,
+/// but extra windows reopen at their folders after a restart.
 #[tauri::command]
-pub async fn app_open_window(app: AppHandle, path: Option<String>) -> ApiResult<()> {
+pub async fn app_open_window(
+    app: AppHandle,
+    path: Option<String>,
+    state: State<'_, KuraRuntime>,
+) -> ApiResult<()> {
     let label = format!("files-{}", uuid::Uuid::new_v4().simple());
+    let folder = path.unwrap_or_default();
+    open_files_window(&app, &label, &folder)?;
+    state.extra_windows.opened(&label, &folder);
+    Ok(())
+}
+
+/// Records the folder an extra window shows, so it reopens there.
+#[tauri::command]
+pub fn app_window_set_folder(path: String, window: tauri::Window, state: State<'_, KuraRuntime>) {
+    state.extra_windows.set_folder(window.label(), &path);
+}
+
+pub fn open_files_window(app: &AppHandle, label: &str, folder: &str) -> ApiResult<()> {
     let mut url = format!("index.html?window={label}");
-    if let Some(path) = path.filter(|path| !path.is_empty()) {
+    if !folder.is_empty() {
         url.push_str("&path=");
         url.push_str(
-            &percent_encoding::utf8_percent_encode(&path, percent_encoding::NON_ALPHANUMERIC)
+            &percent_encoding::utf8_percent_encode(folder, percent_encoding::NON_ALPHANUMERIC)
                 .to_string(),
         );
     }
-    let builder =
-        tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::App(url.into()))
-            .title("Kura")
-            .inner_size(1100.0, 720.0)
-            .min_inner_size(640.0, 420.0);
+    let builder = tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App(url.into()))
+        .title("Kura")
+        .inner_size(1100.0, 720.0)
+        .min_inner_size(640.0, 420.0);
     #[cfg(target_os = "macos")]
     let builder = builder
         .title_bar_style(tauri::TitleBarStyle::Overlay)
@@ -549,6 +566,19 @@ pub async fn explorer_volume_space(
     tokio::task::spawn_blocking(move || crate::infra::volume_space::volume_space(&path))
         .await
         .map_err(|err| ApiError::Message(format!("Free space worker failed: {err}")))?
+}
+
+/// Whether the Trash view can show everything in the system Trash (it needs
+/// Full Disk Access) or only what Kura trashed.
+#[tauri::command]
+pub fn explorer_trash_fully_visible(state: State<'_, KuraRuntime>) -> bool {
+    state.explorer.trash_fully_visible()
+}
+
+/// When this run of Kura started; Cmd+Z only undoes operations after it.
+#[tauri::command]
+pub fn operation_queue_session_started(state: State<'_, KuraRuntime>) -> i64 {
+    state.operation_queue.session_started_ms()
 }
 
 #[tauri::command]

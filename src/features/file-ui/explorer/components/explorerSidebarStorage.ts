@@ -152,6 +152,7 @@ export function loadSidebarCollapsedState(): SidebarCollapsedState {
     ) as Partial<SidebarCollapsedState>;
     return {
       quickAccess: parsed.quickAccess === true,
+      tags: parsed.tags === true,
       smartFolders: parsed.smartFolders === true,
       remote: parsed.remote === true,
       devices: parsed.devices === true,
@@ -159,6 +160,7 @@ export function loadSidebarCollapsedState(): SidebarCollapsedState {
   } catch {
     return {
       quickAccess: false,
+      tags: false,
       smartFolders: false,
       remote: false,
       devices: false,

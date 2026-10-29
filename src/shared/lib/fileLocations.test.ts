@@ -9,6 +9,7 @@ describe("retired cloud locations", () => {
     expect(isRetiredCloudLocation("/Users/me/Documents")).toBe(false);
     expect(isRetiredCloudLocation("kura://recent")).toBe(false);
     expect(isRetiredCloudLocation("kura://device/abc/root")).toBe(false);
+    expect(isRetiredCloudLocation("kura://tag/Red")).toBe(false);
   });
 
   it("retires the old mounts and remote URLs", () => {

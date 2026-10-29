@@ -126,18 +126,75 @@ pub(super) fn move_to_system_trash(_source: &Path) -> ApiResult<Option<PathBuf>>
     Ok(None)
 }
 
+/// The system's Trash folders for this user: `~/.Trash` and each mounted
+/// volume's `.Trashes/<uid>`. Listing them needs Full Disk Access.
+#[cfg(target_os = "macos")]
+pub(super) fn system_trash_dirs(home: &Path) -> Vec<PathBuf> {
+    // SAFETY: getuid has no preconditions.
+    let uid = unsafe { libc::getuid() };
+    let mut dirs = vec![home.join(".Trash")];
+    if let Ok(volumes) = std::fs::read_dir("/Volumes") {
+        dirs.extend(
+            volumes
+                .flatten()
+                .map(|volume| volume.path().join(".Trashes").join(uid.to_string())),
+        );
+    }
+    dirs
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(super) fn system_trash_dirs(_home: &Path) -> Vec<PathBuf> {
+    Vec::new()
+}
+
+/// Where Finder says a trashed item came from, from the Trash folder's
+/// `.DS_Store` (readable when Kura can read the Trash). Paths there are
+/// relative to the volume: `/` for the startup disk, `/Volumes/<name>` for
+/// the others.
+fn finder_original_path(trash_path: &Path) -> Option<PathBuf> {
+    let trash_dir = trash_path.parent()?;
+    let trash_name = trash_path.file_name()?.to_str()?;
+    let data = std::fs::read(trash_dir.join(".DS_Store")).ok()?;
+    let record = crate::domain::ds_store::put_back_records(&data).remove(trash_name)?;
+    let location = record.location?;
+    let name = record.name.unwrap_or_else(|| trash_name.to_owned());
+    let volume_root = volume_root_of(trash_dir);
+    Some(
+        volume_root
+            .join(location.trim_start_matches('/'))
+            .join(name),
+    )
+}
+
+/// `/Volumes/<name>` for a path on another volume, else `/`.
+fn volume_root_of(path: &Path) -> PathBuf {
+    let mut components = path.components();
+    match (components.next(), components.next(), components.next()) {
+        (Some(std::path::Component::RootDir), Some(first), Some(second))
+            if first.as_os_str() == "Volumes" =>
+        {
+            Path::new("/Volumes").join(second.as_os_str())
+        }
+        _ => PathBuf::from("/"),
+    }
+}
+
 /// Moves a trashed item back to where it was trashed from. Fails rather
 /// than replace something that now has its name, as Finder does.
 pub(super) async fn put_back(ledger: &TrashLedger, trash_path: &Path) -> ApiResult<PathBuf> {
-    let original = ledger.original_path(trash_path).ok_or_else(|| {
-        ApiError::Message(format!(
-            "Kura doesn't know where {} came from, so it can't put it back.",
-            trash_path
-                .file_name()
-                .map(|name| name.to_string_lossy().to_string())
-                .unwrap_or_default()
-        ))
-    })?;
+    let original = ledger
+        .original_path(trash_path)
+        .or_else(|| finder_original_path(trash_path))
+        .ok_or_else(|| {
+            ApiError::Message(format!(
+                "Kura doesn't know where {} came from, so it can't put it back.",
+                trash_path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().to_string())
+                    .unwrap_or_default()
+            ))
+        })?;
     if original.symlink_metadata().is_ok() {
         return Err(ApiError::Message(format!(
             "An item named {} already exists in {}.",
@@ -196,6 +253,15 @@ impl super::ExplorerService {
         Ok(destination)
     }
 
+    /// Whether the Trash view sees everything in the system Trash, or only
+    /// the items Kura put there (listing `~/.Trash` needs Full Disk Access).
+    pub fn trash_fully_visible(&self) -> bool {
+        match system_trash_dirs(&self.home_dir).first() {
+            Some(trash) => std::fs::read_dir(trash).is_ok(),
+            None => true,
+        }
+    }
+
     /// Puts trashed items back where they came from. Returns the folders
     /// that changed.
     pub async fn put_back_items(&self, paths: Vec<String>) -> ApiResult<Vec<String>> {
@@ -204,6 +270,7 @@ impl super::ExplorerService {
         for path in paths {
             match put_back(&self.trash_ledger, Path::new(&path)).await {
                 Ok(original) => {
+                    let _ = self.transfers.clear_trash_undo_for(path.clone()).await;
                     if let Some(parent) = original.parent() {
                         changed.push(parent.display().to_string());
                     }
@@ -240,6 +307,29 @@ mod tests {
             Some(PathBuf::from("/somewhere/kept.txt"))
         );
         assert_eq!(ledger.original_path(&gone), None);
+    }
+
+    #[test]
+    fn finder_records_give_the_original_path() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        std::fs::write(
+            dir.path().join(".DS_Store"),
+            crate::domain::ds_store::tests::put_back_store(
+                "report 2.pdf",
+                "Users/me/Documents/",
+                "report.pdf",
+            ),
+        )
+        .expect("write");
+        assert_eq!(
+            finder_original_path(&dir.path().join("report 2.pdf")),
+            Some(PathBuf::from("/Users/me/Documents/report.pdf"))
+        );
+        assert_eq!(finder_original_path(&dir.path().join("other.pdf")), None);
+        assert_eq!(
+            volume_root_of(Path::new("/Volumes/Backup/.Trashes/501")),
+            PathBuf::from("/Volumes/Backup")
+        );
     }
 
     #[tokio::test]

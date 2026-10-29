@@ -9,6 +9,7 @@ pub mod directory_watch;
 pub mod environment;
 pub mod explorer;
 pub mod explorer_library;
+pub mod extra_windows;
 pub mod file_sync;
 mod macos_privacy;
 pub mod metadata;

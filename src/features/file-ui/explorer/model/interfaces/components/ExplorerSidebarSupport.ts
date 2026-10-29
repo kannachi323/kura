@@ -10,6 +10,7 @@ export interface DeviceCustomizationState {
 
 export interface SidebarCollapsedState {
   quickAccess: boolean;
+  tags: boolean;
   smartFolders: boolean;
   remote: boolean;
   devices: boolean;

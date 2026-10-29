@@ -16,7 +16,9 @@ import { memo, useMemo, useState } from "react";
 import type { ExplorerSidebarProps } from "../model/interfaces/components/ExplorerSidebar";
 import type { ExplorerSidebarRuntime } from "./explorerSidebar/ExplorerSidebarRuntime";
 import { SidebarQuickAccessSectionView } from "./explorerSidebar/SidebarQuickAccessSectionView";
+import { SidebarTagsSection } from "./explorerSidebar/SidebarTagsSection";
 import { SidebarWorkspaceSwitcher } from "./explorerSidebar/SidebarWorkspaceSwitcher";
+import { isMacPlatform } from "@/shared/platform/tauri";
 import {
   SmartFolderDialog,
   type SidebarDeviceEntry,
@@ -83,6 +85,15 @@ export const ExplorerSidebarView = memo(function ExplorerSidebarView(
         onToggle={() => toggleSection("quickAccess")}
         quick={quickAccessModel}
       />
+
+      {isMacPlatform() ? (
+        <SidebarTagsSection
+          activePath={props.activePath}
+          collapsed={collapsedSections.tags}
+          onToggle={() => toggleSection("tags")}
+          onNavigate={props.onNavigate}
+        />
+      ) : null}
 
       <section className="hidden" aria-hidden="true">
         <SidebarSectionHeader

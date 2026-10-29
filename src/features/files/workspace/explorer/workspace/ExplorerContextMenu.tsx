@@ -27,6 +27,7 @@ import {
   AppWindow,
   Archive,
   ArrowRightLeft,
+  Check,
   CheckSquare,
   Clipboard,
   Copy,
@@ -46,6 +47,7 @@ import {
   Pencil,
   Pin,
   PanelTop,
+  Plus,
   Radio,
   RefreshCcw,
   Scissors,
@@ -563,29 +565,61 @@ export const ExplorerContextMenu = memo(function ExplorerContextMenu() {
             id: "tags",
             icon: <Tag size={17} />,
             label: "Tags",
-            items: finderColorTags.map(([name, color]) => ({
-              id: `tag-${name}`,
-              icon: (
-                <span
-                  aria-hidden="true"
-                  className="size-3 rounded-full"
-                  style={{
-                    backgroundColor: tagColors[color],
-                    boxShadow: tagsForPath(targetEntry.path).some(
-                      (tag) => tag.name === name,
-                    )
-                      ? "0 0 0 2px var(--color-charcoal-bg), 0 0 0 3.5px currentColor"
-                      : undefined,
-                  }}
-                />
-              ),
-              label: name,
-              onRun: () =>
-                run(
-                  () =>
-                    void useExplorerStore.getState().toggleTag(paneId, name),
+            items: [
+              ...finderColorTags.map(([name, color]) => ({
+                id: `tag-${name}`,
+                icon: (
+                  <span
+                    aria-hidden="true"
+                    className="size-3 rounded-full"
+                    style={{
+                      backgroundColor: tagColors[color],
+                      boxShadow: tagsForPath(targetEntry.path).some(
+                        (tag) => tag.name === name,
+                      )
+                        ? "0 0 0 2px var(--color-charcoal-bg), 0 0 0 3.5px currentColor"
+                        : undefined,
+                    }}
+                  />
                 ),
-            })),
+                label: name,
+                onRun: () =>
+                  run(
+                    () =>
+                      void useExplorerStore.getState().toggleTag(paneId, name),
+                  ),
+              })),
+              ...tagsForPath(targetEntry.path)
+                .filter(
+                  (tag) =>
+                    !finderColorTags.some(
+                      ([colorName]) => colorName === tag.name,
+                    ),
+                )
+                .map((tag) => ({
+                  id: `tag-custom-${tag.name}`,
+                  icon: <Check size={15} />,
+                  label: tag.name,
+                  onRun: () =>
+                    run(
+                      () =>
+                        void useExplorerStore
+                          .getState()
+                          .toggleTag(paneId, tag.name),
+                    ),
+                })),
+              {
+                id: "tag-new",
+                icon: <Plus size={15} />,
+                label: "New Tag...",
+                onRun: () =>
+                  run(() =>
+                    useExplorerStore.setState({
+                      dialog: { kind: "newTag", paneId },
+                    }),
+                  ),
+              },
+            ],
           },
         ]
       : [];
