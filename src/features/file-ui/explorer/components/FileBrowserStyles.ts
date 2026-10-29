@@ -1,46 +1,55 @@
 import { cn } from "@/shared/ui";
 export const fileBrowserStyles = {
   browser: [
-    "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_36px] overflow-hidden",
+    "relative grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_36px] overflow-hidden",
     "bg-charcoal-sidebar outline outline-0 outline-offset-[-2px]",
   ].join(" "),
   browserLoading: "bg-charcoal-sidebar",
   tableSkeleton: "min-h-0 min-w-[720px] overflow-hidden",
   tableSkeletonLine:
     "grid grid-cols-[minmax(240px,1fr)_220px_128px_128px] items-center gap-4 px-3.5",
-  tableSkeletonHeader: "h-10 bg-charcoal-card",
-  tableSkeletonRow: "h-12 [[data-compact-mode=true]_&]:h-10",
+  tableSkeletonHeader: "h-8 bg-charcoal-card",
+  tableSkeletonRow: "h-[30px] [[data-compact-mode=true]_&]:h-[26px]",
   skeletonCell: "kura-skeleton rounded-md bg-charcoal-card",
   tableSkeletonHeaderCell: "h-[13px]",
   tableSkeletonCell: "h-3 first:h-4",
   gridSkeleton: cn(
     "grid min-h-0 min-w-0 content-start gap-[18px] overflow-hidden p-1",
-    "[grid-template-columns:repeat(auto-fill,minmax(144px,1fr))]",
+    "[grid-template-columns:repeat(auto-fill,120px)]",
     "[[data-compact-mode=true]_&]:gap-2.5 [[data-compact-mode=true]_&]:p-0.5",
-    "[[data-compact-mode=true]_&]:[grid-template-columns:repeat(auto-fill,minmax(124px,1fr))]",
+    "[[data-compact-mode=true]_&]:[grid-template-columns:repeat(auto-fill,108px)]",
   ),
-  gridSkeletonCell: "h-[156px] [[data-compact-mode=true]_&]:h-[132px]",
+  gridSkeletonCell: "h-[136px] [[data-compact-mode=true]_&]:h-[120px]",
+  // A container, so the compact table follows the pane's width (split panes,
+  // sidebar and inspector open), not the window's.
   tableWrap:
-    "grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-charcoal-sidebar",
+    "@container grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-charcoal-sidebar",
   tableHeaderWrap: "min-w-0 overflow-hidden",
-  tableResetButton: "absolute right-2 top-1.5 z-[4] max-[720px]:hidden",
+  tableResetButton: "absolute right-2 top-1.5 z-[4] @max-[640px]:hidden",
   marquee:
     "pointer-events-none absolute z-[5] rounded-[3px] border border-accent-blue/80 bg-accent-blue/15",
   tableScroll:
     "kura-transient-scrollbar relative kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
   table: cn(
-    "w-full min-w-[720px] table-fixed border-collapse max-[720px]:min-w-0",
-    "max-[720px]:[&_td:first-child]:w-[64%]",
-    "max-[720px]:[&_td:nth-child(2)]:w-[36%]",
-    "max-[720px]:[&_td:nth-child(n+3)]:hidden",
-    "max-[720px]:[&_th:first-child]:w-[64%]",
-    "max-[720px]:[&_th:nth-child(2)]:w-[36%]",
-    "max-[720px]:[&_th:nth-child(n+3)]:hidden",
+    "w-full min-w-[640px] table-fixed border-collapse",
+    // The column widths are inline styles; a narrow pane overrides them.
+    "@max-[640px]:w-full! @max-[640px]:min-w-0!",
+    "@max-[640px]:[&_col:first-child]:w-[58%]! @max-[640px]:[&_col:nth-child(2)]:w-[42%]!",
+    "@max-[640px]:[&_col:nth-child(n+3)]:w-0!",
+    // Very narrow panes show names only.
+    "@max-[340px]:[&_col:first-child]:w-full! @max-[340px]:[&_col:nth-child(2)]:w-0!",
+    "@max-[340px]:[&_td:nth-child(2)]:hidden @max-[340px]:[&_th:nth-child(2)]:hidden",
+    "@max-[640px]:[&_td:first-child]:w-[58%]",
+    "@max-[640px]:[&_td:nth-child(2)]:w-[42%]",
+    "@max-[640px]:[&_td:nth-child(n+3)]:hidden",
+    "@max-[640px]:[&_th:first-child]:w-[58%]",
+    "@max-[640px]:[&_th:nth-child(2)]:w-[42%]",
+    "@max-[640px]:[&_th:nth-child(n+3)]:hidden",
   ),
   tableHeadCell: "group/header relative overflow-hidden whitespace-nowrap",
-  tableHeadFiller: "bg-transparent p-0 shadow-none max-[720px]:hidden",
+  tableHeadFiller: "bg-transparent p-0 shadow-none @max-[640px]:hidden",
   tableSort: cn(
-    "-mx-2 flex h-10 w-[calc(100%+1rem)] min-w-0 justify-start gap-1.5",
+    "-mx-2 flex h-8 w-[calc(100%+1rem)] min-w-0 items-center justify-start gap-1.5 text-[12px]",
     "overflow-hidden rounded-none border-0 bg-transparent px-2 py-0 text-left",
     "font-medium text-cream-muted shadow-none hover:bg-transparent",
     "hover:text-cream",
@@ -54,11 +63,11 @@ export const fileBrowserStyles = {
     "cursor-col-resize after:absolute after:inset-x-0 after:bottom-[8px] after:mx-auto",
     "after:top-[8px] after:w-px after:bg-transparent",
     "after:content-[''] group-hover/header:after:bg-charcoal-border",
-    "max-[720px]:hidden",
+    "@max-[640px]:hidden",
   ),
   tableResizeHandleActive: "after:!bg-charcoal-active",
   tableRow: cn(
-    "group/file-row cursor-default select-none border-b-0 outline-none",
+    "group/file-row cursor-default select-none border-b-0 text-[13px] outline-none",
     "hover:bg-charcoal-card data-[state=selected]:bg-selection",
     "data-[state=selected]:text-cream focus-visible:relative",
     "focus-visible:z-[2] focus-visible:ring-2 focus-visible:ring-inset",
@@ -76,7 +85,7 @@ export const fileBrowserStyles = {
   directorySizeDots: "inline-flex h-5 w-8 items-center gap-1 align-middle",
   directorySizeDot:
     "size-1.5 rounded-full bg-cream-muted opacity-85 motion-safe:animate-bounce",
-  tableFillerCell: "p-0 max-[720px]:hidden",
+  tableFillerCell: "p-0 @max-[640px]:hidden",
   tableNameCell: "cursor-default select-none overflow-hidden",
   tableNameCellEditing: "overflow-visible",
   tableNameText:
@@ -90,22 +99,20 @@ export const fileBrowserStyles = {
     "kura-transient-scrollbar kura-file-browser-scrollbar min-h-0 min-w-0 overflow-auto [contain:layout_paint] [overscroll-behavior:contain]",
   gridSizer: "relative min-w-0",
   grid: cn(
-    "absolute left-[3px] right-[3px] grid content-start gap-[18px]",
+    "absolute left-[3px] right-[3px] grid content-start justify-start gap-3",
     "[[data-compact-mode=true]_&]:left-0.5",
     "[[data-compact-mode=true]_&]:right-0.5",
-    "[[data-compact-mode=true]_&]:gap-2.5",
+    "[[data-compact-mode=true]_&]:gap-2",
   ),
   gridItem: cn(
-    "group/file-row relative grid min-h-[156px] min-w-0 content-start",
-    "cursor-default justify-items-center gap-3 rounded-md border",
-    "border-transparent bg-transparent px-1.5 py-4 text-cream-muted",
+    "group/file-row relative grid min-w-0 content-start",
+    "cursor-default justify-items-center gap-2 rounded-md border",
+    "border-transparent bg-transparent px-1 py-2.5 text-cream-muted",
     "outline-none hover:bg-charcoal-card hover:text-cream",
     "aria-pressed:bg-selection aria-pressed:text-cream",
     "focus-visible:border-charcoal-active focus-visible:ring-1",
     "focus-visible:ring-charcoal-active",
-    "[[data-compact-mode=true]_&]:min-h-[132px]",
-    "[[data-compact-mode=true]_&]:gap-2.5 [[data-compact-mode=true]_&]:px-1",
-    "[[data-compact-mode=true]_&]:py-3",
+    "[[data-compact-mode=true]_&]:gap-1.5 [[data-compact-mode=true]_&]:py-2",
   ),
   gridItemSelected:
     "selected bg-selection text-cream hover:bg-selection hover:text-cream",
@@ -119,7 +126,7 @@ export const fileBrowserStyles = {
   gridThumbImage: "h-full w-full object-cover",
   gridThumbIcon: "grid aspect-[5/3] w-full place-items-center",
   gridNameText:
-    "line-clamp-2 min-h-[2.5rem] max-w-full overflow-hidden break-words text-center text-sm font-medium leading-snug text-cream/90",
+    "line-clamp-2 max-w-full overflow-hidden break-words text-center text-[12px] leading-[1.3] text-cream/90",
   inlineEditor:
     "inline-name-editor relative inline-flex min-w-0 max-w-full items-center",
   inlineEditorGrid: "w-full justify-center",
@@ -142,11 +149,13 @@ export const fileBrowserStyles = {
   footer: cn(
     "flex min-h-9 min-w-0 items-center justify-between gap-3 overflow-hidden",
     "border-t border-transparent bg-transparent px-3 py-1.5 text-xs",
-    "text-cream-muted max-[720px]:min-h-8 max-[720px]:px-2.5 max-[720px]:py-0",
-    "max-[720px]:text-[11px]",
+    "text-cream-muted @max-[640px]:min-h-8 @max-[640px]:px-2.5 @max-[640px]:py-0",
+    "@max-[640px]:text-[11px]",
   ),
   footerGroup: "flex min-w-0 items-center gap-2 overflow-hidden",
   footerItem: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
   empty: "p-6 text-cream-muted",
+  emptyFolder:
+    "pointer-events-none absolute inset-x-0 top-10 bottom-9 grid place-items-center px-6 text-center text-[13px] text-cream-muted",
   emptyError: "text-cream-muted",
 } as const;

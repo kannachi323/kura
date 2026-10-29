@@ -223,10 +223,13 @@ export function FileInspectorView(
                   : "-"
               }
             />
-            <Detail
-              label="Items"
-              value={itemsLabel(displayEntry, props.listing)}
-            />
+            {displayEntry?.kind === "folder" &&
+            itemsLabel(displayEntry, props.listing) !== "-" ? (
+              <Detail
+                label="Items"
+                value={itemsLabel(displayEntry, props.listing)}
+              />
+            ) : null}
             <Detail
               label="Modified"
               value={formatDate(

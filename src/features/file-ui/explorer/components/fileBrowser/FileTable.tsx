@@ -85,8 +85,9 @@ export function FileTable(
   const { compactModeEnabled } = useFileBrowserRuntime();
   const itemScale = normalizeItemScale(props.itemScale);
   // 40px rows by default (Finder-like density), 32px with Compact rows.
-  const rowHeight = (compactModeEnabled ? 24 : 32) + itemScale * 8;
-  const tableIconSize = 20;
+  // 30 px at the default size, close to Finder's list.
+  const rowHeight = (compactModeEnabled ? 20 : 24) + itemScale * 6;
+  const tableIconSize = itemScale === 0 ? 16 : itemScale === 1 ? 18 : 20;
   const rowCount = props.listing.entries.length;
   const tableWidth = columnOrder.reduce(
     (sum, column) => sum + columnWidths[column],

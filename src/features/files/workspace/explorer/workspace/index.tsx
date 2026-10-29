@@ -8,6 +8,7 @@ import {
   selectGeneralPreferences,
   useSettingsStore,
 } from "@/features/settings";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useTransientScrollbars } from "@/shared/hooks/useTransientScrollbars";
 import { secondaryWindow } from "@/shared/platform/tauri";
 import { appWindowSetFolder } from "../../native";
@@ -153,7 +154,12 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
     if (!settingsLoaded) return;
     useExplorerStore.setState({
       showHidden: filePreferences.showHiddenFiles,
-      viewMode: filePreferences.defaultViewModeIndex === 1 ? "grid" : "list",
+      viewMode:
+        filePreferences.defaultViewModeIndex === 1
+          ? "grid"
+          : filePreferences.defaultViewModeIndex === 2
+            ? "columns"
+            : "list",
     });
   }, [
     filePreferences.defaultViewModeIndex,
@@ -273,8 +279,11 @@ export const ExplorerWorkspace = memo(function ExplorerWorkspace(
   );
   const sidebarVisible =
     activeTabSidebarVisible && activePath !== transfersPath;
+  // Like Finder's preview, the inspector steps aside in a narrow window so
+  // the file list keeps its room; it comes back when the window widens.
+  const narrowWindow = useMediaQuery("(max-width: 760px)");
   const previewVisible =
-    activeTabPreviewVisible && activePath !== transfersPath;
+    activeTabPreviewVisible && activePath !== transfersPath && !narrowWindow;
   useEffect(() => {
     activePaneIdRef.current = activePaneId;
     activePathRef.current = activePath;

@@ -1242,3 +1242,90 @@ body {
 @utility layer-tooltip {
   z-index: 2147483500;
 }
+
+/* Rendered Markdown in previews: a small type scale on the theme's tokens. */
+@layer components {
+  .kura-markdown {
+    color: var(--color-cream);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .kura-markdown > * + * {
+    margin-top: 0.85em;
+  }
+  .kura-markdown h1,
+  .kura-markdown h2,
+  .kura-markdown h3,
+  .kura-markdown h4 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.4em;
+  }
+  .kura-markdown > :first-child {
+    margin-top: 0;
+  }
+  .kura-markdown h1 {
+    font-size: 1.6em;
+  }
+  .kura-markdown h2 {
+    font-size: 1.3em;
+  }
+  .kura-markdown h3 {
+    font-size: 1.1em;
+  }
+  .kura-markdown a {
+    color: var(--color-accent-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .kura-markdown ul,
+  .kura-markdown ol {
+    padding-left: 1.4em;
+  }
+  .kura-markdown ul {
+    list-style: disc;
+  }
+  .kura-markdown ol {
+    list-style: decimal;
+  }
+  .kura-markdown li + li {
+    margin-top: 0.25em;
+  }
+  .kura-markdown code {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--color-charcoal-card);
+  }
+  .kura-markdown pre {
+    overflow-x: auto;
+    padding: 0.8em 1em;
+    border-radius: 6px;
+    background: var(--color-charcoal-card);
+  }
+  .kura-markdown pre code {
+    padding: 0;
+    background: none;
+  }
+  .kura-markdown blockquote {
+    padding-left: 1em;
+    border-left: 3px solid var(--color-charcoal-border);
+    color: var(--color-cream-muted);
+  }
+  .kura-markdown hr {
+    border: 0;
+    border-top: 1px solid var(--color-charcoal-border);
+  }
+  .kura-markdown table {
+    border-collapse: collapse;
+  }
+  .kura-markdown th,
+  .kura-markdown td {
+    padding: 0.35em 0.75em;
+    border: 1px solid var(--color-charcoal-border);
+  }
+  .kura-markdown img {
+    max-width: 100%;
+  }
+}

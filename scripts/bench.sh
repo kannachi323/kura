@@ -29,3 +29,6 @@ console.log(`  JSON.parse median ${times[2].toFixed(1)} ms (Node; the webview is
 ' "$work/listing.json"
 
 "$bench" search "$work/files" "$work/data"
+
+# Event-to-commit latency of the index watcher for single changes.
+"$bench" watch "$work/files" "$work/data-watch" 20

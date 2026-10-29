@@ -13,10 +13,12 @@ export const toolbarStyles = {
     "max-[980px]:grid-cols-[auto_minmax(180px,1fr)_auto]",
   ),
   actionRow:
-    "grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center justify-between gap-2 overflow-hidden border-t border-charcoal-border/60 px-3 py-1.5",
+    "@container/actions grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center justify-between gap-2 overflow-hidden border-t border-charcoal-border/60 px-3 py-1.5",
   navButtons: "flex min-w-0 flex-none items-center gap-1",
+  // In a narrow toolbar only New stays; the edit actions are in the
+  // context menu and keyboard shortcuts.
   actionLeft:
-    "flex min-w-0 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+    "flex min-w-0 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden @max-[680px]/actions:[&>*:not(:first-child)]:hidden",
   navigationButton: "size-8 rounded-md text-cream-muted shadow-none",
   pathBar: cn(
     "flex h-9 min-w-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden",
@@ -25,10 +27,10 @@ export const toolbarStyles = {
   ),
   pathBarEditing: "border-charcoal-border",
   pathButton:
-    "h-7 min-w-fit flex-none gap-0 rounded-sm px-1.5 text-sm font-normal text-cream shadow-none",
+    "h-7 min-w-fit flex-none gap-0 rounded-sm px-1.5 text-[13px] font-normal text-cream shadow-none",
   pathInput: cn(
     "h-full min-w-0 w-full appearance-none rounded-none border-0",
-    "bg-transparent p-0 font-[inherit] leading-none text-cream shadow-none",
+    "bg-transparent p-0 font-[inherit] text-[13px] leading-none text-cream shadow-none",
     "outline-none ring-0 focus-visible:ring-0 placeholder:text-cream-muted",
   ),
   breadcrumbCaret: "mr-1.5 flex-none text-cream-muted/70",

@@ -89,6 +89,8 @@ export const useSearchStore = create<SearchStore>((set, get) => ({
         maxDepth: searchPreferences.maxDepth,
         ignoredPaths: searchPreferences.ignoredPaths,
         incremental: true,
+        // Live updates between scans follow "Index files automatically".
+        watch: searchPreferences.automaticFileDiscoveryEnabled,
       });
       set({ status, currentPath, error: null });
       scheduleStatusPolling();

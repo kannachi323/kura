@@ -178,6 +178,8 @@ export interface SearchScanRequest {
   maxDepth?: number | null;
   ignoredPaths?: string[];
   incremental?: boolean;
+  /** Keep the local roots current from file-system events between scans. */
+  watch?: boolean;
 }
 export interface SearchQueryRequest {
   query: string;

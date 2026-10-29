@@ -37,12 +37,14 @@ import { formatBytes, formatDate } from "@/shared/lib/fileFormat";
 import {
   isActiveTransfer,
   transferActions,
+  shortFolderPath,
   transferEndpoints,
   transferSections,
   transferStatus,
   type TransferSection,
 } from "./transferModel";
 import { transfersPageSize, useTransfers } from "./useTransfers";
+import { useAppStore } from "@/features/app-shell";
 
 /** Inherits the Spaces collection geometry; operational status stays monochrome. */
 export function TransfersPage() {
@@ -65,6 +67,7 @@ export function TransfersPage() {
   const operations = new Map(
     data.queue?.operations.map((op) => [op.operationId, op]),
   );
+  const homeDir = useAppStore((state) => state.app?.environment.homeDir ?? "");
   const columns: CollectionColumn[] = [
     {
       key: "status",
@@ -85,10 +88,10 @@ export function TransfersPage() {
         const path = transferEndpoints(lookup.get(item.id)!)[key];
         return (
           <span
-            className="block max-w-56 truncate text-xs"
+            className="block max-w-48 truncate text-xs"
             title={path || undefined}
           >
-            {path || "—"}
+            {shortFolderPath(path, homeDir) || "—"}
           </span>
         );
       },

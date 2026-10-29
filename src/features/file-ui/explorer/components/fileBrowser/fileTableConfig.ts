@@ -4,8 +4,6 @@ import type {
 } from "../../model/types/components/FileBrowser";
 
 export const TABLE_OVERSCAN_ROWS = 4;
-export const GRID_ITEM_HEIGHT = 156;
-export const GRID_GAP = 18;
 export const GRID_PADDING = 3;
 export const GRID_SCROLLBAR_RESERVE = 14;
 export const GRID_OVERSCAN_ROWS = 2;

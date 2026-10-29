@@ -114,6 +114,9 @@ export function searchStartScan(
 export function searchCancelScan(): Promise<SearchStatus> {
   return invokeSearch("search_cancel_scan");
 }
+export function searchStopWatching(): Promise<void> {
+  return invokeSearch("search_stop_watching");
+}
 export function searchQuery(
   request: SearchQueryRequest,
 ): Promise<SearchResult[]> {

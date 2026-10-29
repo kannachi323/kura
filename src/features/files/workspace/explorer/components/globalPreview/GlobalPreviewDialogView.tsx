@@ -267,17 +267,12 @@ export function GlobalPreviewDialogView(props: {
                 ) : null}
               </div>
             </main>
-            <aside className="min-h-0 overflow-y-auto border-l border-charcoal-border bg-charcoal-card p-5 max-[820px]:hidden">
-              <div className="grid gap-5">
-                <div>
-                  <span className="text-[11px] font-medium text-cream-muted">
-                    Inspector
-                  </span>
-                  <h2 className="m-0 mt-2 break-words text-lg font-semibold">
-                    {props.source.name}
-                  </h2>
-                </div>
-                <dl className="m-0 grid gap-4">
+            <aside className="min-h-0 overflow-y-auto overflow-x-hidden border-l border-charcoal-border bg-charcoal-card p-4 max-[820px]:hidden">
+              <div className="grid gap-4">
+                <h2 className="m-0 break-words text-[13px] font-semibold">
+                  {props.source.name}
+                </h2>
+                <dl className="m-0 grid gap-1.5">
                   <InspectorDetail
                     label="Kind"
                     value={kindLabel({

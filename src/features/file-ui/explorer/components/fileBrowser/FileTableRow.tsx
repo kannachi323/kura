@@ -163,7 +163,7 @@ function FileTableCell(props: {
           className={`${fileBrowserStyles.tableNameCell} ${props.inlineEdit ? fileBrowserStyles.tableNameCellEditing : ""}`}
           style={{ height: props.rowHeight }}
         >
-          <span className="flex min-w-0 items-center gap-2 font-medium">
+          <span className="flex min-w-0 items-center gap-2 text-cream">
             <span className={fileBrowserStyles.tableIconSlot}>
               <FileIcon
                 entry={props.entry}

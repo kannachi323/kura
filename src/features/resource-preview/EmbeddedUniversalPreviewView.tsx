@@ -131,7 +131,7 @@ export function EmbeddedUniversalPreviewView(props: {
     );
   if (resource?.kind === "markdown")
     return (
-      <article className="prose prose-invert mx-auto h-full w-full max-w-4xl overflow-auto px-8 py-10">
+      <article className="kura-markdown mx-auto h-full w-full max-w-3xl overflow-auto px-8 py-10">
         <Suspense fallback={<span>Rendering Markdown…</span>}>
           <ReactMarkdown>{resource.text ?? ""}</ReactMarkdown>
         </Suspense>

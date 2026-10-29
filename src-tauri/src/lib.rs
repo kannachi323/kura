@@ -172,6 +172,7 @@ pub fn run() {
             app::commands::search_init,
             app::commands::search_query,
             app::commands::search_start_scan,
+            app::commands::search_stop_watching,
             app::commands::settings_open_with_associations,
             app::commands::settings_save,
             app::commands::settings_snapshot,

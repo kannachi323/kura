@@ -301,6 +301,12 @@ pub async fn search_cancel_scan(state: State<'_, KuraRuntime>) -> ApiResult<Sear
 }
 
 #[tauri::command]
+pub async fn search_stop_watching(state: State<'_, KuraRuntime>) -> ApiResult<()> {
+    state.search.stop_watching();
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn search_query(
     request: SearchQueryRequest,
     state: State<'_, KuraRuntime>,

@@ -39,7 +39,7 @@ export function SettingsNavigation<Id extends string>(props: {
                 label={entry.label}
                 open={false}
                 aria-expanded={undefined}
-                showChevron={entry.hasSections}
+                showChevron={false}
                 aria-current={props.activeId === entry.id ? "page" : undefined}
                 data-settings-nav-entry={entry.id}
                 className={cn(

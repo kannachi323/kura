@@ -91,6 +91,7 @@ function GeneralSection() {
             options={[
               { value: "0", label: "List" },
               { value: "1", label: "Grid" },
+              { value: "2", label: "Columns" },
             ]}
             onValueChange={(value) =>
               void update("files", "default_view_mode_index", Number(value))

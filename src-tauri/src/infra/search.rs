@@ -57,7 +57,12 @@ struct SearchInner {
     home_dir: PathBuf,
     state: RwLock<SearchState>,
     cancel_flag: Arc<AtomicBool>,
+    /// Applies file-system changes below the indexed roots between scans.
+    watch: Mutex<Option<watch::IndexWatch>>,
+    watch_listener: Mutex<Option<WatchListener>>,
 }
+
+type WatchListener = Arc<dyn Fn(&SearchWatchReport) + Send + Sync>;
 
 struct SearchState {
     status: SearchStatus,
@@ -137,6 +142,9 @@ pub struct SearchScanRequest {
     pub ignored_paths: Vec<String>,
     #[serde(default = "default_true")]
     pub incremental: bool,
+    /// Keep the local roots current from file-system events between scans.
+    #[serde(default = "default_true")]
+    pub watch: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -280,6 +288,29 @@ struct SearchScanChanges {
     unchanged: u64,
 }
 
+/// What one path-level update did.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SearchPathChanges {
+    pub added: u64,
+    pub updated: u64,
+    pub removed: u64,
+    pub unchanged: u64,
+    /// Whether a new index was published; `false` when nothing changed.
+    pub published: bool,
+}
+
+/// One batch of file-system events applied by the index watcher.
+#[derive(Debug, Clone)]
+pub struct SearchWatchReport {
+    pub changes: SearchPathChanges,
+    /// When the watcher received the batch's first event.
+    pub first_event: std::time::Instant,
+    /// When the batch went quiet and its update began.
+    pub applying: std::time::Instant,
+    /// When the update was committed (and, if anything changed, published).
+    pub committed: std::time::Instant,
+}
+
 struct CompletedSearchScan {
     /// The newly published index, or `None` when nothing changed and the
     /// live index was left untouched.
@@ -337,6 +368,8 @@ impl SearchService {
                     opened: None,
                 }),
                 cancel_flag: Arc::new(AtomicBool::new(false)),
+                watch: Mutex::new(None),
+                watch_listener: Mutex::new(None),
             }),
         }
     }
@@ -440,6 +473,12 @@ impl SearchService {
 
     pub async fn start_scan(&self, request: SearchScanRequest) -> ApiResult<SearchStatus> {
         self.init().await?;
+        // Every scan request carries the current roots and filters, so it
+        // also (re)configures the watcher, even when the scan itself is
+        // skipped below.
+        if let Err(error) = self.watch(&request) {
+            eprintln!("kura: search index won't follow file changes: {error}");
+        }
         if self
             .inner
             .state
@@ -765,21 +804,8 @@ impl SearchService {
                 .map_err(|error| ApiError::Message(error.to_string()))?;
             state.status.scan_phase = SearchScanPhase::Committing;
         }
-        let StagedIndex {
-            index,
-            mut writer,
-            manifest,
-            ..
-        } = staged;
-        writer
-            .commit()
-            .map_err(|error| ApiError::Message(error.to_string()))?;
-        commit_manifest_update(&manifest)?;
-        drop(writer);
-        drop(index);
-        let (local_count, remote_count) = manifest_source_counts(&manifest)?;
-        compact_manifest(&manifest)?;
-        drop(manifest);
+        let (local_count, remote_count) =
+            commit_staged(staged, false, true)?.expect("counted catalog");
         if self.scan_canceled() {
             return Err(ApiError::Message("Search scan canceled.".into()));
         }
@@ -839,36 +865,195 @@ impl SearchService {
             let Ok(metadata) = entry.metadata() else {
                 continue;
             };
-            let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            let Some(doc) = local_doc(path, &metadata) else {
                 continue;
-            };
-            let doc = SearchDoc {
-                path: display_path(path),
-                name: name.to_string(),
-                extension: path
-                    .extension()
-                    .and_then(|value| value.to_str())
-                    .unwrap_or_default()
-                    .to_ascii_lowercase(),
-                source_kind: SearchSourceKind::Local,
-                provider_type: String::new(),
-                remote_name: String::new(),
-                remote_path: String::new(),
-                mime_type: String::new(),
-                is_file: metadata.is_file(),
-                is_dir: metadata.is_dir(),
-                size: if metadata.is_file() {
-                    metadata.len()
-                } else {
-                    0
-                },
-                modified_ms: metadata_modified_ms(&metadata),
-                hidden: name.starts_with('.'),
             };
             sink.accept(doc)?;
             count += 1;
         }
         Ok(count)
+    }
+
+    /// Starts, reconfigures or stops the watcher that keeps `request`'s local
+    /// roots current between scans.
+    pub fn watch(&self, request: &SearchScanRequest) -> ApiResult<()> {
+        if !request.watch || !request.include_local {
+            self.stop_watching();
+            return Ok(());
+        }
+        let roots = local_roots(request, &self.inner.home_dir);
+        let mut current = self
+            .inner
+            .watch
+            .lock()
+            .map_err(|error| ApiError::Message(error.to_string()))?;
+        if let Some(watch) = current.as_ref().filter(|watch| watch.roots() == roots) {
+            watch.set_request(request.clone());
+            return Ok(());
+        }
+        // Dropping the old watcher ends its thread.
+        *current = None;
+        *current = Some(watch::IndexWatch::start(
+            Arc::downgrade(&self.inner),
+            request.clone(),
+            roots,
+            self.inner.index_root.clone(),
+        )?);
+        Ok(())
+    }
+
+    pub fn stop_watching(&self) {
+        if let Ok(mut current) = self.inner.watch.lock() {
+            *current = None;
+        }
+    }
+
+    /// Receives every batch the watcher applies (benchmarks, tests).
+    pub fn on_watch_update(&self, listener: impl Fn(&SearchWatchReport) + Send + Sync + 'static) {
+        if let Ok(mut current) = self.inner.watch_listener.lock() {
+            *current = Some(Arc::new(listener));
+        }
+    }
+
+    fn report_watch_update(&self, report: &SearchWatchReport) {
+        let listener = self
+            .inner
+            .watch_listener
+            .lock()
+            .ok()
+            .and_then(|listener| listener.clone());
+        if let Some(listener) = listener {
+            listener(report);
+        }
+    }
+
+    /// Applies changes at `paths` without walking the roots: what exists now
+    /// is added or updated, what is gone is removed with everything below it,
+    /// and a folder new to the catalog is indexed with its contents. Folders
+    /// in `rescan` (events were dropped below them) are walked and reconciled.
+    /// Paths outside `request`'s roots, deeper than its depth or excluded by
+    /// its filters are ignored, exactly as a scan would skip them.
+    ///
+    /// Publishes as a scan does: under the scan lock, through a staging copy
+    /// and `replace_index`. It does not count as a scan, so it leaves
+    /// `last_scan_time_ms` (and with it `MIN_SCAN_SPACING_MS`) alone and the
+    /// periodic incremental scan still runs. Returns `None`, changing nothing,
+    /// while a scan holds the index; the caller retries later.
+    pub fn apply_path_changes(
+        &self,
+        request: &SearchScanRequest,
+        paths: &[PathBuf],
+        rescan: &[PathBuf],
+    ) -> ApiResult<Option<SearchPathChanges>> {
+        let targets = PathTargets::new(self, request, paths, rescan);
+        if targets.is_empty() {
+            return Ok(Some(SearchPathChanges::default()));
+        }
+        let Some(_lock) = ScanLock::try_acquire(&self.inner.index_root)? else {
+            return Ok(None);
+        };
+        if !self
+            .inner
+            .live_index_dir
+            .join(SEARCH_MANIFEST_FILE)
+            .exists()
+        {
+            // Nothing to update yet; the first scan builds the catalog.
+            return Ok(Some(SearchPathChanges::default()));
+        }
+        let staging_dir =
+            self.inner
+                .index_root
+                .join(format!(".staging.{}.{}", now_ms(), std::process::id()));
+        let result = self.apply_path_targets(&targets, &staging_dir);
+        let _ = fs::remove_dir_all(&staging_dir);
+        result.map(Some)
+    }
+
+    fn apply_path_targets(
+        &self,
+        targets: &PathTargets,
+        staging_dir: &Path,
+    ) -> ApiResult<SearchPathChanges> {
+        let mut sink = ScanSink::probe(self, &self.inner.live_index_dir, staging_dir)?;
+        let mut pacer = ScanPacer::default();
+        for target in &targets.changed {
+            let text = display_path(&target.path);
+            match fs::symlink_metadata(&target.path) {
+                // Scans skip symbolic links, so one replacing an entry
+                // removes it.
+                Ok(metadata) if !metadata.file_type().is_symlink() => {
+                    let Some(doc) = local_doc(&target.path, &metadata) else {
+                        continue;
+                    };
+                    // A folder created or moved in brings its contents along,
+                    // often without an event for each of them.
+                    if metadata.is_dir() && sink.lookup(&search_doc_key(&doc))?.is_none() {
+                        targets.walk(target, &mut sink, &mut pacer)?;
+                    } else {
+                        sink.accept(doc)?;
+                    }
+                }
+                Ok(_) => sink.remove_unseen(&text)?,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    sink.remove_unseen(&text)?
+                }
+                Err(_) => {}
+            }
+        }
+        for target in &targets.rescan {
+            if target.path.is_dir() {
+                targets.walk(target, &mut sink, &mut pacer)?;
+            } else {
+                sink.remove_unseen(&display_path(&target.path))?;
+            }
+        }
+        let changes = sink.changes;
+        let mut result = SearchPathChanges {
+            added: changes.added,
+            updated: changes.updated,
+            removed: changes.removed,
+            unchanged: changes.unchanged,
+            published: false,
+        };
+        let Some(staged) = sink.finish()? else {
+            return Ok(result);
+        };
+        // Merges are cheap at this size; without waiting for them every
+        // update would leave one more small segment behind.
+        commit_staged(staged, true, false)?;
+        replace_index(staging_dir, &self.inner.live_index_dir)?;
+        let (index, reader, fields) = self.open_index(&self.inner.live_index_dir)?;
+        let count = reader.searcher().num_docs();
+        {
+            let mut state = self
+                .inner
+                .state
+                .write()
+                .map_err(|error| ApiError::Message(error.to_string()))?;
+            state.index = Some(index);
+            state.reader = Some(reader);
+            state.fields = Some(fields);
+            state.opened = index_stamp(&self.inner.live_index_dir);
+            state.status.index_size_bytes = dir_size(&self.inner.live_index_dir);
+            // Path updates only touch local entries, so the remote count
+            // stands and the index's own document count gives the rest
+            // without reading the whole catalog.
+            let remote_count = state.status.indexed_remote_item_count.min(count);
+            let local_count = count - remote_count;
+            state.status.indexed_item_count = count;
+            state.status.indexed_local_item_count = local_count;
+            // Only the counts change; the last scan's record is kept as
+            // written, even if another process wrote it.
+            let mut meta = read_meta(&self.inner.index_root)
+                .filter(|meta| meta.schema_version == SEARCH_SCHEMA_VERSION)
+                .unwrap_or_else(|| meta_from_status(&state.status));
+            meta.indexed_item_count = count;
+            meta.indexed_local_item_count = local_count;
+            let _ = write_meta(&self.inner.index_root, &meta);
+        }
+        result.published = true;
+        Ok(result)
     }
 
     fn set_scan_progress(&self, source: Option<String>, path: Option<String>) {
@@ -1107,6 +1292,128 @@ impl ScanFilter {
     }
 }
 
+/// The paths of one path-level update that a scan of the same request would
+/// visit, each with the root it lies under and its depth below that root.
+struct PathTargets {
+    roots: Vec<(PathBuf, ScanFilter)>,
+    max_depth: usize,
+    /// Sorted, so a folder comes before anything below it.
+    changed: Vec<PathTarget>,
+    rescan: Vec<PathTarget>,
+}
+
+struct PathTarget {
+    path: PathBuf,
+    root: usize,
+    depth: usize,
+}
+
+impl PathTargets {
+    fn new(
+        service: &SearchService,
+        request: &SearchScanRequest,
+        paths: &[PathBuf],
+        rescan: &[PathBuf],
+    ) -> Self {
+        let mut targets = Self {
+            roots: Vec::new(),
+            max_depth: request.max_depth.unwrap_or(DEFAULT_MAX_DEPTH).max(1),
+            changed: Vec::new(),
+            rescan: Vec::new(),
+        };
+        if !request.include_local {
+            return targets;
+        }
+        let home = &service.inner.home_dir;
+        let ignored = ignored_paths(&request.ignored_paths, &service.inner.excluded_index_root);
+        let privacy = crate::infra::macos_privacy::BackgroundScanExclusions::new(home);
+        targets.roots = local_roots(request, home)
+            .into_iter()
+            .map(|root| {
+                let filter =
+                    ScanFilter::new(&root, home, &service.inner.mount_root, &ignored, &privacy);
+                (root, filter)
+            })
+            .collect();
+        let paths: std::collections::BTreeSet<&PathBuf> = paths.iter().collect();
+        // A root itself is not an entry of the catalog.
+        targets.changed = paths
+            .into_iter()
+            .filter_map(|path| targets.locate(path))
+            .filter(|target| target.depth > 0)
+            .collect();
+        let rescan: std::collections::BTreeSet<&PathBuf> = rescan.iter().collect();
+        targets.rescan = rescan
+            .into_iter()
+            .filter_map(|path| targets.locate(path))
+            .collect();
+        targets
+    }
+
+    fn is_empty(&self) -> bool {
+        self.changed.is_empty() && self.rescan.is_empty()
+    }
+
+    fn locate(&self, path: &Path) -> Option<PathTarget> {
+        self.roots
+            .iter()
+            .enumerate()
+            .find_map(|(index, (root, filter))| {
+                let relative = path.strip_prefix(root).ok()?;
+                let depth = relative.components().count();
+                if depth > self.max_depth {
+                    return None;
+                }
+                // A scan skips an excluded folder with everything below it.
+                let mut current = root.clone();
+                for component in relative.components() {
+                    current.push(component);
+                    if filter.excludes(&current) {
+                        return None;
+                    }
+                }
+                Some(PathTarget {
+                    path: path.to_path_buf(),
+                    root: index,
+                    depth,
+                })
+            })
+    }
+
+    /// Walks the folder at `target` (and indexes the folder itself, unless it
+    /// is a root) as a scan would, then removes what the catalog holds below
+    /// it that is no longer there.
+    fn walk(
+        &self,
+        target: &PathTarget,
+        sink: &mut ScanSink<'_>,
+        pacer: &mut ScanPacer,
+    ) -> ApiResult<()> {
+        let filter = &self.roots[target.root].1;
+        for entry in WalkDir::new(&target.path)
+            .follow_links(false)
+            .max_depth(self.max_depth - target.depth)
+            .into_iter()
+            .filter_entry(|entry| entry.depth() == 0 || !filter.excludes(entry.path()))
+        {
+            pacer.pace();
+            let Ok(entry) = entry else {
+                continue;
+            };
+            if (entry.depth() == 0 && target.depth == 0) || entry.file_type().is_symlink() {
+                continue;
+            }
+            let Ok(metadata) = entry.metadata() else {
+                continue;
+            };
+            if let Some(doc) = local_doc(entry.path(), &metadata) {
+                sink.accept(doc)?;
+            }
+        }
+        sink.remove_unseen(&display_path(&target.path))
+    }
+}
+
 fn generated_home_area(path: &Path, home: &Path) -> bool {
     let Ok(relative) = path.strip_prefix(home) else {
         return false;
@@ -1231,6 +1538,19 @@ fn missing_local_keys(
         }
     }
     Ok((total, missing))
+}
+
+/// Keys of the local entries strictly below `path`.
+fn local_keys_below(connection: &Connection, path: &str) -> ApiResult<Vec<String>> {
+    let (lower, upper) = local_key_range(path);
+    let mut statement = connection
+        .prepare_cached("SELECT doc_key FROM search_docs WHERE doc_key>?1 AND doc_key<?2")
+        .map_err(search_manifest_error)?;
+    let keys = statement
+        .query_map(params![lower, upper], |row| row.get::<_, String>(0))
+        .map_err(search_manifest_error)?;
+    keys.collect::<Result<_, _>>()
+        .map_err(search_manifest_error)
 }
 
 fn lock_manifest(manifest: &Mutex<Connection>) -> ApiResult<std::sync::MutexGuard<'_, Connection>> {
@@ -1410,6 +1730,42 @@ impl<'a> ScanSink<'a> {
         drop(manifest);
         self.changes.removed += missing.len() as u64;
         Ok(true)
+    }
+
+    /// Removes the local entry at `path` and everything below it, except
+    /// what this update has seen.
+    fn remove_unseen(&mut self, path: &str) -> ApiResult<()> {
+        let key = format!("local\u{0}{path}");
+        let mut keys = match (&self.staged, &self.probe) {
+            (Some(staged), _) => local_keys_below(&*lock_manifest(&staged.manifest)?, path)?,
+            (None, Some(probe)) => local_keys_below(probe, path)?,
+            (None, None) => Vec::new(),
+        };
+        if self.lookup(&key)?.is_some() {
+            keys.push(key);
+        }
+        keys.retain(|key| !self.seen.contains(&key_hash(key)));
+        if keys.is_empty() {
+            return Ok(());
+        }
+        let staged = self.stage()?;
+        let manifest = lock_manifest(&staged.manifest)?;
+        let mut delete = manifest
+            .prepare_cached("DELETE FROM search_docs WHERE doc_key=?1")
+            .map_err(search_manifest_error)?;
+        for key in &keys {
+            let Some(path) = key.strip_prefix("local\u{0}") else {
+                continue;
+            };
+            delete_doc(&staged.writer, &staged.fields, path)?;
+            delete
+                .execute(params![key])
+                .map_err(search_manifest_error)?;
+        }
+        drop(delete);
+        drop(manifest);
+        self.changes.removed += keys.len() as u64;
+        Ok(())
     }
 
     fn finish(self) -> ApiResult<Option<StagedIndex>> {
@@ -1736,6 +2092,39 @@ fn search_manifest_error(error: rusqlite::Error) -> ApiError {
     ApiError::Message(format!("Search catalog database failed: {error}"))
 }
 
+/// Commits a staged catalog in its staging directory, ready to publish.
+/// Returns its local and remote entry counts when asked; counting reads the
+/// whole catalog.
+fn commit_staged(
+    staged: StagedIndex,
+    wait_for_merges: bool,
+    count: bool,
+) -> ApiResult<Option<(u64, u64)>> {
+    let StagedIndex {
+        index,
+        mut writer,
+        manifest,
+        ..
+    } = staged;
+    writer
+        .commit()
+        .map_err(|error| ApiError::Message(error.to_string()))?;
+    commit_manifest_update(&manifest)?;
+    if wait_for_merges {
+        writer
+            .wait_merging_threads()
+            .map_err(|error| ApiError::Message(error.to_string()))?;
+    } else {
+        drop(writer);
+    }
+    drop(index);
+    let counts = count
+        .then(|| manifest_source_counts(&manifest))
+        .transpose()?;
+    compact_manifest(&manifest)?;
+    Ok(counts)
+}
+
 fn replace_index(staging: &Path, live: &Path) -> ApiResult<()> {
     let backup = live.with_extension(format!("backup.{}", now_ms()));
     if live.exists() {
@@ -1925,7 +2314,7 @@ fn token_score(query: &str, name: &str) -> f32 {
             } else if name_token.contains(query_token) {
                 best = best.max(0.74);
             } else {
-                let distance = levenshtein(query_token, name_token);
+                let distance = edit_distance(query_token, name_token);
                 let max_len = query_token.len().max(name_token.len());
                 if distance <= 2 && max_len > 0 {
                     best = best.max((1.0 - distance as f32 / max_len as f32) * 0.7);
@@ -2063,19 +2452,27 @@ fn normalize_case(value: &str) -> String {
     value.trim().to_lowercase()
 }
 
-fn levenshtein(first: &str, second: &str) -> usize {
+/// Optimal string alignment distance: Levenshtein plus swapping two adjacent
+/// characters as a single edit, so "invioce" is one typo away from "invoice".
+fn edit_distance(first: &str, second: &str) -> usize {
     let a: Vec<char> = first.chars().collect();
     let b: Vec<char> = second.chars().collect();
+    let mut before_previous = vec![0; b.len() + 1];
     let mut previous: Vec<usize> = (0..=b.len()).collect();
     let mut current = vec![0; b.len() + 1];
     for (i, a_char) in a.iter().enumerate() {
         current[0] = i + 1;
         for (j, b_char) in b.iter().enumerate() {
             let cost = usize::from(a_char != b_char);
-            current[j + 1] = (previous[j + 1] + 1)
+            let mut best = (previous[j + 1] + 1)
                 .min(current[j] + 1)
                 .min(previous[j] + cost);
+            if i > 0 && j > 0 && *a_char == b[j - 1] && a[i - 1] == *b_char {
+                best = best.min(before_previous[j - 1] + 1);
+            }
+            current[j + 1] = best;
         }
+        std::mem::swap(&mut before_previous, &mut previous);
         std::mem::swap(&mut previous, &mut current);
     }
     previous[b.len()]
@@ -2114,6 +2511,34 @@ fn is_ignored(path: &Path, ignored: &[PathBuf]) -> bool {
         } else {
             name == ignored_path.to_string_lossy()
         }
+    })
+}
+
+/// The catalog entry for a local file or folder.
+fn local_doc(path: &Path, metadata: &fs::Metadata) -> Option<SearchDoc> {
+    let name = path.file_name().and_then(|value| value.to_str())?;
+    Some(SearchDoc {
+        path: display_path(path),
+        name: name.to_string(),
+        extension: path
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase(),
+        source_kind: SearchSourceKind::Local,
+        provider_type: String::new(),
+        remote_name: String::new(),
+        remote_path: String::new(),
+        mime_type: String::new(),
+        is_file: metadata.is_file(),
+        is_dir: metadata.is_dir(),
+        size: if metadata.is_file() {
+            metadata.len()
+        } else {
+            0
+        },
+        modified_ms: metadata_modified_ms(metadata),
+        hidden: name.starts_with('.'),
     })
 }
 
@@ -2240,6 +2665,75 @@ mod rule_tests {
             &failing,
             &SearchRuleMatchMode::Any
         ));
+    }
+}
+
+#[cfg(test)]
+mod fuzzy_tests {
+    use super::*;
+
+    /// Whether a search for `query` keeps a file called `name`, using the
+    /// same score and threshold as `SearchService::search`.
+    fn matches(query: &str, name: &str) -> bool {
+        let query = normalize_case(query);
+        let doc = SearchDoc {
+            path: format!("/Users/test/Documents/{name}"),
+            name: name.to_owned(),
+            extension: String::new(),
+            source_kind: SearchSourceKind::Local,
+            provider_type: String::new(),
+            remote_name: String::new(),
+            remote_path: String::new(),
+            mime_type: String::new(),
+            is_file: true,
+            is_dir: false,
+            size: 0,
+            modified_ms: 0,
+            hidden: false,
+        };
+        score_result(&query, &doc, "") >= min_score(query.len())
+    }
+
+    #[test]
+    fn adjacent_swap_counts_as_one_edit() {
+        assert_eq!(edit_distance("invioce", "invoice"), 1);
+        assert_eq!(edit_distance("resmue", "resume"), 1);
+        assert_eq!(edit_distance("ab", "ba"), 1);
+        assert_eq!(edit_distance("invoice", "invoice"), 0);
+        assert_eq!(edit_distance("", "abc"), 3);
+        assert_eq!(edit_distance("sumary", "summary"), 1);
+        assert_eq!(edit_distance("kitten", "sitting"), 3);
+        // Optimal string alignment: a swapped pair is not edited again.
+        assert_eq!(edit_distance("ca", "abc"), 3);
+    }
+
+    #[test]
+    fn swapped_letters_find_the_file() {
+        assert!(matches("invioce", "invoice-000123.pdf"));
+        assert!(matches("resmue", "Resume final.docx"));
+        assert!(matches("summray", "summary_q3.txt"));
+        assert!(matches("reprot 004", "report-000004.xlsx"));
+    }
+
+    #[test]
+    fn other_typos_still_find_the_file() {
+        assert!(matches("sumary", "summary_q3.txt"));
+        assert!(matches("bakup", "backup-2024.zip"));
+        assert!(matches("metting", "meeting notes.md"));
+        assert!(matches("scrnshot", "screenshot-000150.png"));
+        assert!(matches("invoice", "invoice-000123.pdf"));
+    }
+
+    #[test]
+    fn unrelated_names_do_not_match() {
+        assert!(!matches("resume", "rescue.txt"));
+        assert!(!matches("budget", "gadget.png"));
+        assert!(!matches("report", "import.csv"));
+        assert!(!matches("invioce", "voice-memo.m4a"));
+        assert!(!matches("resmue", "museum.jpg"));
+        // Short words need a near-exact match, swap or not.
+        assert!(!matches("act", "cat.png"));
+        assert!(!matches("teh", "the-plan.md"));
     }
 }
 
@@ -2415,6 +2909,327 @@ mod incremental_tests {
         assert!(filter.excludes(&home.join("Documents/Scratch")));
     }
 
+    fn request(root: &Path) -> SearchScanRequest {
+        SearchScanRequest {
+            roots: vec![display_path(root)],
+            include_local: true,
+            include_remotes: false,
+            remote_names: Vec::new(),
+            max_depth: None,
+            ignored_paths: Vec::new(),
+            incremental: true,
+            watch: false,
+        }
+    }
+
+    /// A service with its own data directory and a fully built index of `root`.
+    async fn built(name: &str, files: &[&str]) -> (SearchService, PathBuf, PathBuf) {
+        let base = temp(name);
+        let root = base.join("files");
+        for file in files {
+            let path = root.join(file);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            if file.ends_with('/') {
+                fs::create_dir_all(&path).unwrap();
+            } else {
+                fs::write(&path, b"x").unwrap();
+            }
+        }
+        let service = SearchService::new(AppEnvironmentService::new_with_data_root(Some(
+            base.join("data"),
+        )));
+        service
+            .start_scan(SearchScanRequest {
+                incremental: false,
+                ..request(&root)
+            })
+            .await
+            .unwrap();
+        loop {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let status = service.status().await.unwrap();
+            if !status.scan_in_progress {
+                assert_eq!(status.last_scan_error, None);
+                break;
+            }
+        }
+        (service, base, root)
+    }
+
+    /// The root-relative paths the published index holds, after checking
+    /// that its catalog agrees.
+    fn indexed(service: &SearchService, root: &Path) -> Vec<String> {
+        let (docs, rows) = published(service, root);
+        assert_eq!(docs, rows, "index and catalog disagree");
+        docs
+    }
+
+    /// The root-relative paths in the index the service searches, and in the
+    /// catalog on disk.
+    fn published(service: &SearchService, root: &Path) -> (Vec<String>, Vec<String>) {
+        let state = service.inner.state.read().unwrap();
+        let reader = state.reader.as_ref().unwrap();
+        let fields = state.fields.unwrap();
+        let searcher = reader.searcher();
+        let mut docs = Vec::new();
+        for (segment_ord, segment) in searcher.segment_readers().iter().enumerate() {
+            for doc_id in 0..segment.max_doc() {
+                if segment.is_deleted(doc_id) {
+                    continue;
+                }
+                let document = searcher
+                    .doc::<TantivyDocument>(tantivy::DocAddress::new(segment_ord as u32, doc_id))
+                    .unwrap();
+                docs.push(doc_from_tantivy(fields, &document).unwrap().path);
+            }
+        }
+        docs.sort();
+        let catalog =
+            Connection::open(service.inner.live_index_dir.join(SEARCH_MANIFEST_FILE)).unwrap();
+        let mut rows: Vec<String> = catalog
+            .prepare("SELECT path FROM search_docs ORDER BY path")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        rows.sort();
+        assert_eq!(state.status.indexed_item_count, docs.len() as u64);
+        let prefix = format!("{}/", display_path(root));
+        let relative = |paths: Vec<String>| -> Vec<String> {
+            paths
+                .iter()
+                .map(|path| path.strip_prefix(&prefix).unwrap_or(path).to_owned())
+                .collect()
+        };
+        (relative(docs), relative(rows))
+    }
+
+    fn changes(added: u64, updated: u64, removed: u64) -> (u64, u64, u64, bool) {
+        (added, updated, removed, added + updated + removed > 0)
+    }
+
+    fn apply(service: &SearchService, root: &Path, paths: &[&str]) -> (u64, u64, u64, bool) {
+        let paths: Vec<PathBuf> = paths.iter().map(|path| root.join(path)).collect();
+        let result = service
+            .apply_path_changes(&request(root), &paths, &[])
+            .unwrap()
+            .expect("no scan holds the index");
+        (
+            result.added,
+            result.updated,
+            result.removed,
+            result.published,
+        )
+    }
+
+    #[tokio::test]
+    async fn path_updates_create_modify_rename_and_delete_single_files() {
+        let (service, base, root) = built("paths", &["a.txt", "docs/b.txt"]).await;
+        assert_eq!(indexed(&service, &root), ["a.txt", "docs", "docs/b.txt"]);
+
+        fs::write(root.join("c.txt"), b"new").unwrap();
+        assert_eq!(apply(&service, &root, &["c.txt"]), changes(1, 0, 0));
+        assert_eq!(
+            indexed(&service, &root),
+            ["a.txt", "c.txt", "docs", "docs/b.txt"]
+        );
+
+        fs::write(root.join("a.txt"), b"longer contents").unwrap();
+        assert_eq!(apply(&service, &root, &["a.txt"]), changes(0, 1, 0));
+
+        // A rename arrives as the old path and the new one.
+        fs::rename(root.join("c.txt"), root.join("docs/d.txt")).unwrap();
+        assert_eq!(
+            apply(&service, &root, &["c.txt", "docs/d.txt"]),
+            changes(1, 0, 1)
+        );
+        assert_eq!(
+            indexed(&service, &root),
+            ["a.txt", "docs", "docs/b.txt", "docs/d.txt"]
+        );
+
+        fs::remove_file(root.join("a.txt")).unwrap();
+        assert_eq!(apply(&service, &root, &["a.txt"]), changes(0, 0, 1));
+        assert_eq!(
+            indexed(&service, &root),
+            ["docs", "docs/b.txt", "docs/d.txt"]
+        );
+
+        // Replaying events that are already applied publishes nothing.
+        assert_eq!(
+            apply(&service, &root, &["a.txt", "c.txt", "docs/d.txt"]),
+            changes(0, 0, 0)
+        );
+
+        // The renamed file is found by name in the published index.
+        let results = service
+            .query(SearchQueryRequest {
+                query: "d.txt".to_owned(),
+                current_path: None,
+                scope: SearchQueryScope::Everything,
+                include_files: true,
+                include_directories: true,
+                include_hidden: false,
+                limit: None,
+                rules: Vec::new(),
+                match_mode: SearchRuleMatchMode::All,
+            })
+            .await
+            .unwrap();
+        assert!(results
+            .iter()
+            .any(|result| result.entry.path == display_path(&root.join("docs/d.txt"))));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[tokio::test]
+    async fn renaming_or_deleting_a_folder_carries_everything_below_it() {
+        let (service, base, root) =
+            built("folders", &["docs/b.txt", "docs/sub/c.txt", "docs-x.txt"]).await;
+
+        fs::rename(root.join("docs"), root.join("papers")).unwrap();
+        // Only the folder's own two paths are reported for a rename.
+        assert_eq!(
+            apply(&service, &root, &["docs", "papers"]),
+            changes(4, 0, 4)
+        );
+        assert_eq!(
+            indexed(&service, &root),
+            [
+                "docs-x.txt",
+                "papers",
+                "papers/b.txt",
+                "papers/sub",
+                "papers/sub/c.txt"
+            ]
+        );
+
+        fs::remove_dir_all(root.join("papers")).unwrap();
+        assert_eq!(apply(&service, &root, &["papers"]), changes(0, 0, 4));
+        // A sibling that shares the folder's name as a prefix is untouched.
+        assert_eq!(indexed(&service, &root), ["docs-x.txt"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[tokio::test]
+    async fn path_updates_skip_what_a_scan_would_skip() {
+        let (service, base, root) = built("filters", &["keep/"]).await;
+        let outside = base.join("outside.txt");
+        fs::write(&outside, b"x").unwrap();
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::write(root.join("node_modules/pkg/index.js"), b"x").unwrap();
+        fs::create_dir_all(root.join("Archive")).unwrap();
+        fs::write(root.join("Archive/old.txt"), b"x").unwrap();
+        fs::create_dir_all(root.join("keep/deep")).unwrap();
+        fs::write(root.join("keep/deep/file.txt"), b"x").unwrap();
+
+        let filtered = SearchScanRequest {
+            max_depth: Some(2),
+            ignored_paths: vec!["Archive".to_owned()],
+            ..request(&root)
+        };
+        let paths = [
+            outside,
+            root.join("node_modules/pkg/index.js"),
+            root.join("Archive/old.txt"),
+            root.join("keep/deep/file.txt"),
+            root.clone(),
+        ];
+        let result = service
+            .apply_path_changes(&filtered, &paths, &[])
+            .unwrap()
+            .unwrap();
+        assert_eq!(result, SearchPathChanges::default());
+        assert_eq!(indexed(&service, &root), ["keep"]);
+
+        // Within the depth limit, a new folder is indexed down to it.
+        let result = service
+            .apply_path_changes(&filtered, &[root.join("keep/deep")], &[])
+            .unwrap()
+            .unwrap();
+        assert_eq!((result.added, result.published), (1, true));
+        assert_eq!(indexed(&service, &root), ["keep", "keep/deep"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[tokio::test]
+    async fn a_rescan_reconciles_a_folder_whose_events_were_dropped() {
+        let (service, base, root) = built("rescan", &["docs/old.txt"]).await;
+        fs::remove_file(root.join("docs/old.txt")).unwrap();
+        fs::write(root.join("docs/new.txt"), b"x").unwrap();
+        let result = service
+            .apply_path_changes(&request(&root), &[], &[root.join("docs")])
+            .unwrap()
+            .unwrap();
+        assert_eq!((result.added, result.removed), (1, 1));
+        assert_eq!(indexed(&service, &root), ["docs", "docs/new.txt"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[tokio::test]
+    async fn path_updates_wait_while_a_scan_holds_the_index() {
+        let (service, base, root) = built("busy", &["a.txt"]).await;
+        fs::write(root.join("b.txt"), b"x").unwrap();
+        let scan = ScanLock::try_acquire(&service.inner.index_root)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            service
+                .apply_path_changes(&request(&root), &[root.join("b.txt")], &[])
+                .unwrap(),
+            None
+        );
+        assert_eq!(indexed(&service, &root), ["a.txt"]);
+        drop(scan);
+        assert_eq!(apply(&service, &root, &["b.txt"]), changes(1, 0, 0));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[tokio::test]
+    async fn the_watcher_applies_file_system_events_to_the_index() {
+        let (service, base, root) = built("watch", &["a.txt"]).await;
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let sender = Mutex::new(sender);
+        service.on_watch_update(move |report| {
+            let _ = sender.lock().unwrap().send(report.changes);
+        });
+        service
+            .watch(&SearchScanRequest {
+                watch: true,
+                ..request(&root)
+            })
+            .unwrap();
+        // FSEvents can take a moment to start delivering.
+        std::thread::sleep(Duration::from_millis(300));
+
+        let wait_for = |expected: &[&str]| {
+            let deadline = std::time::Instant::now() + Duration::from_secs(10);
+            while std::time::Instant::now() < deadline {
+                let _ = receiver.recv_timeout(Duration::from_millis(100));
+                // The catalog on disk is replaced just before the service
+                // switches to it; wait for both.
+                let (docs, rows) = published(&service, &root);
+                if docs == expected && rows == expected {
+                    return;
+                }
+            }
+            panic!(
+                "index never became {expected:?}: {:?}",
+                published(&service, &root)
+            );
+        };
+        fs::write(root.join("b.txt"), b"x").unwrap();
+        wait_for(&["a.txt", "b.txt"]);
+        fs::rename(root.join("b.txt"), root.join("c.txt")).unwrap();
+        wait_for(&["a.txt", "c.txt"]);
+        fs::remove_file(root.join("a.txt")).unwrap();
+        wait_for(&["c.txt"]);
+
+        service.stop_watching();
+        let _ = fs::remove_dir_all(base);
+    }
+
     #[test]
     fn key_ranges_cover_exactly_the_entries_below_a_root() {
         let separator = std::path::MAIN_SEPARATOR;
@@ -2433,3 +3248,5 @@ fn delete_doc(writer: &IndexWriter, fields: &SearchIndexFields, path: &str) -> A
 #[path = "search_local_query.rs"]
 mod local_query;
 use local_query::query_documents;
+#[path = "search_watch.rs"]
+mod watch;
